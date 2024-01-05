@@ -1,16 +1,9 @@
 use core::cmp::Ordering;
 use ethnum::U256;
 use shared::{require, utils::num::*, Error};
+use soroban_sdk::{Address, Env};
 
 use crate::storage::{pool::Pool, user_deposit::UserDeposit};
-
-#[derive(Debug, Default)]
-pub struct DepositResult {
-    pub rewards: u128,
-    pub lp_amount: u128,
-    pub token_a_amount: u128,
-    pub token_b_amount: u128,
-}
 
 impl Pool {
     const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
@@ -21,9 +14,11 @@ impl Pool {
 
     pub fn deposit(
         &mut self,
+        env: &Env,
         amount_sp: u128,
+        sender: Address,
         user: &mut UserDeposit,
-    ) -> Result<DepositResult, Error> {
+    ) -> Result<(u128, u128), Error> {
         let old_d = self.d;
 
         require!(amount_sp > 0, Error::ZeroAmount);
@@ -57,19 +52,31 @@ impl Pool {
 
         let lp_amount = self.d - old_d;
 
-        Ok(DepositResult {
-            rewards: self.deposit_lp(user, lp_amount),
-            lp_amount: self.amount_from_system_precision(lp_amount, self.decimals_lp),
-            token_a_amount: self.amount_from_system_precision(token_a_amount, self.decimals_a),
-            token_b_amount: self.amount_from_system_precision(token_b_amount, self.decimals_b),
-        })
+        self.get_token_a(env).transfer(
+            &sender,
+            &env.current_contract_address(),
+            &(self.amount_from_system_precision(token_a_amount, self.decimals_a) as i128),
+        );
+        self.get_token_b(env).transfer(
+            &sender,
+            &env.current_contract_address(),
+            &(self.amount_from_system_precision(token_b_amount, self.decimals_b) as i128),
+        );
+        self.get_lp_native_asset(env).mint(
+            &sender,
+            &(self.amount_from_system_precision(lp_amount, self.decimals_lp) as i128),
+        );
+
+        Ok((self.deposit_lp(user, lp_amount), lp_amount))
     }
 
     pub fn withdraw(
         &mut self,
+        env: &Env,
+        sender: Address,
         user: &mut UserDeposit,
         amount_lp: u128,
-    ) -> Result<(u128, u128), Error> {
+    ) -> Result<(), Error> {
         let reward_amount = self.withdraw_lp(user, amount_lp);
 
         let old_balance = self.token_a_balance + self.token_b_balance;
@@ -91,10 +98,27 @@ impl Pool {
         self.update_d();
         require!(self.d < old_d, Error::ZeroChanges);
 
-        Ok((
-            self.amount_from_system_precision(token_a_amount, self.decimals_a) + reward_amount,
-            self.amount_from_system_precision(token_b_amount, self.decimals_b) + reward_amount,
-        ))
+        let token_a_amount =
+            self.amount_from_system_precision(token_a_amount, self.decimals_a) + reward_amount;
+        let token_b_amount =
+            self.amount_from_system_precision(token_b_amount, self.decimals_b) + reward_amount;
+
+        self.get_token_a(&env).transfer(
+            &env.current_contract_address(),
+            &sender,
+            &(token_a_amount as i128),
+        );
+        self.get_token_b(&env).transfer(
+            &env.current_contract_address(),
+            &sender,
+            &(token_b_amount as i128),
+        );
+        self.get_lp_token(&env).burn(
+            &sender,
+            &(self.amount_from_system_precision(amount_lp, self.decimals_lp) as i128),
+        );
+
+        Ok(())
     }
 
     pub(crate) fn deposit_lp(&mut self, user: &mut UserDeposit, lp_amount: u128) -> u128 {
@@ -128,7 +152,7 @@ impl Pool {
         pending
     }
 
-    pub fn swap_to_token_b(&mut self, amount: u128, zero_fee: bool) -> Result<(u128, u128), Error> {
+    pub fn swap_a_to_b(&mut self, amount: u128, zero_fee: bool) -> Result<(u128, u128), Error> {
         let mut result = 0;
 
         if amount == 0 {
@@ -161,7 +185,7 @@ impl Pool {
         Ok((result, fee))
     }
 
-    pub fn swap_from_token_b(
+    pub fn swap_b_to_a(
         &mut self,
         vusd_amount: u128,
         receive_amount_min: u128,

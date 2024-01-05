@@ -3,7 +3,6 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     events::{Deposit, RewardsClaimed},
-    methods::internal::pool::DepositResult,
     storage::{pool::Pool, user_deposit::UserDeposit},
 };
 
@@ -15,25 +14,7 @@ pub fn deposit(env: Env, sender: Address, amount_sp: u128) -> Result<(), Error> 
 
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
 
-    let DepositResult {
-        rewards,
-        lp_amount,
-        token_a_amount,
-        token_b_amount,
-    } = pool.deposit(amount_sp, &mut user_deposit)?;
-
-    pool.get_token_a(&env).transfer(
-        &sender,
-        &env.current_contract_address(),
-        &(token_a_amount as i128),
-    );
-    pool.get_token_b(&env).transfer(
-        &sender,
-        &env.current_contract_address(),
-        &(token_b_amount as i128),
-    );
-    pool.get_lp_native_asset(&env)
-        .mint(&sender, &(lp_amount as i128));
+    let (rewards, lp_amount) = pool.deposit(&env, amount_sp, sender.clone(), &mut user_deposit)?;
 
     pool.save(&env);
     user_deposit.save(&env, sender.clone());

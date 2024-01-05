@@ -17,7 +17,7 @@ pub fn swap_to_v_usd(env: Env, user: Address, amount: u128, zero_fee: bool) -> R
 
     token_client.transfer(&user, &current_pool, &(amount as i128));
 
-    let (vusd_amount, fee) = pool.swap_to_token_b(amount, zero_fee)?;
+    let (vusd_amount, fee) = pool.swap_a_to_b(amount, zero_fee)?;
     pool.save(&env);
 
     SwappedToVUsd {

@@ -19,7 +19,7 @@ pub fn swap_from_v_usd(
 
     Bridge::require_exist_auth(&env)?;
 
-    let (amount, fee) = pool.swap_from_token_b(vusd_amount, receive_amount_min, zero_fee)?;
+    let (amount, fee) = pool.swap_b_to_a(vusd_amount, receive_amount_min, zero_fee)?;
     if claimable {
         ClaimableBalance::update(&env, user.clone(), |claimable_balance| {
             claimable_balance.amount += amount;
