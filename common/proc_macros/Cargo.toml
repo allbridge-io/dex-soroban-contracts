@@ -1,0 +1,16 @@
+[package]
+name = "proc_macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "proc_macros"
+path = "src/lib.rs"
+proc-macro = true
+
+[dependencies]
+# https://github.com/dtolnay/proc-macro-workshop#debugging-tips
+syn = { version = "2", features = ["extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
+shared = { workspace = true }

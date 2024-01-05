@@ -1,0 +1,15 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+soroban-sdk = { workspace = true }
+ethnum = { workspace = true }
+arrayref = { workspace = true }
+soroban-env-common = { workspace = true }
+# proc_macros = { workspace = true }
+
+[dev_dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+hex = "0.4.3"
