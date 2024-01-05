@@ -20,9 +20,11 @@ pub fn initialize(
 
     let token_a_client = token::Client::new(&env, &token_a);
     let token_b_client = token::Client::new(&env, &token_b);
+    let lp_token_client = token::Client::new(&env, &lp_token);
 
     let decimals_a = token_a_client.decimals();
     let decimals_b = token_b_client.decimals();
+    let decimals_lp = lp_token_client.decimals();
 
     Pool::from_init_params(
         a,
@@ -34,6 +36,7 @@ pub fn initialize(
         admin_fee_share_bp,
         decimals_a,
         decimals_b,
+        decimals_lp,
     )
     .save(&env);
     Admin(admin).save(&env);

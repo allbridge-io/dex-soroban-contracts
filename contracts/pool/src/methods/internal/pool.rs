@@ -59,7 +59,7 @@ impl Pool {
 
         Ok(DepositResult {
             rewards: self.deposit_lp(user, lp_amount),
-            lp_amount,
+            lp_amount: self.amount_from_system_precision(lp_amount, self.decimals_lp),
             token_a_amount: self.amount_from_system_precision(token_a_amount, self.decimals_a),
             token_b_amount: self.amount_from_system_precision(token_b_amount, self.decimals_b),
         })
@@ -308,6 +308,7 @@ mod tests {
             100,
             1,
             2000,
+            7,
             7,
             7,
         );

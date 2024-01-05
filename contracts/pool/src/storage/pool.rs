@@ -29,6 +29,7 @@ pub struct Pool {
 
     pub decimals_a: u32,
     pub decimals_b: u32,
+    pub decimals_lp: u32,
 
     pub total_lp_amount: u128,
     pub admin_fee_share_bp: u128,
@@ -50,6 +51,7 @@ impl Pool {
         admin_fee_share_bp: u128,
         decimals_a: u32,
         decimals_b: u32,
+        decimals_lp: u32,
     ) -> Self {
         Pool {
             a,
@@ -61,6 +63,7 @@ impl Pool {
             admin_fee_share_bp,
             decimals_a,
             decimals_b,
+            decimals_lp,
             can_deposit: true,
             can_withdraw: true,
             d: 0,
