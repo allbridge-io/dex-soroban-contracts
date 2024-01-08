@@ -1,9 +1,24 @@
+#![allow(dead_code)]
+
 use core::cmp::Ordering;
 use ethnum::U256;
 use shared::{require, utils::num::*, Error};
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{contracttype, token::TokenClient, Address, Env};
 
-use crate::storage::{pool::Pool, user_deposit::UserDeposit};
+use crate::storage::{claimable_balance::ClaimableBalance, pool::Pool, user_deposit::UserDeposit};
+
+#[derive(Debug, Clone, Copy)]
+pub enum Tokens {
+    TokenA,
+    TokenB,
+}
+
+#[contracttype]
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    A2B,
+    B2A,
+}
 
 impl Pool {
     const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
@@ -152,60 +167,72 @@ impl Pool {
         pending
     }
 
-    pub fn swap_a_to_b(&mut self, amount: u128, zero_fee: bool) -> Result<(u128, u128), Error> {
-        let mut result = 0;
-
-        if amount == 0 {
-            return Ok((0, 0));
+    pub fn get_token_balance(&self, token: Tokens) -> u128 {
+        match token {
+            Tokens::TokenA => self.token_a_balance,
+            Tokens::TokenB => self.token_b_balance,
         }
-
-        let fee = if zero_fee {
-            0
-        } else {
-            amount * self.fee_share_bp / Self::BP
-        };
-
-        let amount_in = self.amount_to_system_precision(amount - fee, self.decimals_a);
-        let fee = amount - self.amount_from_system_precision(amount_in, self.decimals_a);
-
-        self.token_a_balance += amount_in;
-        self.reserves += amount_in;
-
-        let token_b_new_amount = self.get_y(self.token_a_balance);
-
-        if self.token_b_balance > token_b_new_amount {
-            result = self.token_b_balance - token_b_new_amount;
-        }
-
-        self.token_b_balance = token_b_new_amount;
-
-        self.add_rewards(fee);
-        self.validate_balance_ratio()?;
-
-        Ok((result, fee))
     }
 
-    pub fn swap_b_to_a(
+    pub fn get_token_client(&self, env: &Env, token: Tokens) -> TokenClient<'_> {
+        match token {
+            Tokens::TokenA => self.get_token_a(env),
+            Tokens::TokenB => self.get_token_b(env),
+        }
+    }
+
+    pub fn set_token_balance(&mut self, new_val: u128, token: Tokens) {
+        match token {
+            Tokens::TokenA => self.token_a_balance = new_val,
+            Tokens::TokenB => self.token_b_balance = new_val,
+        }
+    }
+
+    pub fn swap(
         &mut self,
-        vusd_amount: u128,
+        env: &Env,
+        sender: Address,
+        recipient: Address,
+        amount_in: u128,
         receive_amount_min: u128,
         zero_fee: bool,
+        claimable: bool,
+        direction: Direction,
     ) -> Result<(u128, u128), Error> {
+        let (token_from, token_to) = match direction {
+            Direction::A2B => (Tokens::TokenA, Tokens::TokenB),
+            Direction::B2A => (Tokens::TokenB, Tokens::TokenA),
+        };
+
+        let current_pool = env.current_contract_address();
+
+        self.get_token_client(env, token_from).transfer(
+            &current_pool,
+            &sender,
+            &(amount_in as i128),
+        );
+
         let mut result = 0;
         let mut result_sp = 0;
-        if vusd_amount == 0 {
+
+        if amount_in == 0 {
             return Ok((0, 0));
         }
-        self.token_b_balance += vusd_amount;
-        let token_a_new_amount = self.get_y(self.token_b_balance);
-        if self.token_a_balance > token_a_new_amount {
-            result_sp = self.token_a_balance - token_a_new_amount;
+
+        self.set_token_balance(self.get_token_balance(token_from) + amount_in, token_from);
+
+        let token_to_new_amount = self.get_y(self.get_token_balance(token_from));
+        if self.get_token_balance(token_from) > token_to_new_amount {
+            result_sp = self.get_token_balance(token_to) - token_to_new_amount;
             result = self.amount_from_system_precision(result_sp, self.decimals_a);
         }
 
         require!(result_sp <= self.reserves, Error::ReservesExhausted);
 
+        // ??
+        self.reserves += amount_in;
         self.reserves -= result_sp;
+
         let fee = if zero_fee {
             0
         } else {
@@ -213,7 +240,8 @@ impl Pool {
         };
 
         result -= fee;
-        self.token_a_balance = token_a_new_amount;
+
+        self.set_token_balance(token_to_new_amount, token_to);
 
         self.add_rewards(fee);
         self.validate_balance_ratio()?;
@@ -222,6 +250,19 @@ impl Pool {
             result >= receive_amount_min,
             Error::InsufficientReceivedAmount
         );
+
+        if claimable {
+            ClaimableBalance::update(&env, recipient.clone(), |claimable_balance| {
+                claimable_balance.amount += result;
+                Ok(())
+            })?;
+        } else {
+            self.get_token_client(env, token_to).transfer(
+                &current_pool,
+                &recipient,
+                &(result as i128),
+            );
+        }
 
         Ok((result, fee))
     }

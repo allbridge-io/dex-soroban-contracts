@@ -4,11 +4,11 @@ use proc_macros::Event;
 
 #[derive(Event)]
 #[contracttype]
-pub struct SwappedFromVUsd {
-    pub recipient: Address,
+pub struct Swapped {
+    pub sender: Address,
     pub token: Address,
-    pub vusd_amount: u128,
-    pub amount: u128,
+    pub to_amount: u128,
+    pub from_amount: u128,
     pub fee: u128,
 }
 

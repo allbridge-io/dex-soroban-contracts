@@ -1,6 +1,7 @@
 use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
+use crate::methods::internal::pool::Direction;
 use crate::methods::view::get_claimable_balance;
 use crate::storage::view::{get_admin, get_stop_authority};
 use crate::{
@@ -9,10 +10,7 @@ use crate::{
             adjust_total_lp_amount::*, claim_fee::*, config_addresses::*, config_pool::*,
             start_stop::*,
         },
-        public::{
-            claim_balance, claim_rewards, deposit, initialize, swap_from_v_usd, swap_to_v_usd,
-            withdraw,
-        },
+        public::{claim_balance, claim_rewards, deposit, initialize, swap, withdraw},
         view::{get_bridge, get_pool, get_user_deposit, pending_reward},
     },
     storage::{pool::Pool, user_deposit::UserDeposit},
@@ -62,34 +60,27 @@ impl PoolContract {
         withdraw(env, sender, amount_lp)
     }
 
-    pub fn swap_to_v_usd(
+    pub fn swap(
         env: Env,
-        user: Address,
-        amount: u128,
-        zero_fee: bool,
-    ) -> Result<u128, Error> {
-        extend_ttl_instance(&env);
-
-        swap_to_v_usd(env, user, amount, zero_fee)
-    }
-
-    pub fn swap_from_v_usd(
-        env: Env,
-        user: Address,
-        vusd_amount: u128,
+        sender: Address,
+        recipient: Address,
+        amount_in: u128,
         receive_amount_min: u128,
         zero_fee: bool,
         claimable: bool,
+        direction: Direction,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
-        swap_from_v_usd(
+        swap(
             env,
-            user,
-            vusd_amount,
+            sender,
+            recipient,
+            amount_in,
             receive_amount_min,
             zero_fee,
             claimable,
+            direction,
         )
     }
 
