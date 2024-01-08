@@ -7,6 +7,12 @@ use soroban_sdk::{
     Address, Env,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub enum Tokens {
+    TokenA,
+    TokenB,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, SorobanData, SorobanSimpleData)]
 #[symbol_key("Pool")]
@@ -91,7 +97,32 @@ impl Pool {
         token::Client::new(&env, &self.lp_token)
     }
 
+    #[inline(always)]
     pub fn get_lp_native_asset(&self, env: &Env) -> token::StellarAssetClient<'_> {
         token::StellarAssetClient::new(env, &self.lp_token)
+    }
+
+    #[inline]
+    pub fn get_token_balance(&self, token: Tokens) -> u128 {
+        match token {
+            Tokens::TokenA => self.token_a_balance,
+            Tokens::TokenB => self.token_b_balance,
+        }
+    }
+
+    #[inline]
+    pub fn get_token_client(&self, env: &Env, token: Tokens) -> TokenClient<'_> {
+        match token {
+            Tokens::TokenA => self.get_token_a(env),
+            Tokens::TokenB => self.get_token_b(env),
+        }
+    }
+
+    #[inline]
+    pub fn set_token_balance(&mut self, new_val: u128, token: Tokens) {
+        match token {
+            Tokens::TokenA => self.token_a_balance = new_val,
+            Tokens::TokenB => self.token_b_balance = new_val,
+        }
     }
 }

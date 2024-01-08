@@ -3,21 +3,28 @@
 use core::cmp::Ordering;
 use ethnum::U256;
 use shared::{require, utils::num::*, Error};
-use soroban_sdk::{contracttype, token::TokenClient, Address, Env};
+use soroban_sdk::{contracttype, Address, Env};
 
-use crate::storage::{claimable_balance::ClaimableBalance, pool::Pool, user_deposit::UserDeposit};
-
-#[derive(Debug, Clone, Copy)]
-pub enum Tokens {
-    TokenA,
-    TokenB,
-}
+use crate::storage::{
+    claimable_balance::ClaimableBalance,
+    pool::{Pool, Tokens},
+    user_deposit::UserDeposit,
+};
 
 #[contracttype]
 #[derive(Debug, Clone, Copy)]
 pub enum Direction {
     A2B,
     B2A,
+}
+
+impl Direction {
+    pub fn to_tokens(&self) -> (Tokens, Tokens) {
+        match self {
+            Direction::A2B => (Tokens::TokenA, Tokens::TokenB),
+            Direction::B2A => (Tokens::TokenB, Tokens::TokenA),
+        }
+    }
 }
 
 impl Pool {
@@ -167,27 +174,6 @@ impl Pool {
         pending
     }
 
-    pub fn get_token_balance(&self, token: Tokens) -> u128 {
-        match token {
-            Tokens::TokenA => self.token_a_balance,
-            Tokens::TokenB => self.token_b_balance,
-        }
-    }
-
-    pub fn get_token_client(&self, env: &Env, token: Tokens) -> TokenClient<'_> {
-        match token {
-            Tokens::TokenA => self.get_token_a(env),
-            Tokens::TokenB => self.get_token_b(env),
-        }
-    }
-
-    pub fn set_token_balance(&mut self, new_val: u128, token: Tokens) {
-        match token {
-            Tokens::TokenA => self.token_a_balance = new_val,
-            Tokens::TokenB => self.token_b_balance = new_val,
-        }
-    }
-
     pub fn swap(
         &mut self,
         env: &Env,
@@ -199,11 +185,7 @@ impl Pool {
         claimable: bool,
         direction: Direction,
     ) -> Result<(u128, u128), Error> {
-        let (token_from, token_to) = match direction {
-            Direction::A2B => (Tokens::TokenA, Tokens::TokenB),
-            Direction::B2A => (Tokens::TokenB, Tokens::TokenA),
-        };
-
+        let (token_from, token_to) = direction.to_tokens();
         let current_pool = env.current_contract_address();
 
         self.get_token_client(env, token_from).transfer(
@@ -230,8 +212,7 @@ impl Pool {
         require!(result_sp <= self.reserves, Error::ReservesExhausted);
 
         // ??
-        self.reserves += amount_in;
-        self.reserves -= result_sp;
+        self.reserves = self.reserves + amount_in - result_sp;
 
         let fee = if zero_fee {
             0
