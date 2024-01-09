@@ -1,5 +1,5 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
-use soroban_sdk::{token, Address, Env};
+use soroban_sdk::{Address, Env};
 
 use crate::storage::{admin::Admin, bridge_address::Bridge, pool::Pool};
 
@@ -18,14 +18,6 @@ pub fn initialize(
 ) -> Result<(), Error> {
     require!(!Pool::has(&env), Error::Initialized);
 
-    let token_a_client = token::Client::new(&env, &token_a);
-    let token_b_client = token::Client::new(&env, &token_b);
-    let lp_token_client = token::Client::new(&env, &lp_token);
-
-    let decimals_a = token_a_client.decimals();
-    let decimals_b = token_b_client.decimals();
-    let decimals_lp = lp_token_client.decimals();
-
     Pool::from_init_params(
         a,
         token_a,
@@ -34,9 +26,6 @@ pub fn initialize(
         fee_share_bp,
         balance_ratio_min_bp,
         admin_fee_share_bp,
-        decimals_a,
-        decimals_b,
-        decimals_lp,
     )
     .save(&env);
     Admin(admin).save(&env);

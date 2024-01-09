@@ -33,10 +33,6 @@ pub struct Pool {
 
     pub reserves: u128,
 
-    pub decimals_a: u32,
-    pub decimals_b: u32,
-    pub decimals_lp: u32,
-
     pub total_lp_amount: u128,
     pub admin_fee_share_bp: u128,
     pub acc_reward_per_share_p: u128,
@@ -55,9 +51,6 @@ impl Pool {
         fee_share_bp: u128,
         balance_ratio_min_bp: u128,
         admin_fee_share_bp: u128,
-        decimals_a: u32,
-        decimals_b: u32,
-        decimals_lp: u32,
     ) -> Self {
         Pool {
             a,
@@ -67,9 +60,6 @@ impl Pool {
             fee_share_bp,
             balance_ratio_min_bp,
             admin_fee_share_bp,
-            decimals_a,
-            decimals_b,
-            decimals_lp,
             can_deposit: true,
             can_withdraw: true,
             d: 0,

@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-
-use core::cmp::Ordering;
 use ethnum::U256;
 use shared::{require, utils::num::*, Error};
 use soroban_sdk::{contracttype, Address, Env};
@@ -32,31 +29,30 @@ impl Pool {
     const BP: u128 = 10000;
 
     pub const P: u128 = 48;
-    const SYSTEM_PRECISION: u32 = 3;
 
     pub fn deposit(
         &mut self,
         env: &Env,
-        amount_sp: u128,
+        amount: u128,
         sender: Address,
         user: &mut UserDeposit,
     ) -> Result<(u128, u128), Error> {
         let old_d = self.d;
 
-        require!(amount_sp > 0, Error::ZeroAmount);
+        require!(amount > 0, Error::ZeroAmount);
 
-        self.reserves += amount_sp;
+        self.reserves += amount;
 
         let old_balance = self.token_a_balance + self.token_b_balance;
         let (token_a_amount, token_b_amount) = if old_d == 0 || old_balance == 0 {
-            let half_amount = amount_sp >> 1;
+            let half_amount = amount >> 1;
             self.token_a_balance = half_amount;
             self.token_b_balance = half_amount;
 
             (half_amount, half_amount)
         } else {
-            let token_a_amount = amount_sp * self.token_a_balance / old_balance;
-            let token_b_amount = amount_sp * self.token_b_balance / old_balance;
+            let token_a_amount = amount * self.token_a_balance / old_balance;
+            let token_b_amount = amount * self.token_b_balance / old_balance;
             self.token_a_balance += token_a_amount;
             self.token_b_balance += token_b_amount;
 
@@ -77,17 +73,15 @@ impl Pool {
         self.get_token_a(env).transfer(
             &sender,
             &env.current_contract_address(),
-            &(self.amount_from_system_precision(token_a_amount, self.decimals_a) as i128),
+            &(token_a_amount as i128),
         );
         self.get_token_b(env).transfer(
             &sender,
             &env.current_contract_address(),
-            &(self.amount_from_system_precision(token_b_amount, self.decimals_b) as i128),
+            &(token_b_amount as i128),
         );
-        self.get_lp_native_asset(env).mint(
-            &sender,
-            &(self.amount_from_system_precision(lp_amount, self.decimals_lp) as i128),
-        );
+        self.get_lp_native_asset(env)
+            .mint(&sender, &(lp_amount as i128));
 
         Ok((self.deposit_lp(user, lp_amount), lp_amount))
     }
@@ -120,25 +114,17 @@ impl Pool {
         self.update_d();
         require!(self.d < old_d, Error::ZeroChanges);
 
-        let token_a_amount =
-            self.amount_from_system_precision(token_a_amount, self.decimals_a) + reward_amount;
-        let token_b_amount =
-            self.amount_from_system_precision(token_b_amount, self.decimals_b) + reward_amount;
-
         self.get_token_a(&env).transfer(
             &env.current_contract_address(),
             &sender,
-            &(token_a_amount as i128),
+            &((token_a_amount + reward_amount) as i128),
         );
         self.get_token_b(&env).transfer(
             &env.current_contract_address(),
             &sender,
-            &(token_b_amount as i128),
+            &((token_b_amount + reward_amount) as i128),
         );
-        self.get_lp_token(&env).burn(
-            &sender,
-            &(self.amount_from_system_precision(amount_lp, self.decimals_lp) as i128),
-        );
+        self.get_lp_token(&env).burn(&sender, &(amount_lp as i128));
 
         Ok(())
     }
@@ -195,7 +181,6 @@ impl Pool {
         );
 
         let mut result = 0;
-        let mut result_sp = 0;
 
         if amount_in == 0 {
             return Ok((0, 0));
@@ -205,14 +190,13 @@ impl Pool {
 
         let token_to_new_amount = self.get_y(self.get_token_balance(token_from));
         if self.get_token_balance(token_from) > token_to_new_amount {
-            result_sp = self.get_token_balance(token_to) - token_to_new_amount;
-            result = self.amount_from_system_precision(result_sp, self.decimals_a);
+            result = self.get_token_balance(token_to) - token_to_new_amount;
         }
 
-        require!(result_sp <= self.reserves, Error::ReservesExhausted);
+        require!(result <= self.reserves, Error::ReservesExhausted);
 
         // ??
-        self.reserves = self.reserves + amount_in - result_sp;
+        self.reserves = self.reserves + amount_in - result;
 
         let fee = if zero_fee {
             0
@@ -248,26 +232,12 @@ impl Pool {
         Ok((result, fee))
     }
 
-    pub fn claim_rewards(&self, user_deposit: &mut UserDeposit) -> Result<u128, Error> {
-        if user_deposit.lp_amount > 0 {
-            let rewards = (user_deposit.lp_amount * self.acc_reward_per_share_p) >> Pool::P;
-            let pending = rewards - user_deposit.reward_debt;
-            if pending > 0 {
-                user_deposit.reward_debt = rewards;
-            }
-            return Ok(pending);
-        }
-
-        Ok(0)
+    pub fn claim_rewards(&self, _: &mut UserDeposit) -> Result<u128, Error> {
+        todo!()
     }
 
-    pub(crate) fn add_rewards(&mut self, mut reward_amount: u128) {
-        if self.total_lp_amount > 0 {
-            let admin_fee_rewards = reward_amount * self.admin_fee_share_bp / Pool::BP;
-            reward_amount -= admin_fee_rewards;
-            self.acc_reward_per_share_p += (reward_amount << Pool::P) / self.total_lp_amount;
-            self.admin_fee_amount += admin_fee_rewards;
-        }
+    pub(crate) fn add_rewards(&mut self, mut _reward_amount: u128) {
+        todo!()
     }
 
     // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
@@ -308,22 +278,6 @@ impl Pool {
         d << 1
     }
 
-    pub(crate) fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
-        match decimals.cmp(&Self::SYSTEM_PRECISION) {
-            Ordering::Greater => amount / (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
-            Ordering::Less => amount * (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
-            Ordering::Equal => amount,
-        }
-    }
-
-    pub(crate) fn amount_from_system_precision(&self, amount: u128, decimals: u32) -> u128 {
-        match decimals.cmp(&Self::SYSTEM_PRECISION) {
-            Ordering::Greater => amount * (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
-            Ordering::Less => amount / (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
-            Ordering::Equal => amount,
-        }
-    }
-
     fn validate_balance_ratio(&self) -> Result<(), Error> {
         let min = self.token_a_balance.min(self.token_b_balance);
         let max = self.token_a_balance.max(self.token_b_balance);
@@ -354,9 +308,6 @@ mod tests {
             100,
             1,
             2000,
-            7,
-            7,
-            7,
         );
 
         assert_eq!(pool.get_d(0, 0), 0);
