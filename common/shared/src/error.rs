@@ -14,13 +14,11 @@ pub enum Error {
     GasUsageNotSet = 7,
     BrokenAddress = 8,
     NotFound = 9,
+    Forbidden = 10,
 
     // Pool
-    ZeroAmount = 103,
-    PoolOverflow = 104,
-    ZeroChanges = 105,
-    ReservesExhausted = 106,
-    InsufficientReceivedAmount = 107,
-    BalanceRatioExceeded = 108,
-    Forbidden = 109,
+    ZeroAmount = 101,
+    PoolOverflow = 102,
+    ZeroChanges = 103,
+    InsufficientReceivedAmount = 104,
 }

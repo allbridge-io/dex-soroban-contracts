@@ -21,21 +21,10 @@ impl PoolContract {
         a: u128,
         token_a: Address,
         token_b: Address,
-        lp_token: Address,
         fee_share_bp: u128,
-        balance_ratio_min_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Result<(), Error> {
-        initialize(
-            env,
-            a,
-            token_a,
-            token_b,
-            lp_token,
-            fee_share_bp,
-            balance_ratio_min_bp,
-            admin_fee_share_bp,
-        )
+        initialize(env, a, token_a, token_b, fee_share_bp, admin_fee_share_bp)
     }
 
     pub fn deposit(env: Env, sender: Address, amount_sp: u128) -> Result<(), Error> {

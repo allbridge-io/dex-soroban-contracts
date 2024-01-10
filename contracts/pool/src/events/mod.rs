@@ -14,16 +14,6 @@ pub struct Swapped {
 
 #[derive(Event)]
 #[contracttype]
-pub struct SwappedToVUsd {
-    pub sender: Address,
-    pub token: Address,
-    pub amount: u128,
-    pub vusd_amount: u128,
-    pub fee: u128,
-}
-
-#[derive(Event)]
-#[contracttype]
 pub struct Deposit {
     pub user: Address,
     pub amount: u128,
@@ -39,13 +29,6 @@ pub struct Withdraw {
 #[derive(Event)]
 #[contracttype]
 pub struct RewardsClaimed {
-    pub user: Address,
-    pub amount: u128,
-}
-
-#[derive(Event)]
-#[contracttype]
-pub struct BalanceClaimed {
     pub user: Address,
     pub amount: u128,
 }

@@ -22,24 +22,17 @@ pub struct Pool {
     pub a: u128,
     pub token_a: Address,
     pub token_b: Address,
-    pub lp_token: Address,
 
     pub fee_share_bp: u128,
-    pub balance_ratio_min_bp: u128,
     pub d: u128,
 
     pub token_a_balance: u128,
     pub token_b_balance: u128,
 
-    pub reserves: u128,
-
     pub total_lp_amount: u128,
     pub admin_fee_share_bp: u128,
     pub acc_reward_per_share_p: u128,
     pub admin_fee_amount: u128,
-
-    pub can_deposit: bool,
-    pub can_withdraw: bool,
 }
 
 impl Pool {
@@ -47,25 +40,18 @@ impl Pool {
         a: u128,
         token_a: Address,
         token_b: Address,
-        lp_token: Address,
         fee_share_bp: u128,
-        balance_ratio_min_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Self {
         Pool {
             a,
             token_a,
             token_b,
-            lp_token,
             fee_share_bp,
-            balance_ratio_min_bp,
             admin_fee_share_bp,
-            can_deposit: true,
-            can_withdraw: true,
             d: 0,
             token_a_balance: 0,
             token_b_balance: 0,
-            reserves: 0,
             total_lp_amount: 0,
             acc_reward_per_share_p: 0,
             admin_fee_amount: 0,
@@ -80,16 +66,6 @@ impl Pool {
     #[inline(always)]
     pub fn get_token_b(&self, env: &Env) -> TokenClient<'_> {
         token::Client::new(env, &self.token_b)
-    }
-
-    #[inline(always)]
-    pub fn get_lp_token(&self, env: &Env) -> TokenClient<'_> {
-        token::Client::new(env, &self.lp_token)
-    }
-
-    #[inline(always)]
-    pub fn get_lp_native_asset(&self, env: &Env) -> token::StellarAssetClient<'_> {
-        token::StellarAssetClient::new(env, &self.lp_token)
     }
 
     #[inline]

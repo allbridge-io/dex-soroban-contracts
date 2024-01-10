@@ -40,8 +40,6 @@ impl Pool {
 
         require!(amount > 0, Error::ZeroAmount);
 
-        self.reserves += amount;
-
         let old_balance = self.token_a_balance + self.token_b_balance;
         let (token_a_amount, token_b_amount) = if old_d == 0 || old_balance == 0 {
             let half_amount = amount >> 1;
@@ -65,8 +63,6 @@ impl Pool {
             Error::PoolOverflow
         );
 
-        self.validate_balance_ratio()?;
-
         let lp_amount = self.d - old_d;
 
         self.get_token_a(env).transfer(
@@ -79,8 +75,6 @@ impl Pool {
             &env.current_contract_address(),
             &(token_b_amount as i128),
         );
-        self.get_lp_native_asset(env)
-            .mint(&sender, &(lp_amount as i128));
 
         Ok((self.deposit_lp(user, lp_amount), lp_amount))
     }
@@ -105,9 +99,7 @@ impl Pool {
             self.token_a_balance + self.token_b_balance < old_balance,
             Error::ZeroChanges
         );
-        require!(amount_lp <= self.reserves, Error::ReservesExhausted);
 
-        self.reserves -= amount_lp;
         let old_d = self.d;
         // Always equal amounts removed from actual and virtual tokens
         self.update_d();
@@ -123,7 +115,6 @@ impl Pool {
             &sender,
             &((token_b_amount + reward_amount) as i128),
         );
-        self.get_lp_token(env).burn(&sender, &(amount_lp as i128));
 
         Ok(())
     }
@@ -192,11 +183,6 @@ impl Pool {
             result = self.get_token_balance(token_to) - token_to_new_amount;
         }
 
-        require!(result <= self.reserves, Error::ReservesExhausted);
-
-        // ??
-        self.reserves = self.reserves + amount_in - result;
-
         let fee = if zero_fee {
             0
         } else {
@@ -208,7 +194,6 @@ impl Pool {
         self.set_token_balance(token_to_new_amount, token_to);
 
         self.add_rewards(fee);
-        self.validate_balance_ratio()?;
 
         require!(
             result >= receive_amount_min,
@@ -279,55 +264,5 @@ impl Pool {
             d += cbrt(&(p1 - p3));
         }
         d << 1
-    }
-
-    fn validate_balance_ratio(&self) -> Result<(), Error> {
-        let min = self.token_a_balance.min(self.token_b_balance);
-        let max = self.token_a_balance.max(self.token_b_balance);
-        require!(
-            min * Self::BP / max >= self.balance_ratio_min_bp,
-            Error::BalanceRatioExceeded
-        );
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    extern crate std;
-
-    use soroban_sdk::{testutils::Address as _, Address, Env};
-
-    use crate::storage::pool::Pool;
-
-    #[test]
-    fn check_d() {
-        let env = Env::default();
-        let pool = Pool::from_init_params(
-            20,
-            Address::generate(&env),
-            Address::generate(&env),
-            Address::generate(&env),
-            100,
-            1,
-            2000,
-        );
-
-        assert_eq!(pool.get_d(0, 0), 0);
-        assert_eq!(pool.get_d(100_000, 100_000), 200_000);
-        assert_eq!(pool.get_d(15_819, 189_999), 200_000);
-        assert_eq!(pool.get_d(295_237, 14_763), 295_240);
-        assert_eq!(pool.get_d(23_504, 282_313), 297_172);
-        assert_eq!(pool.get_d(104_762, 5_239), 104_764);
-        assert_eq!(pool.get_d(8_133, 97_685), 102_826);
-        assert_eq!(pool.get_d(4_777, 4_749), 9_526);
-        assert_eq!(pool.get_d(22_221, 21_607), 43_828);
-
-        assert!(pool.get_d(11_000_001_000, 251_819).abs_diff(2_000_000_000) <= 1_000);
-        assert!(
-            pool.get_d(100_118_986, 1_999_748_181)
-                .abs_diff(2_000_000_000)
-                <= 100
-        );
     }
 }

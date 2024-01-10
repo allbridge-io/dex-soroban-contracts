@@ -1,4 +1,4 @@
-use shared::{require, soroban_data::SimpleSorobanData, Error, Event};
+use shared::{soroban_data::SimpleSorobanData, Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::{
@@ -9,8 +9,6 @@ use crate::{
 pub fn withdraw(env: Env, sender: Address, amount_lp: u128) -> Result<(), Error> {
     sender.require_auth();
     let mut pool = Pool::get(&env)?;
-
-    require!(pool.can_withdraw, Error::Forbidden);
 
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
 
