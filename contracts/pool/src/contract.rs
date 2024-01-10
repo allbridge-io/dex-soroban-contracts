@@ -1,19 +1,21 @@
 use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
-use crate::methods::internal::pool::Direction;
-use crate::methods::view::get_claimable_balance;
-use crate::storage::view::{get_admin, get_stop_authority};
 use crate::{
     methods::{
         admin::{
             adjust_total_lp_amount::*, claim_fee::*, config_addresses::*, config_pool::*,
             start_stop::*,
         },
-        public::{claim_balance, claim_rewards, deposit, initialize, swap, withdraw},
+        internal::pool::Direction,
+        public::{claim_rewards, deposit, initialize, swap, withdraw},
         view::{get_bridge, get_pool, get_user_deposit, pending_reward},
     },
-    storage::{pool::Pool, user_deposit::UserDeposit},
+    storage::{
+        pool::Pool,
+        user_deposit::UserDeposit,
+        view::{get_admin, get_stop_authority},
+    },
 };
 
 #[contract]
@@ -67,7 +69,6 @@ impl PoolContract {
         amount_in: u128,
         receive_amount_min: u128,
         zero_fee: bool,
-        claimable: bool,
         direction: Direction,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
@@ -79,7 +80,6 @@ impl PoolContract {
             amount_in,
             receive_amount_min,
             zero_fee,
-            claimable,
             direction,
         )
     }
@@ -88,12 +88,6 @@ impl PoolContract {
         extend_ttl_instance(&env);
 
         claim_rewards(env, sender)
-    }
-
-    pub fn claim_balance(env: Env, user: Address) -> Result<(), Error> {
-        extend_ttl_instance(&env);
-
-        claim_balance(env, user)
     }
 
     /// `admin`
@@ -192,9 +186,5 @@ impl PoolContract {
 
     pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
         get_user_deposit(env, user)
-    }
-
-    pub fn get_claimable_balance(env: Env, user: Address) -> Result<u128, Error> {
-        get_claimable_balance(env, user)
     }
 }

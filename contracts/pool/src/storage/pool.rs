@@ -74,17 +74,17 @@ impl Pool {
 
     #[inline(always)]
     pub fn get_token_a(&self, env: &Env) -> TokenClient<'_> {
-        token::Client::new(&env, &self.token_a)
+        token::Client::new(env, &self.token_a)
     }
 
     #[inline(always)]
     pub fn get_token_b(&self, env: &Env) -> TokenClient<'_> {
-        token::Client::new(&env, &self.token_b)
+        token::Client::new(env, &self.token_b)
     }
 
     #[inline(always)]
     pub fn get_lp_token(&self, env: &Env) -> TokenClient<'_> {
-        token::Client::new(&env, &self.lp_token)
+        token::Client::new(env, &self.lp_token)
     }
 
     #[inline(always)]

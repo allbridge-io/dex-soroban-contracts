@@ -14,7 +14,6 @@ pub fn swap(
     amount_in: u128,
     receive_amount_min: u128,
     zero_fee: bool,
-    claimable: bool,
     direction: Direction,
 ) -> Result<u128, Error> {
     let mut pool = Pool::get(&env)?;
@@ -28,7 +27,6 @@ pub fn swap(
         amount_in,
         receive_amount_min,
         zero_fee,
-        claimable,
         direction,
     )?;
 

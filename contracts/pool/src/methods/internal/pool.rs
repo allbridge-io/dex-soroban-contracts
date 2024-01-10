@@ -3,7 +3,6 @@ use shared::{require, utils::num::*, Error};
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::{
-    claimable_balance::ClaimableBalance,
     pool::{Pool, Tokens},
     user_deposit::UserDeposit,
 };
@@ -16,7 +15,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn to_tokens(&self) -> (Tokens, Tokens) {
+    pub fn get_tokens(&self) -> (Tokens, Tokens) {
         match self {
             Direction::A2B => (Tokens::TokenA, Tokens::TokenB),
             Direction::B2A => (Tokens::TokenB, Tokens::TokenA),
@@ -160,6 +159,7 @@ impl Pool {
         pending
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn swap(
         &mut self,
         env: &Env,
@@ -168,10 +168,9 @@ impl Pool {
         amount_in: u128,
         receive_amount_min: u128,
         zero_fee: bool,
-        claimable: bool,
         direction: Direction,
     ) -> Result<(u128, u128), Error> {
-        let (token_from, token_to) = direction.to_tokens();
+        let (token_from, token_to) = direction.get_tokens();
         let current_pool = env.current_contract_address();
 
         self.get_token_client(env, token_from).transfer(
@@ -216,28 +215,32 @@ impl Pool {
             Error::InsufficientReceivedAmount
         );
 
-        if claimable {
-            ClaimableBalance::update(&env, recipient.clone(), |claimable_balance| {
-                claimable_balance.amount += result;
-                Ok(())
-            })?;
-        } else {
-            self.get_token_client(env, token_to).transfer(
-                &current_pool,
-                &recipient,
-                &(result as i128),
-            );
-        }
+        self.get_token_client(env, token_to)
+            .transfer(&current_pool, &recipient, &(result as i128));
 
         Ok((result, fee))
     }
 
-    pub fn claim_rewards(&self, _: &mut UserDeposit) -> Result<u128, Error> {
-        todo!()
+    pub fn claim_rewards(&self, user_deposit: &mut UserDeposit) -> Result<u128, Error> {
+        if user_deposit.lp_amount > 0 {
+            let rewards = (user_deposit.lp_amount * self.acc_reward_per_share_p) >> Pool::P;
+            let pending = rewards - user_deposit.reward_debt;
+            if pending > 0 {
+                user_deposit.reward_debt = rewards;
+            }
+            return Ok(pending);
+        }
+
+        Ok(0)
     }
 
-    pub(crate) fn add_rewards(&mut self, mut _reward_amount: u128) {
-        todo!()
+    pub(crate) fn add_rewards(&mut self, mut reward_amount: u128) {
+        if self.total_lp_amount > 0 {
+            let admin_fee_rewards = reward_amount * self.admin_fee_share_bp / Pool::BP;
+            reward_amount -= admin_fee_rewards;
+            self.acc_reward_per_share_p += (reward_amount << Pool::P) / self.total_lp_amount;
+            self.admin_fee_amount += admin_fee_rewards;
+        }
     }
 
     // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
