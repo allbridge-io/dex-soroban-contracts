@@ -113,17 +113,17 @@ impl Pool {
         self.update_d();
         require!(self.d < old_d, Error::ZeroChanges);
 
-        self.get_token_a(&env).transfer(
+        self.get_token_a(env).transfer(
             &env.current_contract_address(),
             &sender,
             &((token_a_amount + reward_amount) as i128),
         );
-        self.get_token_b(&env).transfer(
+        self.get_token_b(env).transfer(
             &env.current_contract_address(),
             &sender,
             &((token_b_amount + reward_amount) as i128),
         );
-        self.get_lp_token(&env).burn(&sender, &(amount_lp as i128));
+        self.get_lp_token(env).burn(&sender, &(amount_lp as i128));
 
         Ok(())
     }
