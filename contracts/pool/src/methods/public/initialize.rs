@@ -1,13 +1,12 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{Address, Env};
 
-use crate::storage::{admin::Admin, bridge_address::Bridge, pool::Pool};
+use crate::storage::{admin::Admin, pool::Pool};
 
 #[allow(clippy::too_many_arguments)]
 pub fn initialize(
     env: Env,
     admin: Address,
-    bridge: Address,
     a: u128,
     token_a: Address,
     token_b: Address,
@@ -29,7 +28,6 @@ pub fn initialize(
     )
     .save(&env);
     Admin(admin).save(&env);
-    Bridge(bridge).save(&env);
 
     Ok(())
 }

@@ -2,10 +2,7 @@ use shared::{soroban_data::SimpleSorobanData, Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::methods::internal::pool::Direction;
-use crate::{
-    events::Swapped,
-    storage::{bridge_address::Bridge, pool::Pool},
-};
+use crate::{events::Swapped, storage::pool::Pool};
 
 pub fn swap(
     env: Env,
@@ -17,8 +14,6 @@ pub fn swap(
     direction: Direction,
 ) -> Result<u128, Error> {
     let mut pool = Pool::get(&env)?;
-
-    Bridge::require_exist_auth(&env)?;
 
     let (amount, fee) = pool.swap(
         &env,

@@ -9,7 +9,7 @@ use crate::{
         },
         internal::pool::Direction,
         public::{claim_rewards, deposit, initialize, swap, withdraw},
-        view::{get_bridge, get_pool, get_user_deposit, pending_reward},
+        view::{get_pool, get_user_deposit, pending_reward},
     },
     storage::{
         pool::Pool,
@@ -27,7 +27,6 @@ impl PoolContract {
     pub fn initialize(
         env: Env,
         admin: Address,
-        bridge: Address,
         a: u128,
         token_a: Address,
         token_b: Address,
@@ -39,7 +38,6 @@ impl PoolContract {
         initialize(
             env,
             admin,
-            bridge,
             a,
             token_a,
             token_b,
@@ -139,12 +137,6 @@ impl PoolContract {
         set_stop_authority(env, stop_authority)
     }
 
-    pub fn set_bridge(env: Env, bridge: Address) -> Result<(), Error> {
-        extend_ttl_instance(&env);
-
-        set_bridge(env, bridge)
-    }
-
     pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
@@ -178,10 +170,6 @@ impl PoolContract {
 
     pub fn get_stop_authority(env: Env) -> Result<Address, Error> {
         get_stop_authority(env)
-    }
-
-    pub fn get_bridge(env: Env) -> Result<Address, Error> {
-        get_bridge(env)
     }
 
     pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
