@@ -27,16 +27,21 @@ impl PoolContract {
         initialize(env, a, token_a, token_b, fee_share_bp, admin_fee_share_bp)
     }
 
-    pub fn deposit(env: Env, sender: Address, amount_sp: u128) -> Result<(), Error> {
+    pub fn deposit(
+        env: Env,
+        sender: Address,
+        amounts: (u128, u128),
+        min_lp_amount: u128,
+    ) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        deposit(env, sender, amount_sp)
+        deposit(env, sender, amounts, min_lp_amount)
     }
 
-    pub fn withdraw(env: Env, sender: Address, amount_lp: u128) -> Result<(), Error> {
+    pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        withdraw(env, sender, amount_lp)
+        withdraw(env, sender, lp_amount)
     }
 
     pub fn swap(

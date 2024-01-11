@@ -5,12 +5,10 @@ use crate::storage::pool::Pool;
 use crate::storage::user_deposit::UserDeposit;
 
 pub fn pending_reward(env: Env, user: Address) -> Result<u128, Error> {
-    let user_deposit = UserDeposit::get(&env, user);
-    let pool = Pool::get(&env)?;
-    Ok(
-        ((user_deposit.lp_amount * pool.acc_reward_per_share_p) >> Pool::P)
-            - user_deposit.reward_debt,
-    )
+    let _user_deposit = UserDeposit::get(&env, user);
+    let _pool = Pool::get(&env)?;
+
+    todo!()
 }
 
 pub fn get_pool(env: Env) -> Result<Pool, Error> {

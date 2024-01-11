@@ -15,6 +15,7 @@ pub enum Direction {
 }
 
 impl Direction {
+    #[inline]
     pub fn get_tokens(&self) -> (Tokens, Tokens) {
         match self {
             Direction::A2B => (Tokens::TokenA, Tokens::TokenB),
@@ -24,7 +25,8 @@ impl Direction {
 }
 
 impl Pool {
-    const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
+    // TODO: ???
+    const _MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
     const BP: u128 = 10000;
 
     pub const P: u128 = 48;
@@ -32,51 +34,42 @@ impl Pool {
     pub fn deposit(
         &mut self,
         env: &Env,
-        amount: u128,
+        amounts: (u128, u128),
         sender: Address,
         user: &mut UserDeposit,
-    ) -> Result<(u128, u128), Error> {
-        let old_d = self.d;
+        min_lp_amount: u128,
+    ) -> Result<((u128, u128), u128), Error> {
+        let d0 = self.d;
 
-        require!(amount > 0, Error::ZeroAmount);
-
-        let old_balance = self.token_a_balance + self.token_b_balance;
-        let (token_a_amount, token_b_amount) = if old_d == 0 || old_balance == 0 {
-            let half_amount = amount >> 1;
-            self.token_a_balance = half_amount;
-            self.token_b_balance = half_amount;
-
-            (half_amount, half_amount)
-        } else {
-            let token_a_amount = amount * self.token_a_balance / old_balance;
-            let token_b_amount = amount * self.token_b_balance / old_balance;
-            self.token_a_balance += token_a_amount;
-            self.token_b_balance += token_b_amount;
-
-            (token_a_amount, token_b_amount)
-        };
-
-        self.update_d();
-
-        require!(
-            self.token_a_balance + self.token_b_balance < Self::MAX_TOKEN_BALANCE,
-            Error::PoolOverflow
-        );
-
-        let lp_amount = self.d - old_d;
+        require!(amounts.0 > 0 && amounts.1 > 0, Error::ZeroAmount);
 
         self.get_token_a(env).transfer(
             &sender,
             &env.current_contract_address(),
-            &(token_a_amount as i128),
+            &(amounts.0 as i128),
         );
         self.get_token_b(env).transfer(
             &sender,
             &env.current_contract_address(),
-            &(token_b_amount as i128),
+            &(amounts.1 as i128),
         );
 
-        Ok((self.deposit_lp(user, lp_amount), lp_amount))
+        self.token_a_balance += amounts.0;
+        self.token_b_balance += amounts.1;
+
+        self.update_d();
+
+        require!(self.d > d0, Error::Forbidden);
+
+        let lp_amount = if self.total_lp_amount == 0 {
+            self.d
+        } else {
+            self.total_lp_amount * (self.d - d0) / d0
+        };
+
+        require!(lp_amount >= min_lp_amount, Error::Slippage);
+
+        Ok((self.deposit_lp(user, lp_amount)?, lp_amount))
     }
 
     pub fn withdraw(
@@ -84,70 +77,90 @@ impl Pool {
         env: &Env,
         sender: Address,
         user: &mut UserDeposit,
-        amount_lp: u128,
+        lp_amount: u128,
     ) -> Result<(), Error> {
-        let reward_amount = self.withdraw_lp(user, amount_lp);
-
-        let old_balance = self.token_a_balance + self.token_b_balance;
-        let token_a_amount = amount_lp * self.token_a_balance / old_balance;
-        let token_b_amount = amount_lp * self.token_b_balance / old_balance;
+        let d0 = self.d;
+        let token_a_amount = self.token_a_balance * lp_amount / self.total_lp_amount;
+        let token_b_amount = self.token_b_balance * lp_amount / self.total_lp_amount;
 
         self.token_a_balance -= token_a_amount;
         self.token_b_balance -= token_b_amount;
+
+        let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
+
+        let old_balance = self.token_a_balance + self.token_b_balance;
 
         require!(
             self.token_a_balance + self.token_b_balance < old_balance,
             Error::ZeroChanges
         );
 
-        let old_d = self.d;
-        // Always equal amounts removed from actual and virtual tokens
-        self.update_d();
-        require!(self.d < old_d, Error::ZeroChanges);
+        let d1 = self.get_d(self.token_a_balance, self.token_b_balance);
+
+        require!(d1 < d0, Error::ZeroChanges);
 
         self.get_token_a(env).transfer(
             &env.current_contract_address(),
             &sender,
-            &((token_a_amount + reward_amount) as i128),
+            &((token_a_amount + rewards_amounts.0) as i128),
         );
         self.get_token_b(env).transfer(
             &env.current_contract_address(),
             &sender,
-            &((token_b_amount + reward_amount) as i128),
+            &((token_b_amount + rewards_amounts.1) as i128),
         );
 
         Ok(())
     }
 
-    pub(crate) fn deposit_lp(&mut self, user: &mut UserDeposit, lp_amount: u128) -> u128 {
-        let mut pending: u128 = 0;
+    pub(crate) fn deposit_lp(
+        &mut self,
+        user: &mut UserDeposit,
+        lp_amount: u128,
+    ) -> Result<(u128, u128), Error> {
+        let mut pending = (0, 0);
         if user.lp_amount > 0 {
-            pending =
-                ((user.lp_amount * self.acc_reward_per_share_p) >> Pool::P) - user.reward_debt;
-        }
+            pending = (
+                ((user.lp_amount * self.acc_reward_a_per_share_p) >> Pool::P) - user.reward_debts.0,
+                ((user.lp_amount * self.acc_reward_b_per_share_p) >> Pool::P) - user.reward_debts.1,
+            )
+        };
+
         self.total_lp_amount += lp_amount;
         user.lp_amount += lp_amount;
-        user.reward_debt = (user.lp_amount * self.acc_reward_per_share_p) >> Pool::P;
 
-        pending
+        user.reward_debts = (
+            (user.lp_amount * self.acc_reward_a_per_share_p) >> Pool::P,
+            (user.lp_amount * self.acc_reward_b_per_share_p) >> Pool::P,
+        );
+
+        Ok(pending)
     }
 
-    pub(crate) fn withdraw_lp(&mut self, user: &mut UserDeposit, lp_amount: u128) -> u128 {
-        let mut user_lp_amount: u128 = user.lp_amount;
+    pub(crate) fn withdraw_lp(
+        &mut self,
+        user: &mut UserDeposit,
+        lp_amount: u128,
+    ) -> Result<(u128, u128), Error> {
+        require!(user.lp_amount >= lp_amount, Error::NotEnoughAmount);
 
-        assert!(user_lp_amount >= lp_amount, "Not enough amount");
-
-        let mut pending: u128 = 0;
+        let mut pending = (0, 0);
         if user.lp_amount > 0 {
-            pending =
-                ((user_lp_amount * self.acc_reward_per_share_p) >> Pool::P) - user.reward_debt;
+            pending = (
+                ((user.lp_amount * self.acc_reward_a_per_share_p) >> Pool::P) - user.reward_debts.0,
+                ((user.lp_amount * self.acc_reward_b_per_share_p) >> Pool::P) - user.reward_debts.1,
+            )
         }
-        self.total_lp_amount -= lp_amount;
-        user_lp_amount -= lp_amount;
-        user.lp_amount = user_lp_amount;
-        user.reward_debt = (user_lp_amount * self.acc_reward_per_share_p) >> Pool::P;
 
-        pending
+        self.total_lp_amount -= lp_amount;
+        user.lp_amount -= lp_amount;
+
+        user.reward_debts = (
+            (user.lp_amount * self.acc_reward_a_per_share_p) >> Pool::P,
+            (user.lp_amount * self.acc_reward_b_per_share_p) >> Pool::P,
+        );
+
+        Ok(pending)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -193,7 +206,8 @@ impl Pool {
 
         self.set_token_balance(token_to_new_amount, token_to);
 
-        self.add_rewards(fee);
+        // TODO: ???
+        self.add_rewards((fee, fee));
 
         require!(
             result >= receive_amount_min,
@@ -206,25 +220,41 @@ impl Pool {
         Ok((result, fee))
     }
 
-    pub fn claim_rewards(&self, user_deposit: &mut UserDeposit) -> Result<u128, Error> {
+    pub fn claim_rewards(&self, user_deposit: &mut UserDeposit) -> Result<(u128, u128), Error> {
+        let mut pending = (0, 0);
+
         if user_deposit.lp_amount > 0 {
-            let rewards = (user_deposit.lp_amount * self.acc_reward_per_share_p) >> Pool::P;
-            let pending = rewards - user_deposit.reward_debt;
-            if pending > 0 {
-                user_deposit.reward_debt = rewards;
+            let rewards_a = (user_deposit.lp_amount * self.acc_reward_a_per_share_p) >> Pool::P;
+            let rewards_b = (user_deposit.lp_amount * self.acc_reward_b_per_share_p) >> Pool::P;
+
+            pending.0 = rewards_a - user_deposit.reward_debts.0;
+            if pending.0 > 0 {
+                user_deposit.reward_debts.0 = rewards_a;
             }
-            return Ok(pending);
+
+            pending.1 = rewards_b - user_deposit.reward_debts.1;
+            if pending.1 > 0 {
+                user_deposit.reward_debts.1 = rewards_b;
+            }
+
+            return Ok((pending.0, pending.1));
         }
 
-        Ok(0)
+        Ok(pending)
     }
 
-    pub(crate) fn add_rewards(&mut self, mut reward_amount: u128) {
+    pub(crate) fn add_rewards(&mut self, mut rewards_amounts: (u128, u128)) {
         if self.total_lp_amount > 0 {
-            let admin_fee_rewards = reward_amount * self.admin_fee_share_bp / Pool::BP;
-            reward_amount -= admin_fee_rewards;
-            self.acc_reward_per_share_p += (reward_amount << Pool::P) / self.total_lp_amount;
-            self.admin_fee_amount += admin_fee_rewards;
+            let admin_fee_rewards_a = rewards_amounts.0 * self.admin_fee_share_bp / Pool::BP;
+            let admin_fee_rewards_b = rewards_amounts.1 * self.admin_fee_share_bp / Pool::BP;
+
+            rewards_amounts.0 -= admin_fee_rewards_a;
+            rewards_amounts.1 -= admin_fee_rewards_b;
+
+            self.acc_reward_a_per_share_p += (rewards_amounts.0 << Pool::P) / self.total_lp_amount;
+            self.acc_reward_b_per_share_p += (rewards_amounts.1 << Pool::P) / self.total_lp_amount;
+
+            self.admin_fee_amount += admin_fee_rewards_a + admin_fee_rewards_b;
         }
     }
 

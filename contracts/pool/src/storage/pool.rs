@@ -31,7 +31,8 @@ pub struct Pool {
 
     pub total_lp_amount: u128,
     pub admin_fee_share_bp: u128,
-    pub acc_reward_per_share_p: u128,
+    pub acc_reward_a_per_share_p: u128,
+    pub acc_reward_b_per_share_p: u128,
     pub admin_fee_amount: u128,
 }
 
@@ -53,7 +54,8 @@ impl Pool {
             token_a_balance: 0,
             token_b_balance: 0,
             total_lp_amount: 0,
-            acc_reward_per_share_p: 0,
+            acc_reward_a_per_share_p: 0,
+            acc_reward_b_per_share_p: 0,
             admin_fee_amount: 0,
         }
     }

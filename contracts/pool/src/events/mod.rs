@@ -23,12 +23,12 @@ pub struct Deposit {
 #[contracttype]
 pub struct Withdraw {
     pub user: Address,
-    pub amount: u128,
+    pub lp_amount: u128,
 }
 
 #[derive(Event)]
 #[contracttype]
 pub struct RewardsClaimed {
     pub user: Address,
-    pub amount: u128,
+    pub rewards: (u128, u128),
 }

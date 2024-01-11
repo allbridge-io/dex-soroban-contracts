@@ -1,5 +1,5 @@
 use shared::{soroban_data::SimpleSorobanData, Error, Event};
-use soroban_sdk::{token, Address, Env};
+use soroban_sdk::{Address, Env};
 
 use crate::{
     events::RewardsClaimed,
@@ -11,16 +11,29 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
     let pool = Pool::get(&env)?;
 
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
-    let amount = pool.claim_rewards(&mut user_deposit)?;
-    if amount > 0 {
+    let rewards = pool.claim_rewards(&mut user_deposit)?;
+    if rewards.0 + rewards.1 > 0 {
         user_deposit.save(&env, sender.clone());
-        let token_client = token::Client::new(&env, &pool.token_a);
 
-        token_client.transfer(&env.current_contract_address(), &sender, &(amount as i128));
+        if rewards.0 > 0 {
+            pool.get_token_a(&env).transfer(
+                &env.current_contract_address(),
+                &sender,
+                &(rewards.0 as i128),
+            );
+        }
+
+        if rewards.1 > 0 {
+            pool.get_token_b(&env).transfer(
+                &env.current_contract_address(),
+                &sender,
+                &(rewards.1 as i128),
+            );
+        }
 
         RewardsClaimed {
             user: sender,
-            amount,
+            rewards,
         }
         .publish(&env);
     }

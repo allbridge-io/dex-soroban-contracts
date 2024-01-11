@@ -15,10 +15,12 @@ pub enum Error {
     BrokenAddress = 8,
     NotFound = 9,
     Forbidden = 10,
+    Slippage = 11,
 
     // Pool
     ZeroAmount = 101,
     PoolOverflow = 102,
     ZeroChanges = 103,
     InsufficientReceivedAmount = 104,
+    NotEnoughAmount = 105,
 }
