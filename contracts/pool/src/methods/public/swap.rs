@@ -13,6 +13,7 @@ pub fn swap(
     zero_fee: bool,
     direction: Direction,
 ) -> Result<u128, Error> {
+    sender.require_auth();
     let mut pool = Pool::get(&env)?;
 
     let (amount, fee) = pool.swap(

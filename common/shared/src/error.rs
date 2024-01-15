@@ -10,17 +10,15 @@ pub enum Error {
     Uninitialized = 2,
     Unauthorized = 3,
     InvalidArg = 4,
-    InvalidOtherChainId = 6,
-    GasUsageNotSet = 7,
-    BrokenAddress = 8,
-    NotFound = 9,
-    Forbidden = 10,
-    Slippage = 11,
+    BrokenAddress = 5,
+    NotFound = 6,
+    Forbidden = 7,
+    Slippage = 8,
 
     // Pool
     ZeroAmount = 101,
     PoolOverflow = 102,
     ZeroChanges = 103,
-    InsufficientReceivedAmount = 104,
-    NotEnoughAmount = 105,
+    NotEnoughAmount = 104,
+    InsufficientReceivedAmount = 105,
 }

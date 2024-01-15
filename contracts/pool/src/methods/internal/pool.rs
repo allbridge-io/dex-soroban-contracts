@@ -3,7 +3,7 @@ use shared::{require, utils::num::*, Error};
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::{
-    pool::{Pool, Tokens},
+    pool::{Pool, Token},
     user_deposit::UserDeposit,
 };
 
@@ -16,20 +16,69 @@ pub enum Direction {
 
 impl Direction {
     #[inline]
-    pub fn get_tokens(&self) -> (Tokens, Tokens) {
+    pub fn get_tokens(&self) -> (Token, Token) {
         match self {
-            Direction::A2B => (Tokens::TokenA, Tokens::TokenB),
-            Direction::B2A => (Tokens::TokenB, Tokens::TokenA),
+            Direction::A2B => (Token::A, Token::B),
+            Direction::B2A => (Token::B, Token::A),
         }
     }
 }
 
 impl Pool {
-    // TODO: ???
-    const _MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
     const BP: u128 = 10000;
 
     pub const P: u128 = 48;
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn swap(
+        &mut self,
+        env: &Env,
+        sender: Address,
+        recipient: Address,
+        amount: u128,
+        receive_amount_min: u128,
+        zero_fee: bool,
+        direction: Direction,
+    ) -> Result<(u128, u128), Error> {
+        let current_contract = env.current_contract_address();
+        let (token_from, token_to) = direction.get_tokens();
+        self.get_token(env, token_from)
+            .transfer(&sender, &current_contract, &(amount as i128));
+
+        let mut result = 0;
+
+        if amount == 0 {
+            return Ok((0, 0));
+        }
+
+        self.set_token_balance(self.get_token_balance(token_from) + amount, token_from);
+
+        let token_to_new_amount = self.get_y(self.get_token_balance(token_from));
+        if self.get_token_balance(token_from) > token_to_new_amount {
+            result = self.get_token_balance(token_to) - token_to_new_amount;
+        }
+
+        let fee = if zero_fee {
+            0
+        } else {
+            result * self.fee_share_bp / Self::BP
+        };
+
+        result -= fee;
+
+        self.set_token_balance(token_to_new_amount, token_to);
+        self.add_rewards(fee, Token::A);
+
+        require!(
+            result >= receive_amount_min,
+            Error::InsufficientReceivedAmount
+        );
+
+        self.get_token(env, token_to)
+            .transfer(&current_contract, &recipient, &(result as i128));
+
+        Ok((result, fee))
+    }
 
     pub fn deposit(
         &mut self,
@@ -39,20 +88,15 @@ impl Pool {
         user: &mut UserDeposit,
         min_lp_amount: u128,
     ) -> Result<((u128, u128), u128), Error> {
+        let current_contract = env.current_contract_address();
         let d0 = self.d;
 
         require!(amounts.0 > 0 && amounts.1 > 0, Error::ZeroAmount);
 
-        self.get_token_a(env).transfer(
-            &sender,
-            &env.current_contract_address(),
-            &(amounts.0 as i128),
-        );
-        self.get_token_b(env).transfer(
-            &sender,
-            &env.current_contract_address(),
-            &(amounts.1 as i128),
-        );
+        self.get_token(env, Token::A)
+            .transfer(&sender, &current_contract, &(amounts.0 as i128));
+        self.get_token(env, Token::B)
+            .transfer(&sender, &current_contract, &(amounts.1 as i128));
 
         self.token_a_balance += amounts.0;
         self.token_b_balance += amounts.1;
@@ -69,7 +113,14 @@ impl Pool {
 
         require!(lp_amount >= min_lp_amount, Error::Slippage);
 
-        Ok((self.deposit_lp(user, lp_amount)?, lp_amount))
+        let rewards = self.deposit_lp(user, lp_amount)?;
+
+        self.get_token(&env, Token::A)
+            .transfer(&current_contract, &sender, &(rewards.0 as i128));
+        self.get_token(&env, Token::B)
+            .transfer(&current_contract, &sender, &(rewards.1 as i128));
+
+        Ok((rewards, lp_amount))
     }
 
     pub fn withdraw(
@@ -79,6 +130,8 @@ impl Pool {
         user: &mut UserDeposit,
         lp_amount: u128,
     ) -> Result<(), Error> {
+        let old_balance = self.token_a_balance + self.token_b_balance;
+        let current_contract = env.current_contract_address();
         let d0 = self.d;
         let token_a_amount = self.token_a_balance * lp_amount / self.total_lp_amount;
         let token_b_amount = self.token_b_balance * lp_amount / self.total_lp_amount;
@@ -87,8 +140,6 @@ impl Pool {
         self.token_b_balance -= token_b_amount;
 
         let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
-
-        let old_balance = self.token_a_balance + self.token_b_balance;
 
         require!(
             self.token_a_balance + self.token_b_balance < old_balance,
@@ -99,13 +150,13 @@ impl Pool {
 
         require!(d1 < d0, Error::ZeroChanges);
 
-        self.get_token_a(env).transfer(
-            &env.current_contract_address(),
+        self.get_token(&env, Token::A).transfer(
+            &current_contract,
             &sender,
             &((token_a_amount + rewards_amounts.0) as i128),
         );
-        self.get_token_b(env).transfer(
-            &env.current_contract_address(),
+        self.get_token(&env, Token::B).transfer(
+            &current_contract,
             &sender,
             &((token_b_amount + rewards_amounts.1) as i128),
         );
@@ -163,63 +214,6 @@ impl Pool {
         Ok(pending)
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn swap(
-        &mut self,
-        env: &Env,
-        sender: Address,
-        recipient: Address,
-        amount_in: u128,
-        receive_amount_min: u128,
-        zero_fee: bool,
-        direction: Direction,
-    ) -> Result<(u128, u128), Error> {
-        let (token_from, token_to) = direction.get_tokens();
-        let current_pool = env.current_contract_address();
-
-        self.get_token_client(env, token_from).transfer(
-            &current_pool,
-            &sender,
-            &(amount_in as i128),
-        );
-
-        let mut result = 0;
-
-        if amount_in == 0 {
-            return Ok((0, 0));
-        }
-
-        self.set_token_balance(self.get_token_balance(token_from) + amount_in, token_from);
-
-        let token_to_new_amount = self.get_y(self.get_token_balance(token_from));
-        if self.get_token_balance(token_from) > token_to_new_amount {
-            result = self.get_token_balance(token_to) - token_to_new_amount;
-        }
-
-        let fee = if zero_fee {
-            0
-        } else {
-            result * self.fee_share_bp / Self::BP
-        };
-
-        result -= fee;
-
-        self.set_token_balance(token_to_new_amount, token_to);
-
-        // TODO: ???
-        self.add_rewards((fee, fee));
-
-        require!(
-            result >= receive_amount_min,
-            Error::InsufficientReceivedAmount
-        );
-
-        self.get_token_client(env, token_to)
-            .transfer(&current_pool, &recipient, &(result as i128));
-
-        Ok((result, fee))
-    }
-
     pub fn claim_rewards(&self, user_deposit: &mut UserDeposit) -> Result<(u128, u128), Error> {
         let mut pending = (0, 0);
 
@@ -243,18 +237,18 @@ impl Pool {
         Ok(pending)
     }
 
-    pub(crate) fn add_rewards(&mut self, mut rewards_amounts: (u128, u128)) {
+    pub(crate) fn add_rewards(&mut self, mut reward_amount: u128, token: Token) {
         if self.total_lp_amount > 0 {
-            let admin_fee_rewards_a = rewards_amounts.0 * self.admin_fee_share_bp / Pool::BP;
-            let admin_fee_rewards_b = rewards_amounts.1 * self.admin_fee_share_bp / Pool::BP;
+            let admin_fee_rewards = reward_amount * self.admin_fee_share_bp / Pool::BP;
+            reward_amount -= admin_fee_rewards;
+            let share = (reward_amount << Pool::P) / self.total_lp_amount;
 
-            rewards_amounts.0 -= admin_fee_rewards_a;
-            rewards_amounts.1 -= admin_fee_rewards_b;
+            match token {
+                Token::A => self.acc_reward_a_per_share_p += share,
+                Token::B => self.acc_reward_b_per_share_p += share,
+            }
 
-            self.acc_reward_a_per_share_p += (rewards_amounts.0 << Pool::P) / self.total_lp_amount;
-            self.acc_reward_b_per_share_p += (rewards_amounts.1 << Pool::P) / self.total_lp_amount;
-
-            self.admin_fee_amount += admin_fee_rewards_a + admin_fee_rewards_b;
+            self.admin_fee_amount += admin_fee_rewards;
         }
     }
 

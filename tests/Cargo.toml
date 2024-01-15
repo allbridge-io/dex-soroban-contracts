@@ -1,0 +1,18 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+shared = { workspace = true }
+ethers-signers = "2.0.9"
+ethers-core = "2.0.9"
+hex = "0.4.3"
+arrayref = { workspace = true }
+rand = "0.8.5"
+color-print = "0.3.5"
+ethnum = "1.4.0"

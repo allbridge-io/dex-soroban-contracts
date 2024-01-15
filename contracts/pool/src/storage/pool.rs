@@ -8,9 +8,9 @@ use soroban_sdk::{
 };
 
 #[derive(Debug, Clone, Copy)]
-pub enum Tokens {
-    TokenA,
-    TokenB,
+pub enum Token {
+    A,
+    B,
 }
 
 #[contracttype]
@@ -60,37 +60,30 @@ impl Pool {
         }
     }
 
-    #[inline(always)]
-    pub fn get_token_a(&self, env: &Env) -> TokenClient<'_> {
-        token::Client::new(env, &self.token_a)
-    }
-
-    #[inline(always)]
-    pub fn get_token_b(&self, env: &Env) -> TokenClient<'_> {
-        token::Client::new(env, &self.token_b)
-    }
-
     #[inline]
-    pub fn get_token_balance(&self, token: Tokens) -> u128 {
+    pub fn get_token_balance(&self, token: Token) -> u128 {
         match token {
-            Tokens::TokenA => self.token_a_balance,
-            Tokens::TokenB => self.token_b_balance,
+            Token::A => self.token_a_balance,
+            Token::B => self.token_b_balance,
         }
     }
 
     #[inline]
-    pub fn get_token_client(&self, env: &Env, token: Tokens) -> TokenClient<'_> {
-        match token {
-            Tokens::TokenA => self.get_token_a(env),
-            Tokens::TokenB => self.get_token_b(env),
-        }
+    pub fn get_token(&self, env: &Env, token: Token) -> TokenClient<'_> {
+        token::Client::new(
+            env,
+            match token {
+                Token::A => &self.token_a,
+                Token::B => &self.token_b,
+            },
+        )
     }
 
     #[inline]
-    pub fn set_token_balance(&mut self, new_val: u128, token: Tokens) {
+    pub fn set_token_balance(&mut self, new_val: u128, token: Token) {
         match token {
-            Tokens::TokenA => self.token_a_balance = new_val,
-            Tokens::TokenB => self.token_b_balance = new_val,
+            Token::A => self.token_a_balance = new_val,
+            Token::B => self.token_b_balance = new_val,
         }
     }
 }

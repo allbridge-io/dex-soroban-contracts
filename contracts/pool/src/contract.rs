@@ -73,7 +73,7 @@ impl PoolContract {
     }
 
     /// `view`
-    pub fn pending_reward(env: Env, user: Address) -> Result<u128, Error> {
+    pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
         pending_reward(env, user)
     }
 

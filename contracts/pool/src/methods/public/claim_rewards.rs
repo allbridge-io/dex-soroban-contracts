@@ -3,7 +3,10 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     events::RewardsClaimed,
-    storage::{pool::Pool, user_deposit::UserDeposit},
+    storage::{
+        pool::{Pool, Token},
+        user_deposit::UserDeposit,
+    },
 };
 
 pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
@@ -16,7 +19,7 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
         user_deposit.save(&env, sender.clone());
 
         if rewards.0 > 0 {
-            pool.get_token_a(&env).transfer(
+            pool.get_token(&env, Token::A).transfer(
                 &env.current_contract_address(),
                 &sender,
                 &(rewards.0 as i128),
@@ -24,7 +27,7 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
         }
 
         if rewards.1 > 0 {
-            pool.get_token_b(&env).transfer(
+            pool.get_token(&env, Token::B).transfer(
                 &env.current_contract_address(),
                 &sender,
                 &(rewards.1 as i128),
