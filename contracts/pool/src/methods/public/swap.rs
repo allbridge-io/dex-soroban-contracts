@@ -8,7 +8,7 @@ pub fn swap(
     env: Env,
     sender: Address,
     recipient: Address,
-    amount_in: u128,
+    from_amount: u128,
     receive_amount_min: u128,
     zero_fee: bool,
     direction: Direction,
@@ -16,11 +16,11 @@ pub fn swap(
     sender.require_auth();
     let mut pool = Pool::get(&env)?;
 
-    let (amount, fee) = pool.swap(
+    let (to_amount, fee) = pool.swap(
         &env,
         sender.clone(),
         recipient.clone(),
-        amount_in,
+        from_amount,
         receive_amount_min,
         zero_fee,
         direction,
@@ -31,13 +31,13 @@ pub fn swap(
     Swapped {
         from_token: pool.tokens.get_unchecked(0),
         to_token: pool.tokens.get_unchecked(1),
-        from_amount: amount_in,
-        to_amount: amount,
+        from_amount,
+        to_amount,
         sender,
         recipient,
         fee,
     }
     .publish(&env);
 
-    Ok(amount)
+    Ok(to_amount)
 }

@@ -34,13 +34,6 @@ pub fn signed_int_to_float(amount: i128) -> f64 {
     ((amount as f64) / 10.0f64.powi(7)) as f64
 }
 
-pub fn vec_to_bytes<const N: usize>(env: &Env, bytes: Vec<u8>) -> BytesN<N> {
-    let mut slice: [u8; N] = [0; N];
-    slice.copy_from_slice(bytes.as_slice());
-
-    BytesN::from_array(env, &slice)
-}
-
 pub fn format_diff<T: PartialOrd + Display>(start: T, to: T) -> String {
     match to.partial_cmp(&start).unwrap() {
         Ordering::Equal => cformat!("<dim>{start} => {to}</dim>"),

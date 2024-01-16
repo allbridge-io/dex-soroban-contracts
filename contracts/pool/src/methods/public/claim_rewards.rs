@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     events::RewardsClaimed,
-    storage::{pool::Pool, user_deposit::UserDeposit},
+    storage::{double_value::DoubleValue, pool::Pool, user_deposit::UserDeposit},
 };
 
 pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
@@ -30,7 +30,7 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
 
         RewardsClaimed {
             user: sender,
-            rewards: (rewards[0], rewards[1]),
+            rewards: DoubleValue::new(&env, rewards),
         }
         .publish(&env);
     }

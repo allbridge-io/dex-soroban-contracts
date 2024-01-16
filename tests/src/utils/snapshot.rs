@@ -1,25 +1,25 @@
 use crate::{contracts::pool::Pool as PoolInfo, utils::format_diff};
 use color_print::cformat;
 use core::panic;
-use ethnum::U256;
-use shared::utils::num::sqrt;
+// use ethnum::U256;
+// use shared::utils::num::sqrt;
 use std::{cmp::Ordering, ops::Index};
 
 use super::{signed_int_to_float, TestingEnvironment};
 
-impl PoolInfo {
-    pub fn get_y(&self, native_x: u128) -> u128 {
-        let a4 = self.a << 2;
-        let ddd = U256::new(self.d * self.d) * self.d;
-        // 4A(D - x) - D
-        let part1 = a4 as i128 * (self.d as i128 - native_x as i128) - self.d as i128;
-        // x * (4AD³ + x(part1²))
-        let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
-        // (sqrt(part2) + x(part1)) / 8Ax)
-        (sqrt(&part2).as_u128() as i128 + (native_x as i128 * part1)) as u128
-            / ((self.a << 3) * native_x)
-    }
-}
+// impl PoolInfo {
+//     pub fn get_y(&self, native_x: u128) -> u128 {
+//         let a4 = self.a << 2;
+//         let ddd = U256::new(self.d * self.d) * self.d;
+//         // 4A(D - x) - D
+//         let part1 = a4 as i128 * (self.d as i128 - native_x as i128) - self.d as i128;
+//         // x * (4AD³ + x(part1²))
+//         let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
+//         // (sqrt(part2) + x(part1)) / 8Ax)
+//         (sqrt(&part2).as_u128() as i128 + (native_x as i128 * part1)) as u128
+//             / ((self.a << 3) * native_x)
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct Snapshot {
@@ -35,7 +35,6 @@ pub struct Snapshot {
     pub pool_yusd_balance: u128,
 
     pub total_lp_amount: u128,
-    pub d: u128,
     pub acc_reward_a_per_share_p: u128,
     pub acc_reward_b_per_share_p: u128,
 }
@@ -92,7 +91,6 @@ impl Snapshot {
 
         let pool_info = testing_env.pool.client.get_pool();
         let total_lp_amount = pool_info.total_lp_amount;
-        let d = pool_info.d;
         let acc_reward_a_per_share_p = pool_info.acc_reward_a_per_share_p;
         let acc_reward_b_per_share_p = pool_info.acc_reward_b_per_share_p;
 
@@ -105,7 +103,6 @@ impl Snapshot {
             bob_yaro_balance,
             bob_yusd_balance,
             total_lp_amount,
-            d,
             acc_reward_a_per_share_p,
             acc_reward_b_per_share_p,
         }
@@ -166,7 +163,6 @@ impl Snapshot {
                 other.acc_reward_b_per_share_p,
                 false,
             ),
-            ("Pool d", self.d, other.d, true),
             (
                 "Pool total_lp_amount",
                 self.total_lp_amount,

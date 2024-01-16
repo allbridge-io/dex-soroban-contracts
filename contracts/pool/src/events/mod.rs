@@ -2,6 +2,8 @@ use soroban_sdk::{contracttype, Address};
 
 use proc_macros::Event;
 
+use crate::storage::double_value::DoubleValue;
+
 #[derive(Event)]
 #[contracttype]
 pub struct Swapped {
@@ -32,5 +34,5 @@ pub struct Withdraw {
 #[contracttype]
 pub struct RewardsClaimed {
     pub user: Address,
-    pub rewards: (u128, u128),
+    pub rewards: DoubleValue,
 }

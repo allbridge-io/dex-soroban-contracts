@@ -1,4 +1,4 @@
 mod data_key;
+pub mod double_value;
 pub mod pool;
-pub mod test;
 pub mod user_deposit;

@@ -41,10 +41,6 @@ impl Pool {
         (int_to_float(token_a_amount), int_to_float(token_b_amount))
     }
 
-    pub fn d(&self) -> u128 {
-        self.client.get_pool().d
-    }
-
     pub fn token_a_balance(&self) -> u128 {
         self.client.get_pool().token_a_balance
     }

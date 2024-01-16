@@ -7,11 +7,13 @@ use soroban_sdk::{
     vec, Address, Env, Vec,
 };
 
+use super::double_value::DoubleValue;
+
 #[derive(Debug, Clone, Copy)]
 #[repr(usize)]
 pub enum Token {
-    A,
-    B,
+    A = 0,
+    B = 1,
 }
 
 #[contracttype]
@@ -21,14 +23,14 @@ pub enum Token {
 #[extend_ttl_info_instance]
 pub struct Pool {
     pub a: u128,
+
     pub fee_share_bp: u128,
+    pub admin_fee_share_bp: u128,
+    pub total_lp_amount: u128,
 
     pub tokens: Vec<Address>,
-    pub token_balances: Vec<u128>,
-    pub acc_rewards_per_share_p: Vec<u128>,
-
-    pub total_lp_amount: u128,
-    pub admin_fee_share_bp: u128,
+    pub token_balances: DoubleValue,
+    pub acc_rewards_per_share_p: DoubleValue,
     pub admin_fee_amount: u128,
 }
 
@@ -43,14 +45,14 @@ impl Pool {
     ) -> Self {
         Pool {
             a,
+
             fee_share_bp,
             admin_fee_share_bp,
+            total_lp_amount: 0,
 
             tokens: vec![env, token_a, token_b],
-            token_balances: vec![env, 0, 0],
-            acc_rewards_per_share_p: vec![env, 0, 0],
-
-            total_lp_amount: 0,
+            token_balances: DoubleValue::default(env),
+            acc_rewards_per_share_p: DoubleValue::default(env),
             admin_fee_amount: 0,
         }
     }
