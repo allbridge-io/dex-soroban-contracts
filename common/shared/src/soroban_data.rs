@@ -14,8 +14,6 @@ pub trait DataStorageType {
 }
 
 pub trait ExtendTtlInfo {
-    /// @see https://github.com/stellar/soroban-examples/blob/main/token/src/storage_types.rs#L8
-    /// @see https://github.com/stellar/soroban-examples/blob/7a7cc6268ada55113ce0b82a3ae4405f7ec8b8f0/token/src/balance.rs#L2
     const EXTEND_TTL_AMOUNT: u32;
     const LIFETIME_THRESHOLD: u32;
 }
@@ -86,16 +84,16 @@ pub trait SorobanData:
                 .storage()
                 .instance()
                 .extend_ttl(Self::LIFETIME_THRESHOLD, Self::EXTEND_TTL_AMOUNT),
-            StorageType::Temporary => {
-                env.storage()
-                    .temporary()
-                    .extend_ttl(key, Self::LIFETIME_THRESHOLD, Self::EXTEND_TTL_AMOUNT)
-            }
-            StorageType::Persistent => {
-                env.storage()
-                    .persistent()
-                    .extend_ttl(key, Self::LIFETIME_THRESHOLD, Self::EXTEND_TTL_AMOUNT)
-            }
+            StorageType::Temporary => env.storage().temporary().extend_ttl(
+                key,
+                Self::LIFETIME_THRESHOLD,
+                Self::EXTEND_TTL_AMOUNT,
+            ),
+            StorageType::Persistent => env.storage().persistent().extend_ttl(
+                key,
+                Self::LIFETIME_THRESHOLD,
+                Self::EXTEND_TTL_AMOUNT,
+            ),
         }
     }
 

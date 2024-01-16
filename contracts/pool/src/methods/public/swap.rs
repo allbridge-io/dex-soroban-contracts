@@ -29,10 +29,12 @@ pub fn swap(
     pool.save(&env);
 
     Swapped {
-        token: pool.token_a,
+        from_token: pool.tokens.get_unchecked(0),
+        to_token: pool.tokens.get_unchecked(1),
         from_amount: amount_in,
         to_amount: amount,
         sender,
+        recipient,
         fee,
     }
     .publish(&env);

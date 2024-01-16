@@ -14,7 +14,7 @@ pub fn initialize(
 ) -> Result<(), Error> {
     require!(!Pool::has(&env), Error::Initialized);
 
-    Pool::from_init_params(a, token_a, token_b, fee_share_bp, admin_fee_share_bp).save(&env);
+    Pool::from_init_params(&env, a, token_a, token_b, fee_share_bp, admin_fee_share_bp).save(&env);
 
     Ok(())
 }

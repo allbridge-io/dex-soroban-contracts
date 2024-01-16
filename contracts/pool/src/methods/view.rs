@@ -7,10 +7,10 @@ use crate::storage::user_deposit::UserDeposit;
 pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
     let user = UserDeposit::get(&env, user);
     let pool = Pool::get(&env)?;
-    Ok((
-        ((user.lp_amount * pool.acc_reward_a_per_share_p) >> Pool::P) - user.reward_debts.0,
-        ((user.lp_amount * pool.acc_reward_b_per_share_p) >> Pool::P) - user.reward_debts.1,
-    ))
+
+    let pending = pool.get_pending(&user);
+
+    Ok((pending[0], pending[1]))
 }
 
 pub fn get_pool(env: Env) -> Result<Pool, Error> {

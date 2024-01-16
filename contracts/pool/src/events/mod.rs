@@ -6,9 +6,11 @@ use proc_macros::Event;
 #[contracttype]
 pub struct Swapped {
     pub sender: Address,
-    pub token: Address,
-    pub to_amount: u128,
+    pub recipient: Address,
+    pub from_token: Address,
+    pub to_token: Address,
     pub from_amount: u128,
+    pub to_amount: u128,
     pub fee: u128,
 }
 
