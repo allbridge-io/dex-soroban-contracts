@@ -217,8 +217,8 @@ impl Pool {
         Ok(pending)
     }
 
-    pub fn claim_rewards(&self, user: &mut UserDeposit) -> Result<[u128; 2], Error> {
-        let mut pending = [0, 0];
+    pub fn claim_rewards(&self, user: &mut UserDeposit) -> Result<DoubleValue, Error> {
+        let mut pending = DoubleValue::default();
 
         if user.lp_amount > 0 {
             let rewads = self.get_reward_depts(user);
