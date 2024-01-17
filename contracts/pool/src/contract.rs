@@ -4,7 +4,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env};
 use crate::{
     methods::{
         internal::pool::Direction,
-        public::{claim_rewards, deposit, initialize, swap, withdraw},
+        public::{claim_admin_fee, claim_rewards, deposit, initialize, swap, withdraw},
         view::{get_pool, get_user_deposit, pending_reward},
     },
     storage::{pool::Pool, user_deposit::UserDeposit},
@@ -18,13 +18,22 @@ impl PoolContract {
     #[allow(clippy::too_many_arguments)]
     pub fn initialize(
         env: Env,
+        admin: Address,
         a: u128,
         token_a: Address,
         token_b: Address,
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Result<(), Error> {
-        initialize(env, a, token_a, token_b, fee_share_bp, admin_fee_share_bp)
+        initialize(
+            env,
+            admin,
+            a,
+            token_a,
+            token_b,
+            fee_share_bp,
+            admin_fee_share_bp,
+        )
     }
 
     pub fn deposit(
@@ -70,6 +79,13 @@ impl PoolContract {
         extend_ttl_instance(&env);
 
         claim_rewards(env, sender)
+    }
+
+    /// `admin`
+    pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
+        extend_ttl_instance(&env);
+
+        claim_admin_fee(env)
     }
 
     /// `view`
