@@ -15,6 +15,7 @@ pub struct Pool {
 impl Pool {
     pub fn create(
         env: &Env,
+        admin: &Address,
         a: u128,
         token_a: &Address,
         token_b: &Address,
@@ -24,7 +25,7 @@ impl Pool {
         let id = env.register_contract_wasm(None, pool::WASM);
         let client = pool::Client::new(&env, &id);
 
-        client.initialize(&a, &token_a, &token_b, &fee_share_bp, &admin_fee);
+        client.initialize(&admin, &a, &token_a, &token_b, &fee_share_bp, &admin_fee);
 
         Pool { id, client }
     }

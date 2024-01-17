@@ -108,16 +108,24 @@ impl TestingEnvironment {
         admin_fee: u128,
         admin_deposits: (f64, f64),
     ) -> (Token, Token, Pool) {
-        let token_a = Token::create(env, &admin);
-        let token_b = Token::create(env, &admin);
+        let token_a = Token::create(env, admin);
+        let token_b = Token::create(env, admin);
         let fee_share_bp = ((fee_share_bp as f64) * 10_000.0) as u128;
-        let pool = Pool::create(env, 20, &token_a.id, &token_b.id, fee_share_bp, admin_fee);
+        let pool = Pool::create(
+            env,
+            admin,
+            20,
+            &token_a.id,
+            &token_b.id,
+            fee_share_bp,
+            admin_fee,
+        );
 
-        token_a.airdrop_amount(&admin, admin_deposits.0 * 2.0);
-        token_b.airdrop_amount(&admin, admin_deposits.1 * 2.0);
+        token_a.airdrop_amount(admin, admin_deposits.0 * 2.0);
+        token_b.airdrop_amount(admin, admin_deposits.1 * 2.0);
 
         if admin_deposits.0 > 0.0 || admin_deposits.1 > 0.0 {
-            pool.deposit_by_id(&admin, admin_deposits, 0.0).unwrap();
+            pool.deposit_by_id(admin, admin_deposits, 0.0).unwrap();
         }
 
         (token_a, token_b, pool)
