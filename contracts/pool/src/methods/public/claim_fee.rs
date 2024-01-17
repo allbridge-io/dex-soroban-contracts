@@ -11,9 +11,7 @@ pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
 
     for (index, token) in pool.tokens.iter().enumerate() {
         if pool.admin_fee_amount[index] > 0 {
-            let token_client = token::Client::new(&env, &token);
-
-            token_client.transfer(
+            token::Client::new(&env, &token).transfer(
                 &env.current_contract_address(),
                 admin.as_ref(),
                 &(pool.admin_fee_amount[index] as i128),

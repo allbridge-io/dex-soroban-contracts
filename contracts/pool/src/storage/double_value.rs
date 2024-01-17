@@ -19,16 +19,6 @@ impl DoubleValue {
     }
 }
 
-impl FromIterator<u128> for DoubleValue {
-    fn from_iter<T: IntoIterator<Item = u128>>(iter: T) -> Self {
-        let mut iter = iter.into_iter();
-
-        Self {
-            data: (iter.next().unwrap(), iter.next().unwrap()),
-        }
-    }
-}
-
 impl Index<usize> for DoubleValue {
     type Output = u128;
 

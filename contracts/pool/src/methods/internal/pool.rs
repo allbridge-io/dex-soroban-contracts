@@ -248,22 +248,17 @@ impl Pool {
     }
 
     pub fn get_pending(&self, user: &UserDeposit) -> DoubleValue {
-        self.acc_rewards_per_share_p
-            .to_array()
-            .into_iter()
-            .enumerate()
-            .map(|(index, acc_reward_per_share_p)| {
-                ((user.lp_amount * acc_reward_per_share_p) >> Pool::P) - user.reward_debts[index]
-            })
-            .collect::<DoubleValue>()
+        DoubleValue::from((
+            ((user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P) - user.reward_debts[0],
+            ((user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P) - user.reward_debts[1],
+        ))
     }
 
     pub fn get_reward_depts(&self, user: &UserDeposit) -> DoubleValue {
-        self.acc_rewards_per_share_p
-            .to_array()
-            .into_iter()
-            .map(|acc_reward_per_share_p| (user.lp_amount * acc_reward_per_share_p) >> Pool::P)
-            .collect::<DoubleValue>()
+        DoubleValue::from((
+            (user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
+            (user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P,
+        ))
     }
 
     // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
