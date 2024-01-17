@@ -42,11 +42,11 @@ impl Pool {
     }
 
     pub fn token_a_balance(&self) -> u128 {
-        self.client.get_pool().token_a_balance
+        self.client.get_pool().token_balances.data.0
     }
 
     pub fn token_b_balance(&self) -> u128 {
-        self.client.get_pool().token_b_balance
+        self.client.get_pool().token_balances.data.1
     }
 
     pub fn total_lp_amount(&self) -> u128 {
@@ -54,11 +54,11 @@ impl Pool {
     }
 
     pub fn acc_reward_a_per_share_p(&self) -> u128 {
-        self.client.get_pool().acc_reward_a_per_share_p
+        self.client.get_pool().acc_rewards_per_share_p.data.0
     }
 
     pub fn acc_reward_b_per_share_p(&self) -> u128 {
-        self.client.get_pool().acc_reward_b_per_share_p
+        self.client.get_pool().acc_rewards_per_share_p.data.1
     }
 
     pub fn fee_share_bp(&self) -> u128 {
@@ -132,14 +132,14 @@ impl Pool {
         amount: f64,
         receive_amount_min: f64,
         direction: Direction,
-    ) -> u128 {
-        self.client.swap(
+    ) -> CallResult<u128> {
+        desoroban_result(self.client.try_swap(
             &sender.as_address(),
             &recipient.as_address(),
             &float_to_int(amount),
             &float_to_int(receive_amount_min),
             &false,
             &direction,
-        )
+        ))
     }
 }

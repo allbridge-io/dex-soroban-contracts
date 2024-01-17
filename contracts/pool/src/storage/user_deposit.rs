@@ -11,7 +11,7 @@ const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
 
 #[contracttype]
-#[derive(Clone, Debug, SorobanData)]
+#[derive(Clone, Debug, SorobanData, Default)]
 #[data_storage_type(Persistent)]
 #[extend_ttl_info(BUMP_AMOUNT, LIFETIME_THRESHOLD)]
 pub struct UserDeposit {
@@ -20,15 +20,8 @@ pub struct UserDeposit {
 }
 
 impl UserDeposit {
-    pub fn default(env: &Env) -> UserDeposit {
-        UserDeposit {
-            lp_amount: 0,
-            reward_debts: DoubleValue::default(env),
-        }
-    }
-
     pub fn get(env: &Env, address: Address) -> UserDeposit {
-        UserDeposit::get_by_key(env, &DataKey::UserDeposit(address)).unwrap_or(Self::default(env))
+        UserDeposit::get_by_key(env, &DataKey::UserDeposit(address)).unwrap_or_default()
     }
 
     pub fn save(&self, env: &Env, address: Address) {

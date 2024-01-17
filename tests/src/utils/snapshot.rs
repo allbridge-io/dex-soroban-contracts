@@ -91,8 +91,8 @@ impl Snapshot {
 
         let pool_info = testing_env.pool.client.get_pool();
         let total_lp_amount = pool_info.total_lp_amount;
-        let acc_reward_a_per_share_p = pool_info.acc_reward_a_per_share_p;
-        let acc_reward_b_per_share_p = pool_info.acc_reward_b_per_share_p;
+        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.data.0;
+        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.data.1;
 
         Snapshot {
             pool_info: testing_env.pool.client.get_pool(),

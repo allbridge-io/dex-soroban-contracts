@@ -30,7 +30,7 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
 
         RewardsClaimed {
             user: sender,
-            rewards: DoubleValue::new(&env, rewards),
+            rewards: DoubleValue::from(rewards),
         }
         .publish(&env);
     }

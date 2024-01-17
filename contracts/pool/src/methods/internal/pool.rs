@@ -41,12 +41,14 @@ impl Pool {
         zero_fee: bool,
         direction: Direction,
     ) -> Result<(u128, u128), Error> {
+        let current_contract = env.current_contract_address();
+        let (token_from, token_to) = direction.get_tokens();
+        let d0 = self.get_current_d();
+
         if amount == 0 {
             return Ok((0, 0));
         }
 
-        let current_contract = env.current_contract_address();
-        let (token_from, token_to) = direction.get_tokens();
         self.get_token_by_index(env, token_from as usize).transfer(
             &sender,
             &current_contract,
@@ -57,7 +59,7 @@ impl Pool {
 
         self.token_balances[token_from] += amount;
 
-        let token_to_new_amount = self.get_y(self.token_balances[token_from]);
+        let token_to_new_amount = self.get_y(self.token_balances[token_from], d0);
         if self.token_balances[token_from] > token_to_new_amount {
             result = self.token_balances[token_to] - token_to_new_amount;
         }
@@ -95,14 +97,14 @@ impl Pool {
         sender: Address,
         user: &mut UserDeposit,
         min_lp_amount: u128,
-    ) -> Result<([u128; 2], u128), Error> {
+    ) -> Result<(DoubleValue, u128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.get_current_d();
 
-        let total_amount: u128 = amounts.iter().sum();
+        let total_amount: u128 = amounts.to_array().iter().sum();
         require!(total_amount > 0, Error::ZeroAmount);
 
-        for (index, amount) in amounts.into_iter().enumerate() {
+        for (index, amount) in amounts.to_array().into_iter().enumerate() {
             if amount == 0 {
                 continue;
             }
@@ -128,9 +130,9 @@ impl Pool {
 
         require!(lp_amount >= min_lp_amount, Error::Slippage);
 
-        let rewards = self.deposit_lp(env, user, lp_amount)?;
+        let rewards = self.deposit_lp(user, lp_amount)?;
 
-        for (index, reward) in rewards.into_iter().enumerate() {
+        for (index, reward) in rewards.to_array().into_iter().enumerate() {
             if reward == 0 {
                 continue;
             }
@@ -154,23 +156,23 @@ impl Pool {
     ) -> Result<(), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.get_current_d();
+        let old_balances: u128 = self.token_balances.to_array().iter().sum();
+        let old_total_lp_amount = self.total_lp_amount;
+        let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
 
-        let old_balances: u128 = self.token_balances.iter().sum();
-        let rewards_amounts = self.withdraw_lp(env, user, lp_amount)?;
-
-        for (index, token_balance) in self.token_balances.into_iter().enumerate() {
-            let token_amount = token_balance * lp_amount / self.total_lp_amount;
-            let transfer_amount = token_amount + rewards_amounts[index];
+        for (index, token_balance) in self.token_balances.to_array().into_iter().enumerate() {
+            let token_amount = token_balance * lp_amount / old_total_lp_amount;
+            let withdraw_amount = token_amount + rewards_amounts[index];
 
             self.get_token_by_index(env, index).transfer(
                 &current_contract,
                 &sender,
-                &(transfer_amount as i128),
+                &(withdraw_amount as i128),
             );
-            self.token_balances[index] -= token_amount;
+            self.token_balances[index] -= withdraw_amount;
         }
 
-        let new_balances: u128 = self.token_balances.iter().sum();
+        let new_balances: u128 = self.token_balances.to_array().iter().sum();
         let d1 = self.get_current_d();
 
         require!(new_balances < old_balances && d1 < d0, Error::ZeroChanges);
@@ -180,11 +182,10 @@ impl Pool {
 
     pub(crate) fn deposit_lp(
         &mut self,
-        env: &Env,
         user: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<[u128; 2], Error> {
-        let mut pending = [0, 0];
+    ) -> Result<DoubleValue, Error> {
+        let mut pending = DoubleValue::default();
 
         if user.lp_amount > 0 {
             pending = self.get_pending(user);
@@ -192,29 +193,26 @@ impl Pool {
 
         self.total_lp_amount += lp_amount;
         user.lp_amount += lp_amount;
-
-        user.reward_debts = DoubleValue::new(env, self.get_reward_depts(user));
+        user.reward_debts = DoubleValue::from(self.get_reward_depts(user));
 
         Ok(pending)
     }
 
     pub(crate) fn withdraw_lp(
         &mut self,
-        env: &Env,
         user: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<[u128; 2], Error> {
+    ) -> Result<DoubleValue, Error> {
         require!(user.lp_amount >= lp_amount, Error::NotEnoughAmount);
 
-        let mut pending = [0, 0];
+        let mut pending = DoubleValue::default();
         if user.lp_amount > 0 {
             pending = self.get_pending(user);
         }
 
         self.total_lp_amount -= lp_amount;
         user.lp_amount -= lp_amount;
-
-        user.reward_debts = DoubleValue::new(env, self.get_reward_depts(user));
+        user.reward_debts = DoubleValue::from(self.get_reward_depts(user));
 
         Ok(pending)
     }
@@ -225,7 +223,7 @@ impl Pool {
         if user.lp_amount > 0 {
             let rewads = self.get_reward_depts(user);
 
-            for (index, reward) in rewads.into_iter().enumerate() {
+            for (index, reward) in rewads.to_array().into_iter().enumerate() {
                 pending[index] = reward - user.reward_debts[index];
 
                 if pending[index] > 0 {
@@ -239,42 +237,37 @@ impl Pool {
         Ok(pending)
     }
 
-    // TODO
     pub(crate) fn add_rewards(&mut self, mut reward_amount: u128, token: Token) {
         if self.total_lp_amount > 0 {
             let admin_fee_rewards = reward_amount * self.admin_fee_share_bp / Pool::BP;
             reward_amount -= admin_fee_rewards;
-
             self.acc_rewards_per_share_p[token] +=
                 (reward_amount << Pool::P) / self.total_lp_amount;
-
-            self.admin_fee_amount += admin_fee_rewards;
+            self.admin_fee_amount[token] += admin_fee_rewards;
         }
     }
 
-    pub fn get_pending(&self, user: &UserDeposit) -> [u128; 2] {
-        let mut pendings = self.acc_rewards_per_share_p.iter().enumerate().map(
-            |(index, acc_reward_per_share_p)| {
+    pub fn get_pending(&self, user: &UserDeposit) -> DoubleValue {
+        self.acc_rewards_per_share_p
+            .to_array()
+            .into_iter()
+            .enumerate()
+            .map(|(index, acc_reward_per_share_p)| {
                 ((user.lp_amount * acc_reward_per_share_p) >> Pool::P) - user.reward_debts[index]
-            },
-        );
-
-        [pendings.next().unwrap(), pendings.next().unwrap()]
+            })
+            .collect::<DoubleValue>()
     }
 
-    pub fn get_reward_depts(&self, user: &UserDeposit) -> [u128; 2] {
-        let mut reward_debts = self
-            .acc_rewards_per_share_p
-            .iter()
-            .map(|acc_reward_per_share_p| (user.lp_amount * acc_reward_per_share_p) >> Pool::P);
-
-        [reward_debts.next().unwrap(), reward_debts.next().unwrap()]
+    pub fn get_reward_depts(&self, user: &UserDeposit) -> DoubleValue {
+        self.acc_rewards_per_share_p
+            .to_array()
+            .into_iter()
+            .map(|acc_reward_per_share_p| (user.lp_amount * acc_reward_per_share_p) >> Pool::P)
+            .collect::<DoubleValue>()
     }
 
     // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
-    pub fn get_y(&self, native_x: u128) -> u128 {
-        let d = self.get_current_d();
-
+    pub fn get_y(&self, native_x: u128, d: u128) -> u128 {
         let a4 = self.a << 2;
         let ddd = U256::new(d * d) * d;
         // 4A(D - x) - D

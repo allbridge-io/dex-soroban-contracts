@@ -1,25 +1,31 @@
-use soroban_sdk::{
-    testutils::arbitrary::SorobanArbitrary, xdr::ScVal, ConversionError, Env, TryFromVal,
-    TryIntoVal, Val,
-};
+use soroban_sdk::contracttype;
 
 use core::{
     fmt::Debug,
-    ops::{Deref, DerefMut, Index, IndexMut},
+    ops::{Index, IndexMut},
 };
 
 use super::pool::Token;
 
-#[derive(Clone)]
+#[contracttype]
+#[derive(Debug, Clone, Default)]
 pub struct DoubleValue {
-    env: Env,
-    data: [u128; 2],
+    data: (u128, u128),
 }
 
-impl Debug for DoubleValue {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "DoubleValue({:?})", self.data)?;
-        Ok(())
+impl DoubleValue {
+    pub fn to_array(&self) -> [u128; 2] {
+        [self.data.0, self.data.1]
+    }
+}
+
+impl FromIterator<u128> for DoubleValue {
+    fn from_iter<T: IntoIterator<Item = u128>>(iter: T) -> Self {
+        let mut iter = iter.into_iter();
+
+        Self {
+            data: (iter.next().unwrap(), iter.next().unwrap()),
+        }
     }
 }
 
@@ -27,13 +33,21 @@ impl Index<usize> for DoubleValue {
     type Output = u128;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.data[index]
+        match index {
+            0 => &self.data.0,
+            1 => &self.data.1,
+            _ => panic!("Unexpected index"),
+        }
     }
 }
 
 impl IndexMut<usize> for DoubleValue {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.data[index]
+        match index {
+            0 => &mut self.data.0,
+            1 => &mut self.data.1,
+            _ => panic!("Unexpected index"),
+        }
     }
 }
 
@@ -41,93 +55,28 @@ impl Index<Token> for DoubleValue {
     type Output = u128;
 
     fn index(&self, index: Token) -> &Self::Output {
-        &self.data[index as usize]
+        &self[index as usize]
     }
 }
 
 impl IndexMut<Token> for DoubleValue {
     fn index_mut(&mut self, index: Token) -> &mut Self::Output {
-        &mut self.data[index as usize]
+        &mut self[index as usize]
     }
 }
 
-impl DoubleValue {
-    pub fn default(env: &Env) -> Self {
+impl From<[u128; 2]> for DoubleValue {
+    #[inline]
+    fn from(value: [u128; 2]) -> Self {
         Self {
-            env: env.clone().into(),
-            data: Default::default(),
-        }
-    }
-
-    pub fn new(env: &Env, data: [u128; 2]) -> Self {
-        Self {
-            env: env.clone().into(),
-            data,
+            data: (value[0], value[1]),
         }
     }
 }
 
-impl Deref for DoubleValue {
-    type Target = [u128; 2];
-
+impl From<(u128, u128)> for DoubleValue {
     #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-impl DerefMut for DoubleValue {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
-impl SorobanArbitrary for DoubleValue {
-    type Prototype = (u128, u128);
-}
-
-impl TryFromVal<Env, Val> for DoubleValue {
-    type Error = ConversionError;
-
-    fn try_from_val(env: &Env, v: &Val) -> Result<Self, Self::Error> {
-        let tuple: (u128, u128) = TryFromVal::try_from_val(env, v)?;
-
-        Ok(Self {
-            env: env.clone().into(),
-            data: [tuple.0, tuple.1],
-        })
-    }
-}
-
-impl TryFromVal<Env, DoubleValue> for Val {
-    type Error = ConversionError;
-
-    fn try_from_val(env: &Env, v: &DoubleValue) -> Result<Self, Self::Error> {
-        (v.data[0], v.data[1])
-            .try_into_val(env)
-            .map_err(|_| ConversionError)
-    }
-}
-
-impl TryFromVal<Env, (u128, u128)> for DoubleValue {
-    type Error = ConversionError;
-
-    fn try_from_val(env: &Env, v: &(u128, u128)) -> Result<Self, Self::Error> {
-        Ok(Self {
-            env: env.clone().into(),
-            data: [v.0, v.1],
-        })
-    }
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl TryFrom<&DoubleValue> for ScVal {
-    type Error = ConversionError;
-
-    fn try_from(v: &DoubleValue) -> Result<Self, ConversionError> {
-        let val = Val::try_from_val(&v.env, &(v.data[0], v.data[1]))?;
-
-        ScVal::try_from_val(&v.env, &val)
+    fn from(data: (u128, u128)) -> Self {
+        Self { data }
     }
 }

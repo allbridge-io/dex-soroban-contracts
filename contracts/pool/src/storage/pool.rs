@@ -31,7 +31,7 @@ pub struct Pool {
     pub tokens: Vec<Address>,
     pub token_balances: DoubleValue,
     pub acc_rewards_per_share_p: DoubleValue,
-    pub admin_fee_amount: u128,
+    pub admin_fee_amount: DoubleValue,
 }
 
 impl Pool {
@@ -51,9 +51,9 @@ impl Pool {
             total_lp_amount: 0,
 
             tokens: vec![env, token_a, token_b],
-            token_balances: DoubleValue::default(env),
-            acc_rewards_per_share_p: DoubleValue::default(env),
-            admin_fee_amount: 0,
+            token_balances: DoubleValue::default(),
+            acc_rewards_per_share_p: DoubleValue::default(),
+            admin_fee_amount: DoubleValue::default(),
         }
     }
 

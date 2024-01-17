@@ -15,7 +15,7 @@ pub fn deposit(
     sender.require_auth();
     let mut pool = Pool::get(&env)?;
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
-    let amounts = DoubleValue::new(&env, [amounts.0, amounts.1]);
+    let amounts = DoubleValue::from(amounts);
 
     let (rewards, lp_amount) = pool.deposit(
         &env,
@@ -36,7 +36,7 @@ pub fn deposit(
 
     RewardsClaimed {
         user: sender.clone(),
-        rewards: DoubleValue::new(&env, rewards),
+        rewards: DoubleValue::from(rewards),
     }
     .publish(&env);
 
