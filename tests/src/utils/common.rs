@@ -79,6 +79,10 @@ pub fn assert_rel_eq(a: u128, b: u128, d: u128) {
     );
 }
 
+pub fn assert_rel_eq_f64(a: f64, b: f64, d: f64) {
+    assert_rel_eq(float_to_int(a), float_to_int(b), float_to_int(d));
+}
+
 pub fn contract_id(address: &Address) -> BytesN<32> {
     let sc_address: ScAddress = address.try_into().unwrap();
     if let ScAddress::Contract(c) = sc_address {

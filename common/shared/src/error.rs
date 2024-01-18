@@ -13,7 +13,6 @@ pub enum Error {
     BrokenAddress = 5,
     NotFound = 6,
     Forbidden = 7,
-    Slippage = 8,
 
     // Pool
     ZeroAmount = 101,
@@ -21,4 +20,5 @@ pub enum Error {
     ZeroChanges = 103,
     NotEnoughAmount = 104,
     InsufficientReceivedAmount = 105,
+    Slippage = 106,
 }

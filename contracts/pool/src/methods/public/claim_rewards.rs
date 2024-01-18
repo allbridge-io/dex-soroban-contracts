@@ -13,7 +13,7 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
     let rewards = pool.claim_rewards(&mut user_deposit)?;
 
-    if rewards.to_array().into_iter().sum::<u128>() <= 0 {
+    if rewards.to_array().into_iter().sum::<u128>() == 0 {
         return Ok(());
     }
 

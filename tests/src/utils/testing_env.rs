@@ -20,6 +20,21 @@ impl TestingEnvConfig {
         self.pool_fee_share_bp = fee_share_bp;
         self
     }
+
+    pub fn with_yaro_admin_deposit(mut self, yaro_admin_deposit: f64) -> Self {
+        self.yaro_admin_deposit = yaro_admin_deposit;
+        self
+    }
+
+    pub fn with_yusd_admin_deposit(mut self, yusd_admin_deposit: f64) -> Self {
+        self.yusd_admin_deposit = yusd_admin_deposit;
+        self
+    }
+
+    pub fn with_pool_admin_fee(mut self, pool_admin_fee: u128) -> Self {
+        self.pool_admin_fee = pool_admin_fee;
+        self
+    }
 }
 
 impl Default for TestingEnvConfig {

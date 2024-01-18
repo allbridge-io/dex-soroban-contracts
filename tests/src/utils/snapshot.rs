@@ -1,25 +1,9 @@
-use crate::{contracts::pool::Pool as PoolInfo, utils::format_diff};
+use std::cmp::Ordering;
+
 use color_print::cformat;
-use core::panic;
-// use ethnum::U256;
-// use shared::utils::num::sqrt;
-use std::{cmp::Ordering, ops::Index};
 
 use super::{signed_int_to_float, TestingEnvironment};
-
-// impl PoolInfo {
-//     pub fn get_y(&self, native_x: u128) -> u128 {
-//         let a4 = self.a << 2;
-//         let ddd = U256::new(self.d * self.d) * self.d;
-//         // 4A(D - x) - D
-//         let part1 = a4 as i128 * (self.d as i128 - native_x as i128) - self.d as i128;
-//         // x * (4AD³ + x(part1²))
-//         let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
-//         // (sqrt(part2) + x(part1)) / 8Ax)
-//         (sqrt(&part2).as_u128() as i128 + (native_x as i128 * part1)) as u128
-//             / ((self.a << 3) * native_x)
-//     }
-// }
+use crate::{contracts::pool::Pool as PoolInfo, utils::format_diff};
 
 #[derive(Debug, Clone)]
 pub struct Snapshot {
@@ -28,6 +12,9 @@ pub struct Snapshot {
     pub alice_yaro_balance: u128,
     pub alice_yusd_balance: u128,
 
+    pub admin_yaro_balance: u128,
+    pub admin_yusd_balance: u128,
+
     pub bob_yaro_balance: u128,
     pub bob_yusd_balance: u128,
 
@@ -35,32 +22,11 @@ pub struct Snapshot {
     pub pool_yusd_balance: u128,
 
     pub total_lp_amount: u128,
-    pub acc_reward_a_per_share_p: u128,
-    pub acc_reward_b_per_share_p: u128,
-}
+    pub acc_reward_yusd_per_share_p: u128,
+    pub acc_reward_yaro_per_share_p: u128,
 
-impl Index<String> for Snapshot {
-    type Output = u128;
-
-    fn index(&self, string: String) -> &Self::Output {
-        self.index(string.as_str())
-    }
-}
-
-impl Index<&str> for Snapshot {
-    type Output = u128;
-
-    fn index(&self, string: &str) -> &Self::Output {
-        match string {
-            "alice_yaro_balance" => &self.alice_yaro_balance,
-            "alice_yusd_balance" => &self.alice_yusd_balance,
-            "bob_yaro_balance" => &self.bob_yaro_balance,
-            "bob_yusd_balance" => &self.bob_yusd_balance,
-            "pool_yaro_balance" => &self.pool_yaro_balance,
-            "pool_yusd_balance" => &self.pool_yusd_balance,
-            _ => panic!("BalancesSnapshot: unknown field: {}", string),
-        }
-    }
+    pub admin_yaro_fee_rewards: u128,
+    pub admin_yusd_fee_rewards: u128,
 }
 
 pub fn format_diff_with_float_diff(a: u128, b: u128) -> (String, String) {
@@ -83,6 +49,9 @@ impl Snapshot {
         let alice_yaro_balance = testing_env.yaro_token.balance_of(&alice_address);
         let alice_yusd_balance = testing_env.yusd_token.balance_of(&alice_address);
 
+        let admin_yaro_balance = testing_env.yaro_token.balance_of(&testing_env.admin);
+        let admin_yusd_balance = testing_env.yusd_token.balance_of(&testing_env.admin);
+
         let bob_yaro_balance = testing_env.yaro_token.balance_of(&bob_address);
         let bob_yusd_balance = testing_env.yusd_token.balance_of(&bob_address);
 
@@ -91,11 +60,17 @@ impl Snapshot {
 
         let pool_info = testing_env.pool.client.get_pool();
         let total_lp_amount = pool_info.total_lp_amount;
-        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.data.0;
-        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.data.1;
+
+        let acc_reward_yusd_per_share_p = pool_info.acc_rewards_per_share_p.data.0;
+        let acc_reward_yaro_per_share_p = pool_info.acc_rewards_per_share_p.data.1;
+
+        let admin_yusd_fee_rewards = pool_info.admin_fee_amount.data.0;
+        let admin_yaro_fee_rewards = pool_info.admin_fee_amount.data.1;
 
         Snapshot {
             pool_info: testing_env.pool.client.get_pool(),
+            admin_yaro_balance,
+            admin_yusd_balance,
             alice_yaro_balance,
             pool_yaro_balance,
             alice_yusd_balance,
@@ -103,8 +78,10 @@ impl Snapshot {
             bob_yaro_balance,
             bob_yusd_balance,
             total_lp_amount,
-            acc_reward_a_per_share_p,
-            acc_reward_b_per_share_p,
+            acc_reward_yusd_per_share_p,
+            acc_reward_yaro_per_share_p,
+            admin_yusd_fee_rewards,
+            admin_yaro_fee_rewards,
         }
     }
 
@@ -152,19 +129,43 @@ impl Snapshot {
                 true,
             ),
             (
-                "Pool acc_reward_a_per_share_p",
-                self.acc_reward_a_per_share_p,
-                other.acc_reward_a_per_share_p,
+                "Admin yaro balance change",
+                self.admin_yaro_balance,
+                other.admin_yaro_balance,
+                true,
+            ),
+            (
+                "Admin yusd balance change",
+                self.admin_yusd_balance,
+                other.admin_yusd_balance,
+                true,
+            ),
+            (
+                "Pool acc reward yusd per share p",
+                self.acc_reward_yusd_per_share_p,
+                other.acc_reward_yusd_per_share_p,
                 false,
             ),
             (
-                "Pool acc_reward_b_per_share_p",
-                self.acc_reward_b_per_share_p,
-                other.acc_reward_b_per_share_p,
+                "Pool acc reward yaro per share p",
+                self.acc_reward_yaro_per_share_p,
+                other.acc_reward_yaro_per_share_p,
                 false,
             ),
             (
-                "Pool total_lp_amount",
+                "Pool admin yusd fee rewards",
+                self.admin_yusd_fee_rewards,
+                other.admin_yusd_fee_rewards,
+                true,
+            ),
+            (
+                "Pool admin yaro fee rewards",
+                self.admin_yaro_fee_rewards,
+                other.admin_yaro_fee_rewards,
+                true,
+            ),
+            (
+                "Pool total lp amount",
                 self.total_lp_amount,
                 other.total_lp_amount,
                 true,

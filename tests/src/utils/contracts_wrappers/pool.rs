@@ -82,6 +82,10 @@ impl Pool {
         desoroban_result(self.client.try_claim_rewards(&user.as_address()))
     }
 
+    pub fn claim_admin_fee(&self) -> CallResult {
+        desoroban_result(self.client.try_claim_admin_fee())
+    }
+
     pub fn withdraw(&self, user: &User, withdraw_amount: f64) -> CallResult {
         desoroban_result(
             self.client

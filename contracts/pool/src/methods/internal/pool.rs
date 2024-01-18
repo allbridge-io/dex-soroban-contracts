@@ -220,18 +220,18 @@ impl Pool {
     pub fn claim_rewards(&self, user: &mut UserDeposit) -> Result<DoubleValue, Error> {
         let mut pending = DoubleValue::default();
 
-        if user.lp_amount > 0 {
-            let rewads = self.get_reward_depts(user);
-
-            for (index, reward) in rewads.to_array().into_iter().enumerate() {
-                pending[index] = reward - user.reward_debts[index];
-
-                if pending[index] > 0 {
-                    user.reward_debts[index] = reward;
-                }
-            }
-
+        if user.lp_amount == 0 {
             return Ok(pending);
+        }
+
+        let rewads = self.get_reward_depts(user);
+
+        for (index, reward) in rewads.to_array().into_iter().enumerate() {
+            pending[index] = reward - user.reward_debts[index];
+
+            if pending[index] > 0 {
+                user.reward_debts[index] = reward;
+            }
         }
 
         Ok(pending)
