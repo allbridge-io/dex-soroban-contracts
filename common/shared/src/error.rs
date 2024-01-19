@@ -15,10 +15,14 @@ pub enum Error {
     Forbidden = 7,
 
     // Pool
-    ZeroAmount = 101,
-    PoolOverflow = 102,
-    ZeroChanges = 103,
-    NotEnoughAmount = 104,
-    InsufficientReceivedAmount = 105,
-    Slippage = 106,
+    ZeroAmount = 100,
+    PoolOverflow = 101,
+    ZeroChanges = 102,
+    NotEnoughAmount = 103,
+    InsufficientReceivedAmount = 104,
+    Slippage = 105,
+
+    // Factory
+    PairExist = 200,
+    IdenticalAddresses = 201,
 }

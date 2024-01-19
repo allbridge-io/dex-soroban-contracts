@@ -1,5 +1,6 @@
 use soroban_sdk::{Bytes, BytesN};
 
+pub mod bytes;
 mod extend_ttl;
 pub mod num;
 pub mod require;

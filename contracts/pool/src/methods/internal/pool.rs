@@ -193,7 +193,7 @@ impl Pool {
 
         self.total_lp_amount += lp_amount;
         user.lp_amount += lp_amount;
-        user.reward_debts = DoubleValue::from(self.get_reward_depts(user));
+        user.reward_debts = self.get_reward_depts(user);
 
         Ok(pending)
     }
@@ -212,7 +212,7 @@ impl Pool {
 
         self.total_lp_amount -= lp_amount;
         user.lp_amount -= lp_amount;
-        user.reward_debts = DoubleValue::from(self.get_reward_depts(user));
+        user.reward_debts = self.get_reward_depts(user);
 
         Ok(pending)
     }

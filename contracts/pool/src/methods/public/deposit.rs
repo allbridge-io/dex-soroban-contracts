@@ -36,7 +36,7 @@ pub fn deposit(
 
     RewardsClaimed {
         user: sender.clone(),
-        rewards: DoubleValue::from(rewards),
+        rewards,
     }
     .publish(&env);
 

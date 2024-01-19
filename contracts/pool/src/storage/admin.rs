@@ -1,5 +1,5 @@
 use proc_macros::{
-    extend_ttl_info_instance, data_storage_type, symbol_key, SorobanData, SorobanSimpleData,
+    data_storage_type, extend_ttl_info_instance, symbol_key, SorobanData, SorobanSimpleData,
 };
 use shared::{soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{contracttype, Address, Env};
