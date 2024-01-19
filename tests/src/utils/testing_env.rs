@@ -1,6 +1,6 @@
 use soroban_sdk::{testutils::Address as _, Address, Env};
 
-use super::{Pool, Token, User};
+use super::{CallResult, Pool, PoolFactory, Token, User};
 
 #[derive(Debug, Clone)]
 pub struct TestingEnvConfig {
@@ -51,6 +51,7 @@ impl Default for TestingEnvConfig {
 #[allow(dead_code)]
 pub struct TestingEnvironment {
     config: TestingEnvConfig,
+    factory: PoolFactory,
 
     pub admin: Address,
 
@@ -79,16 +80,23 @@ impl TestingEnvironment {
         let alice = User::generate(env);
         let bob = User::generate(env);
 
+        let factory = PoolFactory::create(&env);
+
         native_token.airdrop_user(&alice);
         native_token.airdrop_user(&bob);
 
-        let (yusd_token, yaro_token, pool) = TestingEnvironment::create_tokens_and_pool(
+        let (yusd_token, yaro_token) = TestingEnvironment::generate_token_pair(env, &admin);
+        let pool = TestingEnvironment::create_pool(
             &env,
+            &factory,
             &admin,
+            &yusd_token,
+            &yaro_token,
             config.pool_fee_share_bp,
             config.pool_admin_fee,
             (config.yusd_admin_deposit, config.yaro_admin_deposit),
-        );
+        )
+        .unwrap();
 
         yusd_token.airdrop_user(&alice);
         yusd_token.airdrop_user(&bob);
@@ -108,6 +116,7 @@ impl TestingEnvironment {
             yaro_token,
             yusd_token,
             pool,
+            factory,
         }
     }
 
@@ -116,26 +125,28 @@ impl TestingEnvironment {
         self.native_token.airdrop(&to);
     }
 
-    pub fn create_tokens_and_pool(
+    pub fn generate_token_pair(env: &Env, admin: &Address) -> (Token, Token) {
+        let token_a = Token::create(env, admin);
+        let token_b = Token::create(env, admin);
+
+        (token_a, token_b)
+    }
+
+    pub fn create_pool(
         env: &Env,
+        factory: &PoolFactory,
         admin: &Address,
+        token_a: &Token,
+        token_b: &Token,
         fee_share_bp: f64,
         admin_fee: u128,
         admin_deposits: (f64, f64),
-    ) -> (Token, Token, Pool) {
-        let token_a = Token::create(env, admin);
-        let token_b = Token::create(env, admin);
+    ) -> CallResult<Pool> {
         let fee_share_bp = ((fee_share_bp as f64) * 10_000.0) as u128;
-        let pool = Pool::create(
-            env,
-            admin,
-            20,
-            &token_a.id,
-            &token_b.id,
-            fee_share_bp,
-            admin_fee,
-        );
+        let pool =
+            factory.create_pair(admin, 20, &token_a.id, &token_b.id, fee_share_bp, admin_fee)?;
 
+        let pool = Pool::new(env, pool);
         token_a.airdrop_amount(admin, admin_deposits.0 * 2.0);
         token_b.airdrop_amount(admin, admin_deposits.1 * 2.0);
 
@@ -143,6 +154,6 @@ impl TestingEnvironment {
             pool.deposit_by_id(admin, admin_deposits, 0.0).unwrap();
         }
 
-        (token_a, token_b, pool)
+        Ok(pool)
     }
 }
