@@ -51,7 +51,6 @@ impl Default for TestingEnvConfig {
 #[allow(dead_code)]
 pub struct TestingEnvironment {
     config: TestingEnvConfig,
-    factory: PoolFactory,
 
     pub admin: Address,
 
@@ -64,6 +63,7 @@ pub struct TestingEnvironment {
     pub yusd_token: Token,
 
     pub pool: Pool,
+    pub factory: PoolFactory,
 }
 
 impl TestingEnvironment {
@@ -118,11 +118,6 @@ impl TestingEnvironment {
             pool,
             factory,
         }
-    }
-
-    #[inline]
-    pub fn native_airdrop(&self, to: &Address) {
-        self.native_token.airdrop(&to);
     }
 
     pub fn generate_token_pair(env: &Env, admin: &Address) -> (Token, Token) {

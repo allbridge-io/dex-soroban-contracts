@@ -1,5 +1,5 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
-use soroban_sdk::{Env, Map};
+use soroban_sdk::Env;
 
 use crate::{pool, storage::factory_info::FactoryInfo};
 
@@ -8,11 +8,7 @@ pub fn initialize(env: Env) -> Result<(), Error> {
 
     let wasm_hash = env.deployer().upload_contract_wasm(pool::WASM);
 
-    FactoryInfo {
-        wasm_hash,
-        pairs: Map::new(&env),
-    }
-    .save(&env);
+    FactoryInfo::new(&env, wasm_hash).save(&env);
 
     Ok(())
 }

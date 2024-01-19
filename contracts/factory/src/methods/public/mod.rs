@@ -1,7 +1,7 @@
 mod create_pair;
-mod get_pool;
 mod initialize;
+mod view;
 
 pub use create_pair::create_pair;
-pub use get_pool::get_pool;
 pub use initialize::initialize;
+pub use view::*;

@@ -9,8 +9,6 @@ crate-type = ["cdylib"]
 [dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 shared = { workspace = true }
-ethers-signers = "2.0.9"
-ethers-core = "2.0.9"
 hex = "0.4.3"
 arrayref = { workspace = true }
 rand = "0.8.5"

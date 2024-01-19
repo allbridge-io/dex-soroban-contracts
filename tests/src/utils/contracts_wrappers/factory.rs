@@ -41,6 +41,6 @@ impl PoolFactory {
     }
 
     pub fn get_pool(&self, token_a: &Address, token_b: &Address) -> CallResult<Address> {
-        desoroban_result(self.client.try_get_pool(&token_a, &token_b))
+        desoroban_result(self.client.try_pool(&token_a, &token_b))
     }
 }

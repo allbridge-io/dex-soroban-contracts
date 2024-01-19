@@ -4,9 +4,9 @@ use shared::{
     utils::{bytes::address_to_bytes, merge_slices_by_half},
     Error,
 };
-use soroban_sdk::{map, Address, Bytes, Env};
+use soroban_sdk::{Address, Bytes, Env};
 
-use crate::{methods::public::get_pool, pool, storage::factory_info::FactoryInfo};
+use crate::{pool, storage::factory_info::FactoryInfo};
 
 #[allow(clippy::too_many_arguments)]
 pub fn create_pair(
@@ -34,7 +34,7 @@ pub fn create_pair(
     };
 
     require!(
-        get_pool(&env, &token_a, &token_b).is_err(),
+        factory_info.get_pool(&token_a, &token_b).is_err(),
         Error::PairExist
     );
 
@@ -47,17 +47,10 @@ pub fn create_pair(
     let deployed_pool = env
         .deployer()
         .with_address(deployer, salt)
-        .deploy(factory_info.wasm_hash);
+        .deploy(factory_info.wasm_hash.clone());
 
-    factory_info.pairs.set(
-        token_a.clone(),
-        if let Some(mut map) = factory_info.pairs.get(token_a.clone()) {
-            map.set(token_b.clone(), deployed_pool.clone());
-            map
-        } else {
-            map![&env, (token_b.clone(), deployed_pool.clone())]
-        },
-    );
+    factory_info.add_pair(&env, &token_a, &token_b, &deployed_pool);
+    factory_info.add_pair(&env, &token_b, &token_a, &deployed_pool);
 
     pool::Client::new(&env, &deployed_pool).initialize(
         &pool_admin,
@@ -67,6 +60,8 @@ pub fn create_pair(
         &fee_share_bp,
         &admin_fee_share_bp,
     );
+
+    factory_info.save(&env);
 
     Ok(deployed_pool)
 }
