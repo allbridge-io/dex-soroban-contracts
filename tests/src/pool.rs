@@ -3,8 +3,8 @@ use soroban_sdk::Env;
 use crate::{
     contracts::pool::{Direction, RewardsClaimed},
     utils::{
-        assert_rel_eq, assert_rel_eq_f64, expect_contract_error, float_to_int, get_latest_event,
-        int_to_float, Snapshot, TestingEnvConfig, TestingEnvironment,
+        assert_rel_eq, assert_rel_eq_f64, expect_auth_error, expect_contract_error, float_to_int,
+        get_latest_event, int_to_float, Snapshot, TestingEnvConfig, TestingEnvironment,
     },
 };
 
@@ -238,6 +238,72 @@ fn swap_insufficient_received_amount() {
 }
 
 #[test]
+fn claim_admin_fee() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::create(
+        &env,
+        TestingEnvConfig::default()
+            .with_pool_fee_share_bp(0.01)
+            .with_pool_admin_fee(100),
+    );
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ref bob,
+        ..
+    } = testing_env;
+
+    let amount = 100.0;
+    let receive_amount_min = 98.0;
+    let expected_yaro_admin_fee = 0.0100002;
+    let expected_yusd_admin_fee = 0.0099997;
+
+    pool.swap(alice, bob, amount, receive_amount_min, Direction::B2A)
+        .unwrap();
+    pool.swap(alice, bob, amount, receive_amount_min, Direction::A2B)
+        .unwrap();
+
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.claim_admin_fee().unwrap();
+    let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, Some("Admin claim fee"));
+
+    let admin_yaro_diff =
+        int_to_float(snapshot_after.admin_yaro_balance - snapshot_before.admin_yaro_balance);
+    let admin_yusd_diff =
+        int_to_float(snapshot_after.admin_yusd_balance - snapshot_before.admin_yusd_balance);
+
+    let pool_yaro_diff =
+        int_to_float(snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance);
+    let pool_yusd_diff =
+        int_to_float(snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance);
+
+    assert_rel_eq_f64(admin_yaro_diff, expected_yaro_admin_fee, 0.0001);
+    assert_rel_eq_f64(admin_yusd_diff, expected_yusd_admin_fee, 0.0001);
+    assert_rel_eq_f64(pool_yaro_diff, expected_yaro_admin_fee, 0.0001);
+    assert_rel_eq_f64(pool_yusd_diff, expected_yaro_admin_fee, 0.0001);
+}
+
+#[test]
+fn claim_admin_fee_no_auth() {
+    let env = Env::default();
+    let testing_env =
+        TestingEnvironment::create(&env, TestingEnvConfig::default().with_pool_admin_fee(100));
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ref bob,
+        ..
+    } = testing_env;
+
+    pool.swap(alice, bob, 100.0, 98.0, Direction::B2A).unwrap();
+    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
+
+    env.mock_auths(&[]);
+    expect_auth_error(&env, pool.claim_admin_fee());
+}
+
+#[test]
 fn claim_rewards() {
     let env = Env::default();
     let testing_env = TestingEnvironment::create(
@@ -257,10 +323,14 @@ fn claim_rewards() {
     pool.deposit(&alice, (2000.0, 2000.0), 0.0).unwrap();
     let amount = 100.0;
     let receive_amount_min = 98.0;
+    let expected_yusd_reward = 1.0012208;
+    let expected_yaro_reward = 0.9987789;
 
     let snapshot_before = Snapshot::take(&testing_env);
 
-    pool.swap(alice, bob, amount, receive_amount_min, Direction::B2A)
+    pool.swap(alice, bob, amount, receive_amount_min, Direction::A2B)
+        .unwrap();
+    pool.swap(bob, alice, amount, receive_amount_min, Direction::B2A)
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
@@ -271,17 +341,23 @@ fn claim_rewards() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Alice claim rewards"));
 
-    let expected_reward = 0.9987789;
     let rewards = get_latest_event::<RewardsClaimed>(&env).unwrap();
 
     assert_eq!(rewards.user, alice.as_address());
-    assert_eq!(int_to_float(rewards.rewards.data.0), expected_reward);
+    assert_eq!(int_to_float(rewards.rewards.data.0), expected_yusd_reward);
+    assert_eq!(int_to_float(rewards.rewards.data.1), expected_yaro_reward);
 
     let alice_yusd_diff = snapshot_after.alice_yusd_balance - snapshot_before.alice_yusd_balance;
     let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
 
-    assert_eq!(int_to_float(alice_yusd_diff), expected_reward);
-    assert_eq!(int_to_float(pool_yusd_diff), expected_reward);
+    assert_eq!(int_to_float(alice_yusd_diff), expected_yusd_reward);
+    assert_eq!(int_to_float(pool_yusd_diff), expected_yusd_reward);
+
+    let alice_yaro_diff = snapshot_after.alice_yaro_balance - snapshot_before.alice_yaro_balance;
+    let pool_yaro_diff = snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance;
+
+    assert_eq!(int_to_float(alice_yaro_diff), expected_yaro_reward);
+    assert_eq!(int_to_float(pool_yaro_diff), expected_yaro_reward);
 }
 
 #[test]
@@ -304,8 +380,12 @@ fn get_reward_after_second_deposit() {
     pool.deposit(&alice, (2000.0, 2000.0), 0.0).unwrap();
     let amount = 100.0;
     let receive_amount_min = 98.0;
+    let expected_yusd_reward = 1.0012208;
+    let expected_yaro_reward = 0.9987789;
 
-    pool.swap(alice, bob, amount, receive_amount_min, Direction::B2A)
+    pool.swap(alice, bob, amount, receive_amount_min, Direction::A2B)
+        .unwrap();
+    pool.swap(bob, alice, amount, receive_amount_min, Direction::B2A)
         .unwrap();
 
     let snapshot_before = Snapshot::take(&testing_env);
@@ -313,17 +393,25 @@ fn get_reward_after_second_deposit() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, None);
 
-    let expected_reward = 0.9987789;
     let rewards = get_latest_event::<RewardsClaimed>(&env).unwrap();
 
     assert_eq!(rewards.user, alice.as_address());
-    assert_eq!(int_to_float(rewards.rewards.data.0), expected_reward);
+    assert_eq!(int_to_float(rewards.rewards.data.0), expected_yusd_reward);
+    assert_eq!(int_to_float(rewards.rewards.data.1), expected_yaro_reward);
 
     let alice_yusd_diff = 2_000.0
         - int_to_float(snapshot_before.alice_yusd_balance - snapshot_after.alice_yusd_balance);
     let pool_yusd_diff = 2_000.0
         - int_to_float(snapshot_after.pool_yusd_balance - snapshot_before.pool_yusd_balance);
 
-    assert_rel_eq_f64(alice_yusd_diff, expected_reward, 0.0001);
-    assert_rel_eq_f64(pool_yusd_diff, expected_reward, 0.0001);
+    assert_rel_eq_f64(alice_yusd_diff, expected_yusd_reward, 0.0001);
+    assert_rel_eq_f64(pool_yusd_diff, expected_yusd_reward, 0.0001);
+
+    let alice_yaro_diff = 2_000.0
+        - int_to_float(snapshot_before.alice_yaro_balance - snapshot_after.alice_yaro_balance);
+    let pool_yaro_diff = 2_000.0
+        - int_to_float(snapshot_after.pool_yaro_balance - snapshot_before.pool_yaro_balance);
+
+    assert_rel_eq_f64(alice_yaro_diff, expected_yaro_reward, 0.0001);
+    assert_rel_eq_f64(pool_yaro_diff, expected_yaro_reward, 0.0001);
 }
