@@ -132,7 +132,6 @@ impl Pool {
             &recipient.as_address(),
             &float_to_int(amount),
             &float_to_int(receive_amount_min),
-            &false,
             &direction,
         ))
     }

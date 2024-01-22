@@ -10,7 +10,6 @@ pub fn swap(
     recipient: Address,
     from_amount: u128,
     receive_amount_min: u128,
-    zero_fee: bool,
     direction: Direction,
 ) -> Result<u128, Error> {
     sender.require_auth();
@@ -22,7 +21,6 @@ pub fn swap(
         recipient.clone(),
         from_amount,
         receive_amount_min,
-        zero_fee,
         direction,
     )?;
 

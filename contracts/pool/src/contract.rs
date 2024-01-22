@@ -59,7 +59,6 @@ impl PoolContract {
         recipient: Address,
         amount_in: u128,
         receive_amount_min: u128,
-        zero_fee: bool,
         direction: Direction,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
@@ -70,7 +69,6 @@ impl PoolContract {
             recipient,
             amount_in,
             receive_amount_min,
-            zero_fee,
             direction,
         )
     }

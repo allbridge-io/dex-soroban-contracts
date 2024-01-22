@@ -38,7 +38,6 @@ impl Pool {
         recipient: Address,
         amount: u128,
         receive_amount_min: u128,
-        zero_fee: bool,
         direction: Direction,
     ) -> Result<(u128, u128), Error> {
         let current_contract = env.current_contract_address();
@@ -64,11 +63,7 @@ impl Pool {
             result = self.token_balances[token_to] - token_to_new_amount;
         }
 
-        let fee = if zero_fee {
-            0
-        } else {
-            result * self.fee_share_bp / Self::BP
-        };
+        let fee = result * self.fee_share_bp / Self::BP;
 
         result -= fee;
 
