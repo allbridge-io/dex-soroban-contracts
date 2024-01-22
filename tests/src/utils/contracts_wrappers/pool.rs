@@ -64,7 +64,7 @@ impl Pool {
     }
 
     pub fn user_deposit_by_id(&self, id: &Address) -> UserDeposit {
-        self.client.get_user_deposit(&id)
+        self.client.get_user_deposit(id)
     }
 
     pub fn claim_rewards(&self, user: &User) -> CallResult {
@@ -98,7 +98,7 @@ impl Pool {
     ) -> CallResult {
         self.client
             .try_deposit(
-                &user,
+                user,
                 &(
                     float_to_int(deposit_amounts.0),
                     float_to_int(deposit_amounts.1),

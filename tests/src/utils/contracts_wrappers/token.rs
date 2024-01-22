@@ -13,8 +13,8 @@ pub struct Token {
 impl Token {
     pub fn create(env: &Env, admin: &Address) -> Token {
         let id = env.register_stellar_asset_contract(admin.clone());
-        let client = token::Client::new(&env, &id);
-        let asset_client = token::StellarAssetClient::new(&env, &id);
+        let client = token::Client::new(env, &id);
+        let asset_client = token::StellarAssetClient::new(env, &id);
 
         Token {
             id,
@@ -25,7 +25,7 @@ impl Token {
 
     pub fn clone_token(&self, env: &Env) -> Token {
         let client = token::Client::new(env, &self.id);
-        let asset_client = token::StellarAssetClient::new(&env, &self.id);
+        let asset_client = token::StellarAssetClient::new(env, &self.id);
 
         Token {
             id: self.id.clone(),
@@ -47,6 +47,6 @@ impl Token {
     }
 
     pub fn balance_of(&self, id: &Address) -> u128 {
-        self.client.balance(&id) as u128
+        self.client.balance(id) as u128
     }
 }

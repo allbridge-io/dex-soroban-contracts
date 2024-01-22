@@ -42,7 +42,7 @@ fn identical_addresses() {
     let call_result =
         testing_env
             .factory
-            .create_pair(&admin, 10, &yaro_token.id, &yaro_token.id, 10, 10);
+            .create_pair(admin, 10, &yaro_token.id, &yaro_token.id, 10, 10);
 
     expect_contract_error(&env, call_result, shared::Error::IdenticalAddresses);
 }
@@ -61,7 +61,7 @@ fn pair_exist() {
     let call_result =
         testing_env
             .factory
-            .create_pair(&admin, 10, &yaro_token.id, &yusd_token.id, 10, 10);
+            .create_pair(admin, 10, &yaro_token.id, &yusd_token.id, 10, 10);
 
     expect_contract_error(&env, call_result, shared::Error::PairExist);
 }

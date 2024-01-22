@@ -8,7 +8,7 @@ pub struct User {
 impl User {
     pub fn generate(env: &Env) -> User {
         User {
-            address: Address::generate(&env),
+            address: Address::generate(env),
         }
     }
 

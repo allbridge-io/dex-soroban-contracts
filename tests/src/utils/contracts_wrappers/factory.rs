@@ -13,7 +13,7 @@ pub struct PoolFactory {
 impl PoolFactory {
     pub fn create(env: &Env) -> PoolFactory {
         let id = env.register_contract_wasm(None, factory::WASM);
-        let client = factory::Client::new(&env, &id);
+        let client = factory::Client::new(env, &id);
 
         client.initialize();
 
@@ -30,17 +30,17 @@ impl PoolFactory {
         admin_fee: u128,
     ) -> CallResult<Address> {
         desoroban_result(self.client.try_create_pair(
-            &admin,
-            &admin,
+            admin,
+            admin,
             &a,
-            &token_a,
-            &token_b,
+            token_a,
+            token_b,
             &fee_share_bp,
             &admin_fee,
         ))
     }
 
     pub fn get_pool(&self, token_a: &Address, token_b: &Address) -> CallResult<Address> {
-        desoroban_result(self.client.try_pool(&token_a, &token_b))
+        desoroban_result(self.client.try_pool(token_a, token_b))
     }
 }

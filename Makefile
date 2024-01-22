@@ -14,6 +14,9 @@ clean-test: clean-target
 clean-target:
 	rm -rf target/
 
+lint:
+	cargo clippy --all-targets
+
 test: all
 	cargo test
 

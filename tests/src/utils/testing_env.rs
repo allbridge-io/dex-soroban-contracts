@@ -80,14 +80,14 @@ impl TestingEnvironment {
         let alice = User::generate(env);
         let bob = User::generate(env);
 
-        let factory = PoolFactory::create(&env);
+        let factory = PoolFactory::create(env);
 
         native_token.airdrop_user(&alice);
         native_token.airdrop_user(&bob);
 
         let (yusd_token, yaro_token) = TestingEnvironment::generate_token_pair(env, &admin);
         let pool = TestingEnvironment::create_pool(
-            &env,
+            env,
             &factory,
             &admin,
             &yusd_token,
@@ -127,6 +127,7 @@ impl TestingEnvironment {
         (token_a, token_b)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_pool(
         env: &Env,
         factory: &PoolFactory,
@@ -137,7 +138,7 @@ impl TestingEnvironment {
         admin_fee: u128,
         admin_deposits: (f64, f64),
     ) -> CallResult<Pool> {
-        let fee_share_bp = ((fee_share_bp as f64) * 10_000.0) as u128;
+        let fee_share_bp = (fee_share_bp * 10_000.0) as u128;
         let pool =
             factory.create_pair(admin, 20, &token_a.id, &token_b.id, fee_share_bp, admin_fee)?;
 

@@ -18,7 +18,7 @@ fn deposit_zero_amount() {
         ..
     } = testing_env;
 
-    let call_result = pool.deposit(&alice, (0.0, 0.0), 0.0);
+    let call_result = pool.deposit(alice, (0.0, 0.0), 0.0);
     expect_contract_error(&env, call_result, shared::Error::ZeroAmount)
 }
 
@@ -32,7 +32,7 @@ fn deposit_slippage() {
         ..
     } = testing_env;
 
-    let call_result = pool.deposit(&alice, (10.0, 0.0), 100.0);
+    let call_result = pool.deposit(alice, (10.0, 0.0), 100.0);
     expect_contract_error(&env, call_result, shared::Error::Slippage)
 }
 
@@ -47,7 +47,7 @@ fn deposit() {
     } = testing_env;
 
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(&alice, (100.0, 50.0), 0.0).unwrap();
+    pool.deposit(alice, (100.0, 50.0), 0.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
@@ -86,7 +86,7 @@ fn deposit_in_single_token() {
     } = testing_env;
 
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(&alice, (100.0, 0.0), 0.0).unwrap();
+    pool.deposit(alice, (100.0, 0.0), 0.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
@@ -124,14 +124,14 @@ fn withdraw() {
         ..
     } = testing_env;
 
-    pool.deposit(&alice, (100.0, 50.0), 0.0).unwrap();
+    pool.deposit(alice, (100.0, 50.0), 0.0).unwrap();
 
     let alice_lp_amount = pool.user_lp_amount(alice);
     let alice_lp_amount_float = int_to_float(alice_lp_amount);
     let (token_a_amount, token_b_amount) = pool.withdraw_amounts(alice);
 
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.withdraw(&alice, alice_lp_amount_float).unwrap();
+    pool.withdraw(alice, alice_lp_amount_float).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
     snapshot_before.print_change_with(&snapshot_after, Some("Withdraw"));
@@ -171,7 +171,7 @@ fn withdraw_zero_change() {
     let alice_lp_amount = pool.user_lp_amount(alice);
     let alice_lp_amount_float = int_to_float(alice_lp_amount);
 
-    let call_result = pool.withdraw(&alice, alice_lp_amount_float);
+    let call_result = pool.withdraw(alice, alice_lp_amount_float);
 
     expect_contract_error(&env, call_result, shared::Error::ZeroChanges)
 }
@@ -194,7 +194,7 @@ fn swap() {
     let amount = 1000.0;
     let receive_amount_min = 995.5;
 
-    pool.swap(&alice, &alice, amount, receive_amount_min, Direction::A2B)
+    pool.swap(alice, alice, amount, receive_amount_min, Direction::A2B)
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
@@ -233,7 +233,7 @@ fn swap_insufficient_received_amount() {
     let amount = 1000.0;
     let receive_amount_min = 1000.5;
 
-    let call_result = pool.swap(&alice, &alice, amount, receive_amount_min, Direction::A2B);
+    let call_result = pool.swap(alice, alice, amount, receive_amount_min, Direction::A2B);
     expect_contract_error(&env, call_result, shared::Error::InsufficientReceivedAmount)
 }
 
@@ -320,7 +320,7 @@ fn claim_rewards() {
         ..
     } = testing_env;
 
-    pool.deposit(&alice, (2000.0, 2000.0), 0.0).unwrap();
+    pool.deposit(alice, (2000.0, 2000.0), 0.0).unwrap();
     let amount = 100.0;
     let receive_amount_min = 98.0;
     let expected_yusd_reward = 1.0012208;
@@ -377,7 +377,7 @@ fn get_reward_after_second_deposit() {
         ..
     } = testing_env;
 
-    pool.deposit(&alice, (2000.0, 2000.0), 0.0).unwrap();
+    pool.deposit(alice, (2000.0, 2000.0), 0.0).unwrap();
     let amount = 100.0;
     let receive_amount_min = 98.0;
     let expected_yusd_reward = 1.0012208;
@@ -389,7 +389,7 @@ fn get_reward_after_second_deposit() {
         .unwrap();
 
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(&alice, (2000.0, 2000.0), 0.0).unwrap();
+    pool.deposit(alice, (2000.0, 2000.0), 0.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, None);
 

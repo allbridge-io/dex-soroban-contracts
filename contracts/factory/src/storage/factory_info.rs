@@ -19,7 +19,7 @@ impl FactoryInfo {
     pub fn new(env: &Env, wasm_hash: BytesN<32>) -> Self {
         FactoryInfo {
             wasm_hash,
-            pairs: Map::new(&env),
+            pairs: Map::new(env),
         }
     }
 
