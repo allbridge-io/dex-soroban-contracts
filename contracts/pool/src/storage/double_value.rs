@@ -10,7 +10,7 @@ use super::pool::Token;
 #[contracttype]
 #[derive(Debug, Clone, Default)]
 pub struct DoubleValue {
-    data: (u128, u128),
+    pub data: (u128, u128),
 }
 
 impl DoubleValue {

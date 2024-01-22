@@ -344,8 +344,8 @@ fn claim_rewards() {
     let rewards = get_latest_event::<RewardsClaimed>(&env).unwrap();
 
     assert_eq!(rewards.user, alice.as_address());
-    assert_eq!(int_to_float(rewards.rewards.data.0), expected_yusd_reward);
-    assert_eq!(int_to_float(rewards.rewards.data.1), expected_yaro_reward);
+    assert_eq!(int_to_float(rewards.rewards.0), expected_yusd_reward);
+    assert_eq!(int_to_float(rewards.rewards.1), expected_yaro_reward);
 
     let alice_yusd_diff = snapshot_after.alice_yusd_balance - snapshot_before.alice_yusd_balance;
     let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
@@ -396,8 +396,8 @@ fn get_reward_after_second_deposit() {
     let rewards = get_latest_event::<RewardsClaimed>(&env).unwrap();
 
     assert_eq!(rewards.user, alice.as_address());
-    assert_eq!(int_to_float(rewards.rewards.data.0), expected_yusd_reward);
-    assert_eq!(int_to_float(rewards.rewards.data.1), expected_yaro_reward);
+    assert_eq!(int_to_float(rewards.rewards.0), expected_yusd_reward);
+    assert_eq!(int_to_float(rewards.rewards.1), expected_yaro_reward);
 
     let alice_yusd_diff = 2_000.0
         - int_to_float(snapshot_before.alice_yusd_balance - snapshot_after.alice_yusd_balance);

@@ -33,7 +33,7 @@ pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
 
     RewardsClaimed {
         user: sender,
-        rewards,
+        rewards: rewards.data,
     }
     .publish(&env);
 

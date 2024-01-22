@@ -148,15 +148,17 @@ impl Pool {
         sender: Address,
         user: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(), Error> {
+    ) -> Result<(DoubleValue, DoubleValue), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.get_current_d();
         let old_balances: u128 = self.token_balances.to_array().iter().sum();
         let old_total_lp_amount = self.total_lp_amount;
         let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
+        let mut amounts = DoubleValue::default();
 
         for (index, token_balance) in self.token_balances.to_array().into_iter().enumerate() {
             let token_amount = token_balance * lp_amount / old_total_lp_amount;
+            amounts[index] = token_amount;
             let withdraw_amount = token_amount + rewards_amounts[index];
 
             self.get_token_by_index(env, index).transfer(
@@ -172,7 +174,7 @@ impl Pool {
 
         require!(new_balances < old_balances && d1 < d0, Error::ZeroChanges);
 
-        Ok(())
+        Ok((amounts, rewards_amounts))
     }
 
     pub(crate) fn deposit_lp(

@@ -19,7 +19,7 @@ pub fn deposit(
 
     let (rewards, lp_amount) = pool.deposit(
         &env,
-        amounts,
+        amounts.clone(),
         sender.clone(),
         &mut user_deposit,
         min_lp_amount,
@@ -30,13 +30,14 @@ pub fn deposit(
 
     Deposit {
         user: sender.clone(),
-        amount: lp_amount,
+        lp_amount,
+        amounts: amounts.data,
     }
     .publish(&env);
 
     RewardsClaimed {
         user: sender.clone(),
-        rewards,
+        rewards: rewards.data,
     }
     .publish(&env);
 

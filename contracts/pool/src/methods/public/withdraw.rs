@@ -2,7 +2,7 @@ use shared::{soroban_data::SimpleSorobanData, Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    events::Withdraw,
+    events::{RewardsClaimed, Withdraw},
     storage::{pool::Pool, user_deposit::UserDeposit},
 };
 
@@ -11,7 +11,7 @@ pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error>
     let mut pool = Pool::get(&env)?;
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
 
-    pool.withdraw(&env, sender.clone(), &mut user_deposit, lp_amount)?;
+    let (amounts, rewards) = pool.withdraw(&env, sender.clone(), &mut user_deposit, lp_amount)?;
 
     pool.save(&env);
     user_deposit.save(&env, sender.clone());
@@ -19,6 +19,13 @@ pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error>
     Withdraw {
         user: sender.clone(),
         lp_amount,
+        amounts: amounts.data,
+    }
+    .publish(&env);
+
+    RewardsClaimed {
+        user: sender.clone(),
+        rewards: rewards.data,
     }
     .publish(&env);
 
