@@ -36,20 +36,25 @@ pub fn derive_soroban_simple_data(input: TokenStream) -> TokenStream {
     .into()
 }
 
-#[proc_macro_attribute]
-pub fn symbol_key(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input: syn::ItemStruct = syn::parse(input).unwrap();
-    let ident = &input.ident;
+#[proc_macro_derive(SymbolKey)]
+pub fn derive_symbol_key(input: TokenStream) -> TokenStream {
+    let syn::DeriveInput { ident, .. } = syn::parse_macro_input! {input};
 
-    let storage_key: syn::LitStr = syn::parse(args).unwrap();
+    let key = ident.to_string();
+    let key = key.as_str();
 
-    quote!(
-        #input
-
-        impl shared::soroban_data::SymbolKey for #ident {
-            const STORAGE_KEY: soroban_sdk::Symbol = soroban_sdk::symbol_short!(#storage_key);
+    if key.len() > 32 {
+        return quote! {
+            compile_error!("Symbol maximum length is 32 characters");
         }
-    )
+        .into();
+    }
+
+    quote! {
+        impl shared::soroban_data::SymbolKey for #ident {
+            const STORAGE_KEY: &'static str = #key;
+        }
+    }
     .into()
 }
 

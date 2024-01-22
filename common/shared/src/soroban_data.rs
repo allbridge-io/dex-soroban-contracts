@@ -6,7 +6,7 @@ use crate::Error;
 // ----------------------------------------- //
 
 pub trait SymbolKey {
-    const STORAGE_KEY: Symbol;
+    const STORAGE_KEY: &'static str;
 }
 
 pub trait DataStorageType {
@@ -25,17 +25,17 @@ pub trait SimpleSorobanData:
 {
     #[inline(always)]
     fn get(env: &Env) -> Result<Self, Error> {
-        Self::get_by_key(env, &Self::STORAGE_KEY)
+        Self::get_by_key(env, &Symbol::new(env, Self::STORAGE_KEY))
     }
 
     #[inline(always)]
     fn has(env: &Env) -> bool {
-        Self::has_by_key(env, Self::STORAGE_KEY)
+        Self::has_by_key(env, Symbol::new(env, Self::STORAGE_KEY))
     }
 
     #[inline(always)]
     fn save(&self, env: &Env) {
-        self.save_by_key(env, &Self::STORAGE_KEY);
+        self.save_by_key(env, &Symbol::new(env, Self::STORAGE_KEY));
     }
 
     #[inline(always)]
@@ -43,12 +43,12 @@ pub trait SimpleSorobanData:
     where
         F: FnOnce(&mut Self) -> Result<(), Error>,
     {
-        Self::update_by_key(env, &Self::STORAGE_KEY, handler)
+        Self::update_by_key(env, &Symbol::new(env, Self::STORAGE_KEY), handler)
     }
 
     #[inline(always)]
     fn extend_ttl(env: &Env) {
-        Self::extend_ttl_by_key(env, &Self::STORAGE_KEY);
+        Self::extend_ttl_by_key(env, &Symbol::new(env, Self::STORAGE_KEY));
     }
 }
 

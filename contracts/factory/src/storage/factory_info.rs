@@ -1,12 +1,11 @@
 use proc_macros::{
-    data_storage_type, extend_ttl_info_instance, symbol_key, SorobanData, SorobanSimpleData,
+    data_storage_type, extend_ttl_info_instance, SorobanData, SorobanSimpleData, SymbolKey,
 };
 use shared::Error;
 use soroban_sdk::{contracttype, map, Address, BytesN, Env, Map};
 
 #[contracttype]
-#[derive(SorobanData, SorobanSimpleData)]
-#[symbol_key("Factory")]
+#[derive(SorobanData, SorobanSimpleData, SymbolKey)]
 #[data_storage_type(Instance)]
 #[extend_ttl_info_instance]
 pub struct FactoryInfo {
