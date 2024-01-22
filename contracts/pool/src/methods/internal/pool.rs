@@ -180,11 +180,7 @@ impl Pool {
         user: &mut UserDeposit,
         lp_amount: u128,
     ) -> Result<DoubleValue, Error> {
-        let mut pending = DoubleValue::default();
-
-        if user.lp_amount > 0 {
-            pending = self.get_pending(user);
-        };
+        let pending = self.get_pending(user);
 
         self.total_lp_amount += lp_amount;
         user.lp_amount += lp_amount;
@@ -200,10 +196,7 @@ impl Pool {
     ) -> Result<DoubleValue, Error> {
         require!(user.lp_amount >= lp_amount, Error::NotEnoughAmount);
 
-        let mut pending = DoubleValue::default();
-        if user.lp_amount > 0 {
-            pending = self.get_pending(user);
-        }
+        let pending = self.get_pending(user);
 
         self.total_lp_amount -= lp_amount;
         user.lp_amount -= lp_amount;
@@ -243,6 +236,10 @@ impl Pool {
     }
 
     pub fn get_pending(&self, user: &UserDeposit) -> DoubleValue {
+        if user.lp_amount == 0 {
+            return DoubleValue::default();
+        }
+
         DoubleValue::from((
             ((user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P) - user.reward_debts[0],
             ((user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P) - user.reward_debts[1],
