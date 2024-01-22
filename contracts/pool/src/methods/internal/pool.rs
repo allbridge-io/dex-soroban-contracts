@@ -207,7 +207,12 @@ impl Pool {
         Ok(pending)
     }
 
-    pub fn claim_rewards(&self, user: &mut UserDeposit) -> Result<DoubleValue, Error> {
+    pub fn claim_rewards(
+        &self,
+        env: &Env,
+        sender: Address,
+        user: &mut UserDeposit,
+    ) -> Result<DoubleValue, Error> {
         let mut pending = DoubleValue::default();
 
         if user.lp_amount == 0 {
@@ -221,6 +226,12 @@ impl Pool {
 
             if pending[index] > 0 {
                 user.reward_debts[index] = reward;
+
+                self.get_token_by_index(env, index).transfer(
+                    &env.current_contract_address(),
+                    &sender,
+                    &(pending[index] as i128),
+                );
             }
         }
 
