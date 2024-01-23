@@ -27,9 +27,4 @@ impl Admin {
     pub fn require_auth(&self) {
         self.0.require_auth();
     }
-
-    #[inline]
-    pub fn as_address(&self) -> Address {
-        self.0.clone()
-    }
 }

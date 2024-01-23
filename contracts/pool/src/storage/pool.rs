@@ -7,7 +7,7 @@ use soroban_sdk::{
     vec, Address, Env, Vec,
 };
 
-use super::double_value::DoubleValue;
+use super::double_value::DoubleU128;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(usize)]
@@ -28,9 +28,9 @@ pub struct Pool {
     pub total_lp_amount: u128,
 
     pub tokens: Vec<Address>,
-    pub token_balances: DoubleValue,
-    pub acc_rewards_per_share_p: DoubleValue,
-    pub admin_fee_amount: DoubleValue,
+    pub token_balances: DoubleU128,
+    pub acc_rewards_per_share_p: DoubleU128,
+    pub admin_fee_amount: DoubleU128,
 }
 
 impl Pool {
@@ -50,9 +50,9 @@ impl Pool {
             total_lp_amount: 0,
 
             tokens: vec![env, token_a, token_b],
-            token_balances: DoubleValue::default(),
-            acc_rewards_per_share_p: DoubleValue::default(),
-            admin_fee_amount: DoubleValue::default(),
+            token_balances: DoubleU128::default(),
+            acc_rewards_per_share_p: DoubleU128::default(),
+            admin_fee_amount: DoubleU128::default(),
         }
     }
 

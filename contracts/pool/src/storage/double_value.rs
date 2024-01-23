@@ -9,17 +9,17 @@ use super::pool::Token;
 
 #[contracttype]
 #[derive(Debug, Clone, Default)]
-pub struct DoubleValue {
+pub struct DoubleU128 {
     pub data: (u128, u128),
 }
 
-impl DoubleValue {
+impl DoubleU128 {
     pub fn to_array(&self) -> [u128; 2] {
         [self.data.0, self.data.1]
     }
 }
 
-impl Index<usize> for DoubleValue {
+impl Index<usize> for DoubleU128 {
     type Output = u128;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -31,7 +31,7 @@ impl Index<usize> for DoubleValue {
     }
 }
 
-impl IndexMut<usize> for DoubleValue {
+impl IndexMut<usize> for DoubleU128 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         match index {
             0 => &mut self.data.0,
@@ -41,7 +41,7 @@ impl IndexMut<usize> for DoubleValue {
     }
 }
 
-impl Index<Token> for DoubleValue {
+impl Index<Token> for DoubleU128 {
     type Output = u128;
 
     fn index(&self, index: Token) -> &Self::Output {
@@ -49,13 +49,13 @@ impl Index<Token> for DoubleValue {
     }
 }
 
-impl IndexMut<Token> for DoubleValue {
+impl IndexMut<Token> for DoubleU128 {
     fn index_mut(&mut self, index: Token) -> &mut Self::Output {
         &mut self[index as usize]
     }
 }
 
-impl From<[u128; 2]> for DoubleValue {
+impl From<[u128; 2]> for DoubleU128 {
     #[inline]
     fn from(value: [u128; 2]) -> Self {
         Self {
@@ -64,7 +64,7 @@ impl From<[u128; 2]> for DoubleValue {
     }
 }
 
-impl From<(u128, u128)> for DoubleValue {
+impl From<(u128, u128)> for DoubleU128 {
     #[inline]
     fn from(data: (u128, u128)) -> Self {
         Self { data }

@@ -5,7 +5,7 @@ use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::data_key::DataKey;
 
-use super::double_value::DoubleValue;
+use super::double_value::DoubleU128;
 
 const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
@@ -16,7 +16,7 @@ const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
 #[extend_ttl_info(BUMP_AMOUNT, LIFETIME_THRESHOLD)]
 pub struct UserDeposit {
     pub lp_amount: u128,
-    pub reward_debts: DoubleValue,
+    pub reward_debts: DoubleU128,
 }
 
 impl UserDeposit {

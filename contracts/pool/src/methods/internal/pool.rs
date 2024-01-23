@@ -3,7 +3,7 @@ use shared::{require, utils::num::*, Error};
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::{
-    double_value::DoubleValue,
+    double_value::DoubleU128,
     pool::{Pool, Token},
     user_deposit::UserDeposit,
 };
@@ -88,11 +88,11 @@ impl Pool {
     pub fn deposit(
         &mut self,
         env: &Env,
-        amounts: DoubleValue,
+        amounts: DoubleU128,
         sender: Address,
         user: &mut UserDeposit,
         min_lp_amount: u128,
-    ) -> Result<(DoubleValue, u128), Error> {
+    ) -> Result<(DoubleU128, u128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.get_current_d();
 
@@ -148,13 +148,13 @@ impl Pool {
         sender: Address,
         user: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(DoubleValue, DoubleValue), Error> {
+    ) -> Result<(DoubleU128, DoubleU128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.get_current_d();
         let old_balances: u128 = self.token_balances.to_array().iter().sum();
         let old_total_lp_amount = self.total_lp_amount;
         let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
-        let mut amounts = DoubleValue::default();
+        let mut amounts = DoubleU128::default();
 
         for (index, token_balance) in self.token_balances.to_array().into_iter().enumerate() {
             let token_amount = token_balance * lp_amount / old_total_lp_amount;
@@ -181,7 +181,7 @@ impl Pool {
         &mut self,
         user: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<DoubleValue, Error> {
+    ) -> Result<DoubleU128, Error> {
         let pending = self.get_pending(user);
 
         self.total_lp_amount += lp_amount;
@@ -195,7 +195,7 @@ impl Pool {
         &mut self,
         user: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<DoubleValue, Error> {
+    ) -> Result<DoubleU128, Error> {
         require!(user.lp_amount >= lp_amount, Error::NotEnoughAmount);
 
         let pending = self.get_pending(user);
@@ -212,8 +212,8 @@ impl Pool {
         env: &Env,
         sender: Address,
         user: &mut UserDeposit,
-    ) -> Result<DoubleValue, Error> {
-        let mut pending = DoubleValue::default();
+    ) -> Result<DoubleU128, Error> {
+        let mut pending = DoubleU128::default();
 
         if user.lp_amount == 0 {
             return Ok(pending);
@@ -248,19 +248,19 @@ impl Pool {
         }
     }
 
-    pub fn get_pending(&self, user: &UserDeposit) -> DoubleValue {
+    pub fn get_pending(&self, user: &UserDeposit) -> DoubleU128 {
         if user.lp_amount == 0 {
-            return DoubleValue::default();
+            return DoubleU128::default();
         }
 
-        DoubleValue::from((
+        DoubleU128::from((
             ((user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P) - user.reward_debts[0],
             ((user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P) - user.reward_debts[1],
         ))
     }
 
-    pub fn get_reward_depts(&self, user: &UserDeposit) -> DoubleValue {
-        DoubleValue::from((
+    pub fn get_reward_depts(&self, user: &UserDeposit) -> DoubleU128 {
+        DoubleU128::from((
             (user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
             (user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P,
         ))
