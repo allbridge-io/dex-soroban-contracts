@@ -7,7 +7,7 @@ use soroban_sdk::{
     vec, Address, Env, Vec,
 };
 
-use super::double_value::DoubleU128;
+use super::double_u128::DoubleU128;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(usize)]

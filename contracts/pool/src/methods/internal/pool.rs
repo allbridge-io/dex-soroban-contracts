@@ -3,7 +3,7 @@ use shared::{require, utils::num::*, Error};
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::{
-    double_value::DoubleU128,
+    double_u128::DoubleU128,
     pool::{Pool, Token},
     user_deposit::UserDeposit,
 };

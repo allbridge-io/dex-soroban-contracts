@@ -5,7 +5,7 @@ use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::data_key::DataKey;
 
-use super::double_value::DoubleU128;
+use super::double_u128::DoubleU128;
 
 const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
