@@ -29,6 +29,7 @@ impl Pool {
     const BP: u128 = 10000;
 
     pub const P: u128 = 48;
+    const PRECISION_SHIFT: u128 = 14;
 
     #[allow(clippy::too_many_arguments)]
     pub fn swap(
@@ -274,7 +275,10 @@ impl Pool {
     }
 
     pub fn get_current_d(&self) -> u128 {
-        self.get_d(self.token_balances[0] >> 14, self.token_balances[1] >> 14) << 14
+        self.get_d(
+            self.token_balances[0] >> Self::PRECISION_SHIFT,
+            self.token_balances[1] >> Self::PRECISION_SHIFT,
+        ) << Self::PRECISION_SHIFT
     }
 
     pub fn get_d(&self, x: u128, y: u128) -> u128 {
