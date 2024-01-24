@@ -11,6 +11,7 @@ soroban-sdk = { workspace = true }
 shared = { workspace = true }
 proc_macros = { workspace = true }
 ethnum = { workspace = true }
+storage = { workspace = true }
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

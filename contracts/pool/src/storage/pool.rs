@@ -9,11 +9,21 @@ use soroban_sdk::{
 
 use super::double_u128::DoubleU128;
 
+#[contracttype]
 #[derive(Debug, Clone, Copy)]
 #[repr(usize)]
 pub enum Token {
     A = 0,
     B = 1,
+}
+
+impl Token {
+    pub fn opposite(&self) -> Token {
+        match self {
+            Token::A => Token::B,
+            Token::B => Token::A,
+        }
+    }
 }
 
 #[contracttype]
@@ -59,5 +69,10 @@ impl Pool {
     #[inline]
     pub fn get_token_by_index(&self, env: &Env, index: usize) -> TokenClient<'_> {
         token::Client::new(env, &self.tokens.get_unchecked(index as u32))
+    }
+
+    #[inline]
+    pub fn get_token(&self, env: &Env, token: Token) -> TokenClient<'_> {
+        self.get_token_by_index(env, token as usize)
     }
 }

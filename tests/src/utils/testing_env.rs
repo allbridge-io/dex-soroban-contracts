@@ -80,7 +80,7 @@ impl TestingEnvironment {
         let alice = User::generate(env);
         let bob = User::generate(env);
 
-        let factory = PoolFactory::create(env);
+        let factory = PoolFactory::create(env, &admin);
 
         native_token.airdrop_user(&alice);
         native_token.airdrop_user(&bob);

@@ -3,8 +3,6 @@ use shared::consts::DAY_IN_LEDGERS;
 use shared::soroban_data::SorobanData;
 use soroban_sdk::{contracttype, Address, Env};
 
-use crate::storage::data_key::DataKey;
-
 use super::double_u128::DoubleU128;
 
 const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
@@ -21,10 +19,10 @@ pub struct UserDeposit {
 
 impl UserDeposit {
     pub fn get(env: &Env, address: Address) -> UserDeposit {
-        UserDeposit::get_by_key(env, &DataKey::UserDeposit(address)).unwrap_or_default()
+        UserDeposit::get_by_key(env, &address).unwrap_or_default()
     }
 
     pub fn save(&self, env: &Env, address: Address) {
-        self.save_by_key(env, &DataKey::UserDeposit(address));
+        self.save_by_key(env, &address);
     }
 }

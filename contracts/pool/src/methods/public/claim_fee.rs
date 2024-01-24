@@ -1,7 +1,8 @@
 use shared::{soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{token, Env};
+use storage::Admin;
 
-use crate::storage::{admin::Admin, pool::Pool};
+use crate::storage::pool::Pool;
 
 pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
     let admin = Admin::get(&env)?;

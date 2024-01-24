@@ -1,17 +1,16 @@
 [package]
-name = "pool"
+name = "storage"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib"]
-
 [dependencies]
 soroban-sdk = { workspace = true }
-shared = { workspace = true }
-proc_macros = { workspace = true }
 ethnum = { workspace = true }
-storage = { workspace = true }
+arrayref = { workspace = true }
+soroban-env-common = { workspace = true }
+proc_macros = { workspace = true }
+shared = { workspace = true }
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+hex = "0.4.3"

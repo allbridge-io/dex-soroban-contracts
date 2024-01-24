@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-all: build-pool build-factory
+all: build-factory
 
 POOL_WASM_PATH = target/wasm32-unknown-unknown/release/pool.wasm
 POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
@@ -23,7 +23,7 @@ test: all
 build-pool: 
 	cargo build --target wasm32-unknown-unknown --release --package pool
 
-build-factory: 
+build-factory: build-pool
 	cargo build --target wasm32-unknown-unknown --release --package factory
 
 optimize-pool:

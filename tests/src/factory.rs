@@ -1,6 +1,6 @@
 use soroban_sdk::Env;
 
-use crate::utils::{expect_contract_error, TestingEnvironment};
+use crate::utils::{expect_auth_error, expect_contract_error, TestingEnvironment};
 
 #[test]
 fn add_new_pair() {
@@ -27,6 +27,26 @@ fn add_new_pair() {
         .unwrap();
 
     assert_eq!(deployed_pool, pool);
+}
+
+#[test]
+fn add_new_pair_no_auth() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let (yellow_token, duck_token) =
+        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
+
+    env.mock_auths(&[]);
+    let call_resulktt = testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &yellow_token.id,
+        &duck_token.id,
+        10,
+        10,
+    );
+
+    expect_auth_error(&env, call_resulktt);
 }
 
 #[test]

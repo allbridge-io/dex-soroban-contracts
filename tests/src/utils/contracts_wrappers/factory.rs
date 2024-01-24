@@ -11,11 +11,11 @@ pub struct PoolFactory {
 }
 
 impl PoolFactory {
-    pub fn create(env: &Env) -> PoolFactory {
+    pub fn create(env: &Env, admin: &Address) -> PoolFactory {
         let id = env.register_contract_wasm(None, factory::WASM);
         let client = factory::Client::new(env, &id);
 
-        client.initialize();
+        client.initialize(admin);
 
         PoolFactory { id, client }
     }

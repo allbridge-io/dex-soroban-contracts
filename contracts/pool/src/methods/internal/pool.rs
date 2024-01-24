@@ -48,18 +48,15 @@ impl Pool {
             return Ok((0, 0));
         }
 
-        self.get_token_by_index(env, token_from as usize).transfer(
-            &sender,
-            &current_contract,
-            &(amount as i128),
-        );
+        self.get_token(env, token_from)
+            .transfer(&sender, &current_contract, &(amount as i128));
 
         let mut result = 0;
 
         self.token_balances[token_from] += amount;
 
         let token_to_new_amount = self.get_y(self.token_balances[token_from], d0);
-        if self.token_balances[token_from] > token_to_new_amount {
+        if self.token_balances[token_to] > token_to_new_amount {
             result = self.token_balances[token_to] - token_to_new_amount;
         }
 
@@ -76,11 +73,8 @@ impl Pool {
             Error::InsufficientReceivedAmount
         );
 
-        self.get_token_by_index(env, token_to as usize).transfer(
-            &current_contract,
-            &recipient,
-            &(result as i128),
-        );
+        self.get_token(env, token_to)
+            .transfer(&current_contract, &recipient, &(result as i128));
 
         Ok((result, fee))
     }
@@ -280,7 +274,7 @@ impl Pool {
     }
 
     pub fn get_current_d(&self) -> u128 {
-        self.get_d(self.token_balances[0], self.token_balances[1])
+        self.get_d(self.token_balances[0] >> 14, self.token_balances[1] >> 14) << 14
     }
 
     pub fn get_d(&self, x: u128, y: u128) -> u128 {

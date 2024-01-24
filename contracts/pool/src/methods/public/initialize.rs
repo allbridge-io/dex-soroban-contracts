@@ -1,7 +1,8 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{Address, Env};
+use storage::Admin;
 
-use crate::storage::{admin::Admin, pool::Pool};
+use crate::storage::pool::Pool;
 
 #[allow(clippy::too_many_arguments)]
 pub fn initialize(
