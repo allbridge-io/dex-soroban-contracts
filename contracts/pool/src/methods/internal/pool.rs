@@ -213,9 +213,9 @@ impl Pool {
             return Ok(pending);
         }
 
-        let rewads = self.get_reward_depts(user);
+        let rewards = self.get_reward_depts(user);
 
-        for (index, reward) in rewads.to_array().into_iter().enumerate() {
+        for (index, reward) in rewards.to_array().into_iter().enumerate() {
             pending[index] = reward - user.reward_debts[index];
 
             if pending[index] > 0 {
