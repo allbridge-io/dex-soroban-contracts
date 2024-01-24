@@ -17,15 +17,6 @@ pub enum Token {
     B = 1,
 }
 
-impl Token {
-    pub fn opposite(&self) -> Token {
-        match self {
-            Token::A => Token::B,
-            Token::B => Token::A,
-        }
-    }
-}
-
 #[contracttype]
 #[derive(Debug, Clone, SorobanData, SorobanSimpleData, SymbolKey)]
 #[data_storage_type(Instance)]
