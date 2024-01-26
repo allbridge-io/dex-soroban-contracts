@@ -17,6 +17,10 @@ pub fn get_pool(env: Env) -> Result<Pool, Error> {
     Pool::get(&env)
 }
 
+pub fn get_d(env: Env) -> Result<u128, Error> {
+    Ok(Pool::get(&env)?.get_current_d())
+}
+
 pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
     Ok(UserDeposit::get(&env, user))
 }

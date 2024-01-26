@@ -3,12 +3,20 @@ use soroban_sdk::{testutils::Address as _, Address, BytesN, Env};
 
 pub struct User {
     pub address: Address,
+    pub tag: &'static str,
+}
+
+impl AsRef<Address> for User {
+    fn as_ref(&self) -> &Address {
+        &self.address
+    }
 }
 
 impl User {
-    pub fn generate(env: &Env) -> User {
+    pub fn generate(env: &Env, tag: &'static str) -> User {
         User {
             address: Address::generate(env),
+            tag,
         }
     }
 

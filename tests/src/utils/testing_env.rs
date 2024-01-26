@@ -1,6 +1,14 @@
 use soroban_sdk::{testutils::Address as _, Address, Env};
 
-use super::{CallResult, Pool, PoolFactory, Token, User};
+use crate::{
+    contracts::pool::{Deposit, Direction, RewardsClaimed, Swapped, Withdraw},
+    utils::float_to_int,
+};
+
+use super::{
+    assert_rel_eq_f64, get_latest_event, int_to_float, CallResult, Pool, PoolFactory, Snapshot,
+    Token, User,
+};
 
 #[derive(Debug, Clone)]
 pub struct TestingEnvConfig {
@@ -77,8 +85,8 @@ impl TestingEnvironment {
 
         let admin = Address::generate(env);
         let native_token = Token::create(env, &admin);
-        let alice = User::generate(env);
-        let bob = User::generate(env);
+        let alice = User::generate(env, "alice");
+        let bob = User::generate(env, "bob");
 
         let factory = PoolFactory::create(env, &admin);
 
@@ -128,7 +136,7 @@ impl TestingEnvironment {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn create_pool(
+    fn create_pool(
         env: &Env,
         factory: &PoolFactory,
         admin: &Address,
@@ -139,10 +147,14 @@ impl TestingEnvironment {
         admin_deposits: (f64, f64),
     ) -> CallResult<Pool> {
         let fee_share_bp = (fee_share_bp * 10_000.0) as u128;
+        let a = 20;
         let pool =
-            factory.create_pair(admin, 20, &token_a.id, &token_b.id, fee_share_bp, admin_fee)?;
+            factory.create_pair(admin, a, &token_a.id, &token_b.id, fee_share_bp, admin_fee)?;
 
         let pool = Pool::new(env, pool);
+
+        pool.assert_initialization(a, fee_share_bp, admin_fee);
+
         token_a.airdrop_amount(admin, admin_deposits.0 * 2.0);
         token_b.airdrop_amount(admin, admin_deposits.1 * 2.0);
 
@@ -151,5 +163,233 @@ impl TestingEnvironment {
         }
 
         Ok(pool)
+    }
+
+    pub fn assert_claimed_reward_event(env: &Env, expected_user: &User, rewards: (f64, f64)) {
+        let rewards_claimed = get_latest_event::<RewardsClaimed>(&env).unwrap();
+
+        assert_eq!(rewards_claimed.user, expected_user.as_address());
+        assert_eq!(int_to_float(rewards_claimed.rewards.0), rewards.0);
+        assert_eq!(int_to_float(rewards_claimed.rewards.1), rewards.1);
+    }
+
+    pub fn assert_swapped_event(
+        &self,
+        env: &Env,
+        sender: &User,
+        recipient: &User,
+        directin: Direction,
+        from_amount: f64,
+    ) {
+        let swapped = get_latest_event::<Swapped>(&env).unwrap();
+
+        let (from_token, to_token) = match directin {
+            Direction::A2B => (self.yusd_token.as_address(), self.yaro_token.as_address()),
+            Direction::B2A => (self.yaro_token.as_address(), self.yusd_token.as_address()),
+        };
+
+        assert_eq!(swapped.sender, sender.as_address());
+        assert_eq!(swapped.recipient, recipient.as_address());
+
+        assert_eq!(swapped.from_amount, float_to_int(from_amount));
+
+        assert_eq!(swapped.from_token, from_token);
+        assert_eq!(swapped.to_token, to_token);
+
+        // TODO
+        // assert_eq!(swapped.to_amount, expected_event.to_amount);
+        // assert_eq!(swapped.fee, expected_event.fee);
+    }
+
+    pub fn assert_withdraw_event(
+        env: &Env,
+        expected_user: &User,
+        lp_amount: f64,
+        expected_amount: (f64, f64),
+    ) {
+        let withdraw = get_latest_event::<Withdraw>(&env).unwrap();
+
+        assert_eq!(withdraw.user, expected_user.as_address());
+        assert_eq!(int_to_float(withdraw.amounts.0), expected_amount.0);
+        assert_eq!(int_to_float(withdraw.amounts.1), expected_amount.1);
+        assert_eq!(int_to_float(withdraw.lp_amount), lp_amount);
+    }
+
+    // TODO: check lp amount
+    pub fn assert_deposit_event(env: &Env, expected_user: &User, deposits: (f64, f64)) {
+        let deposit = get_latest_event::<Deposit>(&env).unwrap();
+
+        assert_eq!(deposit.user, expected_user.as_address());
+        assert_eq!(int_to_float(deposit.amounts.0), deposits.0);
+        assert_eq!(int_to_float(deposit.amounts.1), deposits.1);
+    }
+
+    // TODO: check lp amount
+    pub fn assert_deposit(
+        snapshot_before: Snapshot,
+        snapshot_after: Snapshot,
+        user: &User,
+        deposits: (f64, f64),
+        expected_rewards: (f64, f64),
+    ) {
+        let (user_yusd_before, user_yaro_before) = snapshot_before.get_user_balances(user);
+        let (user_yusd_after, user_yaro_after) = snapshot_after.get_user_balances(user);
+
+        let (yusd_deposit, yaro_deposit) = deposits;
+        let (expected_yusd_reward, expected_yaro_reward) = expected_rewards;
+
+        let user_yusd_diff = yusd_deposit - int_to_float(user_yusd_before - user_yusd_after);
+        let user_yaro_diff = yaro_deposit - int_to_float(user_yaro_before - user_yaro_after);
+
+        let pool_yusd_diff = yusd_deposit
+            - int_to_float(snapshot_after.pool_yusd_balance - snapshot_before.pool_yusd_balance);
+
+        assert_rel_eq_f64(user_yusd_diff, expected_yusd_reward, 0.0001);
+        assert_rel_eq_f64(pool_yusd_diff, expected_yusd_reward, 0.0001);
+
+        let pool_yaro_diff = yaro_deposit
+            - int_to_float(snapshot_after.pool_yaro_balance - snapshot_before.pool_yaro_balance);
+
+        assert!(snapshot_before.total_lp_amount < snapshot_after.total_lp_amount);
+        assert!(snapshot_before.d < snapshot_after.d);
+
+        assert_rel_eq_f64(user_yaro_diff, expected_yaro_reward, 0.0001);
+        assert_rel_eq_f64(pool_yaro_diff, expected_yaro_reward, 0.0001);
+    }
+
+    pub fn assert_withdraw(
+        snapshot_before: Snapshot,
+        snapshot_after: Snapshot,
+        user: &User,
+        expected_amount: (f64, f64),
+        expected_rewards: (f64, f64),
+        total_deposits: f64,
+    ) {
+        let (user_yusd_before, user_yaro_before) = snapshot_before.get_user_balances(user);
+        let (user_yusd_after, user_yaro_after) = snapshot_after.get_user_balances(user);
+
+        let user_yaro_diff = int_to_float(user_yaro_after - user_yaro_before);
+        let user_yusd_diff = int_to_float(user_yusd_after - user_yusd_before);
+
+        let pool_yaro_diff =
+            int_to_float(snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance);
+        let pool_yusd_diff =
+            int_to_float(snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance);
+
+        let total_lp_amount_diff =
+            int_to_float(snapshot_before.total_lp_amount - snapshot_after.total_lp_amount)
+                + (expected_rewards.0 + expected_rewards.1);
+
+        assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
+        assert!(snapshot_before.d > snapshot_after.d);
+
+        assert_rel_eq_f64(
+            total_lp_amount_diff,
+            total_deposits + expected_rewards.0 + expected_rewards.1,
+            0.1,
+        );
+        assert_rel_eq_f64(
+            user_yusd_diff,
+            expected_amount.0 + expected_rewards.0,
+            0.001,
+        );
+        assert_rel_eq_f64(
+            user_yaro_diff,
+            expected_amount.1 + expected_rewards.1,
+            0.001,
+        );
+        assert_eq!(pool_yusd_diff, expected_amount.0 + expected_rewards.0);
+        assert_eq!(pool_yaro_diff, expected_amount.1 + expected_rewards.1);
+    }
+
+    pub fn assert_claim(
+        snapshot_before: Snapshot,
+        snapshot_after: Snapshot,
+        user: &User,
+        expected_rewards: (f64, f64),
+    ) {
+        let (user_yusd_before, user_yaro_before) = snapshot_before.get_user_balances(user);
+        let (user_yusd_after, user_yaro_after) = snapshot_after.get_user_balances(user);
+
+        let user_yusd_diff = user_yusd_after - user_yusd_before;
+        let user_yaro_diff = user_yaro_after - user_yaro_before;
+
+        let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
+        let pool_yaro_diff = snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance;
+
+        assert_eq!(int_to_float(user_yusd_diff), expected_rewards.0);
+        assert_eq!(int_to_float(pool_yusd_diff), expected_rewards.0);
+
+        assert_eq!(int_to_float(user_yaro_diff), expected_rewards.1);
+        assert_eq!(int_to_float(pool_yaro_diff), expected_rewards.1);
+    }
+
+    pub fn assert_claim_admin_fee(
+        snapshot_before: Snapshot,
+        snapshot_after: Snapshot,
+        expected_admin_rewards: (f64, f64),
+    ) {
+        let admin_yaro_diff =
+            int_to_float(snapshot_after.admin_yaro_balance - snapshot_before.admin_yaro_balance);
+        let admin_yusd_diff =
+            int_to_float(snapshot_after.admin_yusd_balance - snapshot_before.admin_yusd_balance);
+
+        let pool_yaro_diff =
+            int_to_float(snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance);
+        let pool_yusd_diff =
+            int_to_float(snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance);
+
+        assert_rel_eq_f64(admin_yaro_diff, expected_admin_rewards.1, 0.0001);
+        assert_rel_eq_f64(admin_yusd_diff, expected_admin_rewards.0, 0.0001);
+        assert_rel_eq_f64(pool_yaro_diff, expected_admin_rewards.1, 0.0001);
+        assert_rel_eq_f64(pool_yusd_diff, expected_admin_rewards.0, 0.0001);
+    }
+
+    pub fn assert_swap(
+        snapshot_before: Snapshot,
+        snapshot_after: Snapshot,
+        sender: &User,
+        recipient: &User,
+        directin: Direction,
+        amount: f64,
+        receive_amount_min: f64,
+    ) {
+        let sender_tag = sender.tag;
+        let recipient_tag = recipient.tag;
+
+        let (from_token_tag, to_token_tag) = match directin {
+            Direction::A2B => ("yusd", "yaro"),
+            Direction::B2A => ("yaro", "yusd"),
+        };
+
+        let sender_balance_key = format!("{sender_tag}_{from_token_tag}_balance");
+        let recipient_balance_key = format!("{recipient_tag}_{to_token_tag}_balance");
+        let pool_from_balance_key = format!("pool_{from_token_tag}_balance");
+        let pool_to_balance_key = format!("pool_{to_token_tag}_balance");
+        let acc_reward_token_to_per_share_p_key = format!("acc_reward_{to_token_tag}_per_share_p");
+
+        let sender_from_token_diff = int_to_float(
+            snapshot_before[&sender_balance_key] - snapshot_after[&sender_balance_key],
+        );
+
+        let recipient_to_token_diff = int_to_float(
+            snapshot_after[&recipient_balance_key] - snapshot_before[&recipient_balance_key],
+        );
+
+        let pool_from_token_diff = int_to_float(
+            snapshot_after[&pool_from_balance_key] - snapshot_before[&pool_from_balance_key],
+        );
+        let pool_to_token_diff = int_to_float(
+            snapshot_before[&pool_to_balance_key] - snapshot_after[&pool_to_balance_key],
+        );
+
+        assert!(
+            snapshot_after[&acc_reward_token_to_per_share_p_key]
+                > snapshot_before[&acc_reward_token_to_per_share_p_key]
+        );
+        assert!(recipient_to_token_diff > receive_amount_min && recipient_to_token_diff <= amount);
+        assert!(pool_to_token_diff > receive_amount_min && pool_to_token_diff <= amount);
+        assert_eq!(sender_from_token_diff, amount);
+        assert_eq!(pool_from_token_diff, amount);
     }
 }

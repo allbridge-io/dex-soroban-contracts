@@ -19,8 +19,35 @@ impl Pool {
         Pool { id, client }
     }
 
+    pub fn assert_initialization(
+        &self,
+        expected_a: u128,
+        expected_fee_share_bp: u128,
+        expected_admin_fee_share_bp: u128,
+    ) {
+        let pool_info = self.client.get_pool();
+
+        assert_eq!(pool_info.a, expected_a);
+        assert_eq!(pool_info.fee_share_bp, expected_fee_share_bp);
+        assert_eq!(pool_info.admin_fee_share_bp, expected_admin_fee_share_bp);
+
+        assert_eq!(pool_info.total_lp_amount, 0);
+        assert_eq!(pool_info.token_balances.data, (0, 0));
+        assert_eq!(pool_info.acc_rewards_per_share_p.data, (0, 0));
+        assert_eq!(pool_info.admin_fee_amount.data, (0, 0));
+    }
+
+    pub fn assert_total_lp_less_or_equal_d(&self) {
+        // TODO
+        // assert!(self.client.get_pool().total_lp_amount <= self.client.get_d());
+    }
+
     pub fn user_lp_amount(&self, user: &User) -> u128 {
         self.user_deposit(user).lp_amount
+    }
+
+    pub fn user_lp_amount_f64(&self, user: &User) -> f64 {
+        int_to_float(self.user_deposit(user).lp_amount)
     }
 
     pub fn withdraw_amounts(&self, user: &User) -> (f64, f64) {

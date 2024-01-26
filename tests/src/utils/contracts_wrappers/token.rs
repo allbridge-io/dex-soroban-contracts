@@ -11,6 +11,10 @@ pub struct Token {
 }
 
 impl Token {
+    pub fn as_address(&self) -> Address {
+        self.id.clone()
+    }
+
     pub fn create(env: &Env, admin: &Address) -> Token {
         let id = env.register_stellar_asset_contract(admin.clone());
         let client = token::Client::new(env, &id);

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["contracts/*", "common/*", "tests"]
+members = ["contracts/*", "common/*", "tests", "fuzz"]
 
 [workspace.dependencies]
 soroban-sdk = "20.0.0"
@@ -10,8 +10,13 @@ arrayref = "0.3.7"
 shared = { path = "./common/shared" }
 proc_macros = { path = "./common/proc_macros" }
 storage = { path = "./common/storage" }
+tests = { path = "./tests" }
 
 [profile.release]
+debug = 1
+
+[profile.contract-release]
+inherits = "release"
 opt-level = "z"
 overflow-checks = true
 debug = 0
@@ -24,3 +29,14 @@ lto = true
 [profile.release-with-logs]
 inherits = "release"
 debug-assertions = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false
