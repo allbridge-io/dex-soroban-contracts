@@ -3,7 +3,7 @@ use shared::consts::DAY_IN_LEDGERS;
 use shared::soroban_data::SorobanData;
 use soroban_sdk::{contracttype, Address, Env};
 
-use super::double_u128::DoubleU128;
+use super::double_values::DoubleU128;
 
 const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;

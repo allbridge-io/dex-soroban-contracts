@@ -10,7 +10,7 @@ pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
 
     let mut pool = Pool::get(&env)?;
 
-    for (index, token) in pool.tokens.iter().enumerate() {
+    for (index, token) in pool.tokens.to_array().into_iter().enumerate() {
         if pool.admin_fee_amount[index] > 0 {
             token::Client::new(&env, &token).transfer(
                 &env.current_contract_address(),

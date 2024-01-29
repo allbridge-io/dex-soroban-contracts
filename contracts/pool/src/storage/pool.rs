@@ -4,10 +4,10 @@ use proc_macros::{
 use soroban_sdk::{
     contracttype,
     token::{self, TokenClient},
-    vec, Address, Env, Vec,
+    Address, Env,
 };
 
-use super::double_u128::DoubleU128;
+use super::double_values::{DoubleAddress, DoubleU128, DoubleU32};
 
 #[contracttype]
 #[derive(Debug, Clone, Copy)]
@@ -28,7 +28,8 @@ pub struct Pool {
     pub admin_fee_share_bp: u128,
     pub total_lp_amount: u128,
 
-    pub tokens: Vec<Address>,
+    pub tokens: DoubleAddress,
+    pub tokens_decimals: DoubleU32,
     pub token_balances: DoubleU128,
     pub acc_rewards_per_share_p: DoubleU128,
     pub admin_fee_amount: DoubleU128,
@@ -36,10 +37,10 @@ pub struct Pool {
 
 impl Pool {
     pub fn from_init_params(
-        env: &Env,
         a: u128,
         token_a: Address,
         token_b: Address,
+        decimals: (u32, u32),
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Self {
@@ -50,7 +51,8 @@ impl Pool {
             admin_fee_share_bp,
             total_lp_amount: 0,
 
-            tokens: vec![env, token_a, token_b],
+            tokens: DoubleAddress::from((token_a, token_b)),
+            tokens_decimals: DoubleU32::from(decimals),
             token_balances: DoubleU128::default(),
             acc_rewards_per_share_p: DoubleU128::default(),
             admin_fee_amount: DoubleU128::default(),
@@ -59,7 +61,7 @@ impl Pool {
 
     #[inline]
     pub fn get_token_by_index(&self, env: &Env, index: usize) -> TokenClient<'_> {
-        token::Client::new(env, &self.tokens.get_unchecked(index as u32))
+        token::Client::new(env, &self.tokens[index])
     }
 
     #[inline]

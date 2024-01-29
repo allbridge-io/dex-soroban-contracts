@@ -1,9 +1,11 @@
+use core::cmp::Ordering;
+
 use ethnum::U256;
 use shared::{require, utils::num::*, Error};
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::storage::{
-    double_u128::DoubleU128,
+    double_values::DoubleU128,
     pool::{Pool, Token},
     user_deposit::UserDeposit,
 };
@@ -26,10 +28,11 @@ impl Direction {
 }
 
 impl Pool {
+    const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
+    const SYSTEM_PRECISION: u32 = 3;
     const BP: u128 = 10000;
 
     pub const P: u128 = 48;
-    const PRECISION_SHIFT: u128 = 14;
 
     #[allow(clippy::too_many_arguments)]
     pub fn swap(
@@ -41,24 +44,29 @@ impl Pool {
         receive_amount_min: u128,
         direction: Direction,
     ) -> Result<(u128, u128), Error> {
-        let current_contract = env.current_contract_address();
-        let (token_from, token_to) = direction.get_tokens();
-        let d0 = self.get_current_d();
-
         if amount == 0 {
             return Ok((0, 0));
         }
+
+        let current_contract = env.current_contract_address();
+        let (token_from, token_to) = direction.get_tokens();
+        let from_decimals = self.tokens_decimals[token_from];
+        let to_decimals = self.tokens_decimals[token_to];
+
+        let d0 = self.get_current_d();
+        let amount_sp = self.amount_to_system_precision(amount, from_decimals);
 
         self.get_token(env, token_from)
             .transfer(&sender, &current_contract, &(amount as i128));
 
         let mut result = 0;
 
-        self.token_balances[token_from] += amount;
+        self.token_balances[token_from] += amount_sp;
 
         let token_to_new_amount = self.get_y(self.token_balances[token_from], d0);
         if self.token_balances[token_to] > token_to_new_amount {
-            result = self.token_balances[token_to] - token_to_new_amount;
+            let result_sp = self.token_balances[token_to] - token_to_new_amount;
+            result = self.amount_from_system_precision(result_sp, to_decimals);
         }
 
         let fee = result * self.fee_share_bp / Self::BP;
@@ -91,7 +99,11 @@ impl Pool {
         let current_contract = env.current_contract_address();
         let d0 = self.get_current_d();
 
-        let total_amount: u128 = amounts.to_array().iter().sum();
+        let amounts_sp = DoubleU128::from((
+            self.amount_to_system_precision(amounts[0], self.tokens_decimals[0]),
+            self.amount_to_system_precision(amounts[1], self.tokens_decimals[1]),
+        ));
+        let total_amount: u128 = amounts_sp.to_array().iter().sum();
         require!(total_amount > 0, Error::ZeroAmount);
 
         for (index, amount) in amounts.to_array().into_iter().enumerate() {
@@ -102,10 +114,10 @@ impl Pool {
             self.get_token_by_index(env, index).transfer(
                 &sender,
                 &current_contract,
-                &(amounts[index] as i128),
+                &(amount as i128),
             );
 
-            self.token_balances[index] += amount;
+            self.token_balances[index] += amounts_sp[index];
         }
 
         let d1 = self.get_current_d();
@@ -119,6 +131,10 @@ impl Pool {
         };
 
         require!(lp_amount >= min_lp_amount, Error::Slippage);
+        require!(
+            self.token_balances.to_array().iter().sum::<u128>() < Self::MAX_TOKEN_BALANCE,
+            Error::PoolOverflow
+        );
 
         let rewards = self.deposit_lp(user, lp_amount)?;
 
@@ -154,6 +170,9 @@ impl Pool {
         for (index, token_balance) in self.token_balances.to_array().into_iter().enumerate() {
             let token_amount = token_balance * lp_amount / old_total_lp_amount;
             amounts[index] = token_amount;
+            self.token_balances[index] -= token_amount;
+            let token_amount =
+                self.amount_from_system_precision(token_amount, self.tokens_decimals[index]);
             let withdraw_amount = token_amount + rewards_amounts[index];
 
             self.get_token_by_index(env, index).transfer(
@@ -161,7 +180,6 @@ impl Pool {
                 &sender,
                 &(withdraw_amount as i128),
             );
-            self.token_balances[index] -= withdraw_amount;
         }
 
         let new_balances: u128 = self.token_balances.to_array().iter().sum();
@@ -275,10 +293,7 @@ impl Pool {
     }
 
     pub fn get_current_d(&self) -> u128 {
-        self.get_d(
-            self.token_balances[0] >> Self::PRECISION_SHIFT,
-            self.token_balances[1] >> Self::PRECISION_SHIFT,
-        ) << Self::PRECISION_SHIFT
+        self.get_d(self.token_balances[0], self.token_balances[1])
     }
 
     pub fn get_d(&self, x: u128, y: u128) -> u128 {
@@ -300,5 +315,21 @@ impl Pool {
             d += cbrt(&(p1 - p3));
         }
         d << 1
+    }
+
+    pub(crate) fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
+        match decimals.cmp(&Self::SYSTEM_PRECISION) {
+            Ordering::Greater => amount / (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
+            Ordering::Less => amount * (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
+            Ordering::Equal => amount,
+        }
+    }
+
+    pub(crate) fn amount_from_system_precision(&self, amount: u128, decimals: u32) -> u128 {
+        match decimals.cmp(&Self::SYSTEM_PRECISION) {
+            Ordering::Greater => amount * (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
+            Ordering::Less => amount / (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
+            Ordering::Equal => amount,
+        }
     }
 }

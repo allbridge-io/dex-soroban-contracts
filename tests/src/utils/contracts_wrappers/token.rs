@@ -38,12 +38,18 @@ impl Token {
         }
     }
 
+    pub fn decimals(&self) -> u32 {
+        self.client.decimals()
+    }
+
     pub fn airdrop_amount(&self, id: &Address, amount: f64) {
-        self.asset_client.mint(id, &(float_to_int(amount) as i128));
+        self.asset_client
+            .mint(id, &(float_to_int(amount, self.client.decimals()) as i128));
     }
 
     pub fn airdrop(&self, id: &Address) {
-        self.asset_client.mint(id, &(float_to_int(5_000.0) as i128));
+        self.asset_client
+            .mint(id, &(float_to_int(5_000.0, self.client.decimals()) as i128));
     }
 
     pub fn airdrop_user(&self, user: &User) {

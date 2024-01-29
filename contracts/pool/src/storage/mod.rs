@@ -1,3 +1,3 @@
-pub mod double_u128;
+pub mod double_values;
 pub mod pool;
 pub mod user_deposit;

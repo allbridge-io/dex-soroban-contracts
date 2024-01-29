@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::pool::{self, Direction, UserDeposit},
-    utils::{desoroban_result, float_to_int, int_to_float, CallResult},
+    utils::{desoroban_result, float_to_int, float_to_int_sp, int_to_float_sp, CallResult},
 };
 
 use super::User;
@@ -38,8 +38,15 @@ impl Pool {
     }
 
     pub fn assert_total_lp_less_or_equal_d(&self) {
-        // TODO
-        // assert!(self.client.get_pool().total_lp_amount <= self.client.get_d());
+        let total_lp_amount = self.client.get_pool().total_lp_amount;
+        let d = self.client.get_d();
+
+        assert!(
+            total_lp_amount <= d,
+            "Total lp amount ({}) must be less or equal to D ({})",
+            total_lp_amount,
+            d
+        );
     }
 
     pub fn user_lp_amount(&self, user: &User) -> u128 {
@@ -47,7 +54,7 @@ impl Pool {
     }
 
     pub fn user_lp_amount_f64(&self, user: &User) -> f64 {
-        int_to_float(self.user_deposit(user).lp_amount)
+        int_to_float_sp(self.user_deposit(user).lp_amount)
     }
 
     pub fn withdraw_amounts(&self, user: &User) -> (f64, f64) {
@@ -55,7 +62,10 @@ impl Pool {
         let token_a_amount = self.token_a_balance() * user_lp_amount / self.total_lp_amount();
         let token_b_amount = self.token_b_balance() * user_lp_amount / self.total_lp_amount();
 
-        (int_to_float(token_a_amount), int_to_float(token_b_amount))
+        (
+            int_to_float_sp(token_a_amount),
+            int_to_float_sp(token_b_amount),
+        )
     }
 
     pub fn token_a_balance(&self) -> u128 {
@@ -105,7 +115,7 @@ impl Pool {
     pub fn withdraw(&self, user: &User, withdraw_amount: f64) -> CallResult {
         desoroban_result(
             self.client
-                .try_withdraw(&user.as_address(), &float_to_int(withdraw_amount)),
+                .try_withdraw(&user.as_address(), &float_to_int_sp(withdraw_amount)),
         )
     }
 
@@ -127,10 +137,10 @@ impl Pool {
             .try_deposit(
                 user,
                 &(
-                    float_to_int(deposit_amounts.0),
-                    float_to_int(deposit_amounts.1),
+                    float_to_int(deposit_amounts.0, 7),
+                    float_to_int(deposit_amounts.1, 7),
                 ),
-                &float_to_int(min_lp_amount),
+                &float_to_int(min_lp_amount, 7),
             )
             .map(Result::unwrap)
             .map_err(Result::unwrap)
@@ -157,8 +167,8 @@ impl Pool {
         desoroban_result(self.client.try_swap(
             &sender.as_address(),
             &recipient.as_address(),
-            &float_to_int(amount),
-            &float_to_int(receive_amount_min),
+            &float_to_int(amount, 7),
+            &float_to_int(receive_amount_min, 7),
             &direction,
         ))
     }
