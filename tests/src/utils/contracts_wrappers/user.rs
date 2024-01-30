@@ -1,5 +1,13 @@
-use crate::utils::contract_id;
+use soroban_sdk::testutils::arbitrary::{arbitrary, Arbitrary};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env};
+
+use crate::utils::contract_id;
+
+#[derive(Arbitrary, Debug, PartialEq, Eq)]
+pub enum UserID {
+    Alice,
+    Bob,
+}
 
 pub struct User {
     pub address: Address,

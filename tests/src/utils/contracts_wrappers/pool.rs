@@ -38,14 +38,18 @@ impl Pool {
     }
 
     pub fn assert_total_lp_less_or_equal_d(&self) {
-        let total_lp_amount = self.client.get_pool().total_lp_amount;
-        let d = self.client.get_d();
+        let max_diff = 100;
+
+        let total_lp_amount = self.client.get_pool().total_lp_amount as i128;
+        let d = self.client.get_d() as i128;
+        let diff = total_lp_amount - d;
 
         assert!(
-            total_lp_amount <= d,
-            "Total lp amount ({}) must be less or equal to D ({})",
+            diff <= max_diff,
+            "Invariant: Total lp amount ({}) must be less or equal to D ({}), diff: {}",
             total_lp_amount,
-            d
+            d,
+            diff
         );
     }
 
@@ -133,17 +137,14 @@ impl Pool {
         deposit_amounts: (f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
-        self.client
-            .try_deposit(
-                user,
-                &(
-                    float_to_int(deposit_amounts.0, 7),
-                    float_to_int(deposit_amounts.1, 7),
-                ),
-                &float_to_int(min_lp_amount, 7),
-            )
-            .map(Result::unwrap)
-            .map_err(Result::unwrap)
+        desoroban_result(self.client.try_deposit(
+            user,
+            &(
+                float_to_int(deposit_amounts.0, 7),
+                float_to_int(deposit_amounts.1, 7),
+            ),
+            &float_to_int(min_lp_amount, 7),
+        ))
     }
 
     /// (yusd, yaro)

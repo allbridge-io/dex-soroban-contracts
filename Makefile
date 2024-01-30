@@ -33,4 +33,4 @@ optimize-factory:
 	soroban contract optimize --wasm $(FACTORY_WASM_PATH)
 
 fuzz:
-	cargo +nightly fuzz run fuzz_target --dev
+	cargo run --bin fuzz

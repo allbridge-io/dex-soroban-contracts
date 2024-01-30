@@ -4,10 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
 shared = { workspace = true }
-hex = "0.4.3"
 arrayref = { workspace = true }
+soroban-sdk = { workspace = true, features = ["testutils"] }
+hex = "0.4.3"
 rand = "0.8.5"
 color-print = "0.3.5"
 ethnum = "1.4.0"
+
+rand_derive2 = "0.1"
+rayon = "1"
+clap = "4.4"
+clap_derive = "4"
+
+[[bin]]
+name = "fuzz"
+path = "bin/fuzz.rs"
+test = false
+bench = false

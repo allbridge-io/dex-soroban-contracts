@@ -1,6 +1,6 @@
 use soroban_sdk::{token, Address, Env};
 
-use crate::utils::float_to_int;
+use crate::utils::{float_to_int, int_to_float};
 
 use super::User;
 
@@ -58,5 +58,9 @@ impl Token {
 
     pub fn balance_of(&self, id: &Address) -> u128 {
         self.client.balance(id) as u128
+    }
+
+    pub fn balance_of_f64(&self, id: &Address) -> f64 {
+        int_to_float(self.client.balance(id) as u128, 7)
     }
 }
