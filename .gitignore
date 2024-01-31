@@ -12,5 +12,4 @@ Cargo.lock
 
 .soroban
 test_snapshots
-fuzz/corpus
-fuzz/artifacts
+soroban-deploy
