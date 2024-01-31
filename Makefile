@@ -34,3 +34,4 @@ optimize-factory:
 
 fuzz:
 	cargo run --bin fuzz
+#	cargo run --bin fuzz -- --runs 10  --run-len 50 --threads 8

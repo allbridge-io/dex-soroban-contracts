@@ -13,15 +13,15 @@ use tests::utils::{CallResult, TestingEnvConfig, TestingEnvironment, Token, User
 
 #[derive(Arbitrary, Debug, Clone, Copy, RandGen)]
 pub enum SwapDirection {
-    A2B,
-    B2A,
+    YusdToYaro,
+    YaroToYusd,
 }
 
 impl Into<Direction> for SwapDirection {
     fn into(self) -> Direction {
         match self {
-            SwapDirection::A2B => Direction::A2B,
-            SwapDirection::B2A => Direction::B2A,
+            SwapDirection::YusdToYaro => Direction::A2B,
+            SwapDirection::YaroToYusd => Direction::B2A,
         }
     }
 }
@@ -49,6 +49,39 @@ pub enum FuzzTargetOperation {
         yaro_amount: u16,
         user: UserID,
     },
+}
+
+impl ToString for FuzzTargetOperation {
+    fn to_string(&self) -> String {
+        match self {
+            FuzzTargetOperation::Swap {
+                direction,
+                amount,
+                sender,
+                recipient,
+            } => {
+                format!(
+                    "[Swap] {} {:?}, from {:?} to {:?}",
+                    amount, direction, sender, recipient
+                )
+            }
+
+            FuzzTargetOperation::Deposit {
+                yaro_amount,
+                yusd_amount,
+                user,
+            } => {
+                format!(
+                    "[Deposit] {} YARO {} YUSD, user: {:?}",
+                    yaro_amount, yusd_amount, user
+                )
+            }
+
+            FuzzTargetOperation::Withdraw { lp_amount, user } => {
+                format!("[Withdraw] {} lp, user: {:?}", lp_amount, user)
+            }
+        }
+    }
 }
 
 impl FuzzTargetOperation {
@@ -117,10 +150,7 @@ impl FuzzTargetOperation {
 pub fn generate_run(len: usize) -> Vec<FuzzTargetOperation> {
     let mut rng = rand::thread_rng();
 
-    (0..len)
-        .into_iter()
-        .map(|_| rng.gen())
-        .collect::<Vec<FuzzTargetOperation>>()
+    (0..len).into_iter().map(|_| rng.gen()).collect()
 }
 
 #[derive(Parser, Debug)]
