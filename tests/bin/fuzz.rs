@@ -5,13 +5,12 @@ use clap_derive::Parser;
 use rand::Rng;
 use rand_derive2::RandGen;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use soroban_sdk::testutils::arbitrary::{arbitrary, fuzz_catch_panic, Arbitrary};
-use soroban_sdk::Env;
+use soroban_sdk::{testutils::arbitrary::fuzz_catch_panic, Env};
 
 use tests::contracts::pool::Direction;
 use tests::utils::{CallResult, TestingEnvConfig, TestingEnvironment, Token, User};
 
-#[derive(Arbitrary, Debug, Clone, Copy, RandGen)]
+#[derive(Debug, Clone, Copy, RandGen)]
 pub enum SwapDirection {
     YusdToYaro,
     YaroToYusd,

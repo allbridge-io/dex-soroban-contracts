@@ -2,11 +2,14 @@
 
 all: build-factory
 
-POOL_WASM_PATH = target/wasm32-unknown-unknown/contract-release/pool.wasm
-POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/contract-release/pool.optimized.wasm
+optimize-all: optimize-factory optimize-pool
 
-FACTORY_WASM_PATH = target/wasm32-unknown-unknown/contract-release/factory.wasm
-FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/contract-release/factory.optimized.wasm
+POOL_WASM_PATH = target/wasm32-unknown-unknown/release/pool.wasm
+POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
+
+FACTORY_ADDRESS=
+FACTORY_WASM_PATH = target/wasm32-unknown-unknown/release/factory.wasm
+FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/release/factory.optimized.wasm
 
 clean-test: clean-target
 	make test
@@ -21,10 +24,10 @@ test: all
 	cargo test
 
 build-pool: 
-	cargo build --target wasm32-unknown-unknown --profile contract-release --package pool
+	cargo build --target wasm32-unknown-unknown --release --package pool
 
 build-factory: build-pool
-	cargo build --target wasm32-unknown-unknown --profile contract-release --package factory
+	cargo build --target wasm32-unknown-unknown --release --package factory
 
 optimize-pool:
 	soroban contract optimize --wasm $(POOL_WASM_PATH)

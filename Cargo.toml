@@ -13,10 +13,6 @@ storage = { path = "./common/storage" }
 tests = { path = "./tests" }
 
 [profile.release]
-debug = 1
-
-[profile.contract-release]
-inherits = "release"
 opt-level = "z"
 overflow-checks = true
 debug = 0
