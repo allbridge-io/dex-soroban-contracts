@@ -33,31 +33,22 @@ pub enum UserID {
 }
 
 #[derive(Debug, RandGen)]
-pub struct Swap {
-    direction: SwapDirection,
-    amount: u16,
-    sender: UserID,
-    recipient: UserID,
-}
-
-#[derive(Debug, RandGen)]
-pub struct Withdraw {
-    lp_amount: u16,
-    user: UserID,
-}
-
-#[derive(Debug, RandGen)]
-pub struct Deposit {
-    yusd_amount: u16,
-    yaro_amount: u16,
-    user: UserID,
-}
-
-#[derive(Debug, RandGen)]
 pub enum FuzzTargetOperation {
-    Swap(Swap),
-    Withdraw(Withdraw),
-    Deposit(Deposit),
+    Swap {
+        direction: SwapDirection,
+        amount: u16,
+        sender: UserID,
+        recipient: UserID,
+    },
+    Withdraw {
+        lp_amount: u16,
+        user: UserID,
+    },
+    Deposit {
+        yusd_amount: u16,
+        yaro_amount: u16,
+        user: UserID,
+    },
 }
 
 impl FuzzTargetOperation {
@@ -77,14 +68,12 @@ impl FuzzTargetOperation {
 
     pub fn execute(&self, testing_env: &TestingEnvironment) -> CallResult<()> {
         match self {
-            FuzzTargetOperation::Swap(swap) => {
-                let Swap {
-                    direction,
-                    amount,
-                    sender,
-                    recipient,
-                } = swap;
-
+            FuzzTargetOperation::Swap {
+                direction,
+                amount,
+                sender,
+                recipient,
+            } => {
                 let sender = Self::get_user(*sender, testing_env);
                 let recipient = Self::get_user(*recipient, testing_env);
                 let amount = (*amount) as f64;
@@ -101,13 +90,11 @@ impl FuzzTargetOperation {
                     .map(|_| ())
             }
 
-            FuzzTargetOperation::Deposit(deposit) => {
-                let Deposit {
-                    yaro_amount,
-                    yusd_amount,
-                    user,
-                } = deposit;
-
+            FuzzTargetOperation::Deposit {
+                yaro_amount,
+                yusd_amount,
+                user,
+            } => {
                 let sender = Self::get_user(*user, testing_env);
                 let deposits = (*yusd_amount as f64, *yaro_amount as f64);
                 if deposits.0 + deposits.1 == 0.0 {
@@ -117,8 +104,7 @@ impl FuzzTargetOperation {
                 testing_env.pool.deposit(sender, deposits, 0.0)
             }
 
-            FuzzTargetOperation::Withdraw(withdraw) => {
-                let Withdraw { lp_amount, user } = withdraw;
+            FuzzTargetOperation::Withdraw { lp_amount, user } => {
                 let sender = Self::get_user(*user, testing_env);
                 let lp_amount = (*lp_amount) as f64;
 
