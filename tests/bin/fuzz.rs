@@ -1,3 +1,6 @@
+use std::fs::{self, OpenOptions};
+use std::io::{stdout, BufWriter, Write};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
@@ -5,7 +8,7 @@ use clap_derive::Parser;
 use rand::Rng;
 use rand_derive2::RandGen;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use soroban_sdk::{testutils::arbitrary::fuzz_catch_panic, Env};
+use soroban_sdk::Env;
 
 use tests::contracts::pool::Direction;
 use tests::utils::{CallResult, TestingEnvConfig, TestingEnvironment, Token, User};
@@ -163,12 +166,54 @@ struct Args {
     pub threads: usize,
 }
 
+#[derive(Debug, Clone, Default)]
+struct RunResult {
+    pub swaps: OperationResult,
+    pub withdrawals: OperationResult,
+    pub deposits: OperationResult,
+}
+
+impl RunResult {
+    pub fn update_operation(&mut self, operation: &FuzzTargetOperation, is_ok: bool) {
+        let operation_result = match operation {
+            FuzzTargetOperation::Swap { .. } => &mut self.swaps,
+            FuzzTargetOperation::Deposit { .. } => &mut self.deposits,
+            FuzzTargetOperation::Withdraw { .. } => &mut self.withdrawals,
+        };
+
+        operation_result.total += 1;
+        operation_result.successful += is_ok as u32;
+    }
+}
+
+impl ToString for RunResult {
+    fn to_string(&self) -> String {
+        format!(
+            "💸 Swaps {}/{} | 📤 Deposits {}/{} | 📥 Withdrawals {}/{}",
+            self.swaps.successful,
+            self.swaps.total,
+            self.deposits.successful,
+            self.deposits.total,
+            self.withdrawals.successful,
+            self.withdrawals.total,
+        )
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct OperationResult {
+    pub total: u32,
+    pub successful: u32,
+}
+
 fn main() {
     let Args {
         runs,
         run_len,
         threads,
     } = Args::parse();
+
+    let path_to_read = Path::new("fuzz-report.txt");
 
     let available_parallelism = std::thread::available_parallelism().unwrap().get();
 
@@ -190,6 +235,8 @@ fn main() {
         .map(|_| generate_run(run_len))
         .collect::<Vec<_>>();
 
+    fs::write(path_to_read, "\t\t\t✨ Fuzz report ✨\n\n").expect("unable to write");
+
     runs.par_iter().for_each(|operations| {
         let env = Env::default();
         let testing_env = TestingEnvironment::create(
@@ -199,8 +246,24 @@ fn main() {
                 .with_yusd_admin_deposit(440_000.0),
         );
 
-        for operation in operations {
-            let _ = fuzz_catch_panic(|| operation.execute(&testing_env));
+        let mut logs = Vec::with_capacity(operations.len());
+        let mut run_result = RunResult::default();
+
+        for (operation_index, operation) in operations.iter().enumerate() {
+            let result = operation.execute(&testing_env);
+            let status = match result {
+                Ok(_) => "✅",
+                Err(_) => "❌",
+            };
+
+            logs.push(format!(
+                "\t\t{status} {}. {}, result {:?}",
+                operation_index + 1,
+                &operation.to_string(),
+                result
+            ));
+
+            run_result.update_operation(&operation, result.is_ok());
 
             testing_env.pool.assert_total_lp_less_or_equal_d();
         }
@@ -208,6 +271,28 @@ fn main() {
         let mut successful_runs = successful_runs.lock().unwrap();
         *successful_runs += 1;
 
-        println!("✅ {successful_runs} / {}", runs.len());
+        let log = format!(
+            "✅ ({successful_runs} / {}) {}",
+            runs.len(),
+            &run_result.to_string()
+        );
+
+        let file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(path_to_read)
+            .expect("unable to open file");
+        let mut f = BufWriter::new(file);
+
+        writeln!(
+            f,
+            "{}\n{}\n--------------------------------------------------------------------",
+            log,
+            logs.join("\n")
+        )
+        .expect("unable to write");
+
+        print!("\r{log}");
+        stdout().flush().unwrap();
     });
 }
