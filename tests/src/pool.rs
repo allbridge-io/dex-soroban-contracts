@@ -52,7 +52,7 @@ fn deposit() {
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_deposit_event(&env, alice, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -81,7 +81,7 @@ fn deposit_in_single_token() {
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_deposit_event(&env, alice, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -110,7 +110,7 @@ fn deposit_twice_in_different_tokens() {
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 100 yaro"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -141,7 +141,7 @@ fn withdraw() {
 
     snapshot_before.print_change_with(&snapshot_after, Some("Withdraw"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_withdraw_event(&env, alice, alice_lp_amount, withdraw_amounts);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_withdraw(
@@ -188,7 +188,7 @@ fn withdraw_with_rewards() {
 
     snapshot_before.print_change_with(&snapshot_after, Some("Withdraw"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_withdraw_event(&env, alice, alice_lp_amount, withdraw_amounts);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_withdraw(
@@ -244,7 +244,7 @@ fn swap() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 1000 yusd => yaro"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     testing_env.assert_swapped_event(&env, alice, alice, Direction::A2B, amount);
 
     TestingEnvironment::assert_swap(
@@ -353,7 +353,7 @@ fn claim_rewards() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Alice claim rewards"));
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     // TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_claim(snapshot_before, snapshot_after, alice, expected_rewards);
 }
@@ -387,7 +387,7 @@ fn get_reward_after_second_deposit() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, None);
 
-    pool.assert_total_lp_less_or_equal_d();
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_deposit_event(&env, alice, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewarsds);
     TestingEnvironment::assert_deposit(

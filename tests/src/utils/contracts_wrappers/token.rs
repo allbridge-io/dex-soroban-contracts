@@ -11,6 +11,8 @@ pub struct Token {
 }
 
 impl Token {
+    pub const DEFAULT_AIRDROP: f64 = 1_000_000.0;
+
     pub fn as_address(&self) -> Address {
         self.id.clone()
     }
@@ -50,7 +52,7 @@ impl Token {
     pub fn airdrop(&self, id: &Address) {
         self.asset_client.mint(
             id,
-            &(float_to_int(75_000.0, self.client.decimals()) as i128),
+            &(float_to_int(Self::DEFAULT_AIRDROP, self.client.decimals()) as i128),
         );
     }
 

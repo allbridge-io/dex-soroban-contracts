@@ -135,6 +135,13 @@ impl TestingEnvironment {
         (token_a, token_b)
     }
 
+    pub fn get_tokens_by_direction(&self, direction: Direction) -> (&Token, &Token) {
+        match direction {
+            Direction::A2B => (&self.yusd_token, &self.yaro_token),
+            Direction::B2A => (&self.yaro_token, &self.yusd_token),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn create_pool(
         env: &Env,

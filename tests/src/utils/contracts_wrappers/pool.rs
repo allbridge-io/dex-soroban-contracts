@@ -37,20 +37,26 @@ impl Pool {
         assert_eq!(pool_info.admin_fee_amount.data, (0, 0));
     }
 
-    pub fn assert_total_lp_less_or_equal_d(&self) {
-        let max_diff = 100;
+    pub fn total_lp(&self) -> u128 {
+        self.client.get_pool().total_lp_amount
+    }
 
-        let total_lp_amount = self.client.get_pool().total_lp_amount as i128;
-        let d = self.client.get_d() as i128;
+    pub fn d(&self) -> u128 {
+        self.client.get_d()
+    }
+
+    pub fn invariant_total_lp_less_or_equal_d(&self) -> Result<(), String> {
+        let max_diff = 10;
+
+        let total_lp_amount = self.total_lp() as i128;
+        let d = self.d() as i128;
         let diff = total_lp_amount - d;
 
-        assert!(
-            diff <= max_diff,
-            "Invariant: Total lp amount ({}) must be less or equal to D ({}), diff: {}",
-            total_lp_amount,
-            d,
-            diff
-        );
+        if diff > max_diff {
+            return Err("InvariantFailed: Total lp amount  must be less or equal to D".into());
+        }
+
+        Ok(())
     }
 
     pub fn user_lp_amount(&self, user: &User) -> u128 {

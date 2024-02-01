@@ -5,165 +5,25 @@ use std::sync::{Arc, Mutex};
 
 use clap::Parser;
 use clap_derive::Parser;
-use rand::Rng;
-use rand_derive2::RandGen;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use soroban_sdk::Env;
+use tabled::Table;
 
-use tests::contracts::pool::Direction;
-use tests::utils::{CallResult, TestingEnvConfig, TestingEnvironment, Token, User};
-
-#[derive(Debug, Clone, Copy, RandGen)]
-pub enum SwapDirection {
-    YusdToYaro,
-    YaroToYusd,
-}
-
-impl Into<Direction> for SwapDirection {
-    fn into(self) -> Direction {
-        match self {
-            SwapDirection::YusdToYaro => Direction::A2B,
-            SwapDirection::YaroToYusd => Direction::B2A,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, RandGen)]
-pub enum UserID {
-    Alice,
-    Bob,
-}
-
-#[derive(Debug, RandGen)]
-pub enum FuzzTargetOperation {
-    Swap {
-        direction: SwapDirection,
-        amount: u16,
-        sender: UserID,
-        recipient: UserID,
-    },
-    Withdraw {
-        lp_amount: u16,
-        user: UserID,
-    },
-    Deposit {
-        yusd_amount: u16,
-        yaro_amount: u16,
-        user: UserID,
-    },
-}
-
-impl ToString for FuzzTargetOperation {
-    fn to_string(&self) -> String {
-        match self {
-            FuzzTargetOperation::Swap {
-                direction,
-                amount,
-                sender,
-                recipient,
-            } => {
-                format!(
-                    "[Swap] {} {:?}, from {:?} to {:?}",
-                    amount, direction, sender, recipient
-                )
-            }
-
-            FuzzTargetOperation::Deposit {
-                yaro_amount,
-                yusd_amount,
-                user,
-            } => {
-                format!(
-                    "[Deposit] {} YARO {} YUSD, user: {:?}",
-                    yaro_amount, yusd_amount, user
-                )
-            }
-
-            FuzzTargetOperation::Withdraw { lp_amount, user } => {
-                format!("[Withdraw] {} lp, user: {:?}", lp_amount, user)
-            }
-        }
-    }
-}
-
-impl FuzzTargetOperation {
-    fn get_user(user_id: UserID, testing_env: &TestingEnvironment) -> &User {
-        match user_id {
-            UserID::Alice => &testing_env.alice,
-            UserID::Bob => &testing_env.bob,
-        }
-    }
-
-    fn get_tokens(direction: Direction, testing_env: &TestingEnvironment) -> (&Token, &Token) {
-        match direction {
-            Direction::A2B => (&testing_env.yusd_token, &testing_env.yaro_token),
-            Direction::B2A => (&testing_env.yaro_token, &testing_env.yusd_token),
-        }
-    }
-
-    pub fn execute(&self, testing_env: &TestingEnvironment) -> CallResult<()> {
-        match self {
-            FuzzTargetOperation::Swap {
-                direction,
-                amount,
-                sender,
-                recipient,
-            } => {
-                let sender = Self::get_user(*sender, testing_env);
-                let recipient = Self::get_user(*recipient, testing_env);
-                let amount = (*amount) as f64;
-                let direction: Direction = (*direction).into();
-                let (token_from, _) = Self::get_tokens(direction.clone(), testing_env);
-
-                if token_from.balance_of_f64(sender.as_ref()) - amount <= 0.0 {
-                    return Ok(());
-                }
-
-                testing_env
-                    .pool
-                    .swap(sender, recipient, amount, 0.0, direction)
-                    .map(|_| ())
-            }
-
-            FuzzTargetOperation::Deposit {
-                yaro_amount,
-                yusd_amount,
-                user,
-            } => {
-                let sender = Self::get_user(*user, testing_env);
-                let deposits = (*yusd_amount as f64, *yaro_amount as f64);
-                if deposits.0 + deposits.1 == 0.0 {
-                    return Ok(());
-                }
-
-                testing_env.pool.deposit(sender, deposits, 0.0)
-            }
-
-            FuzzTargetOperation::Withdraw { lp_amount, user } => {
-                let sender = Self::get_user(*user, testing_env);
-                let lp_amount = (*lp_amount) as f64;
-
-                testing_env.pool.withdraw(sender, lp_amount)
-            }
-        }
-    }
-}
-
-pub fn generate_run(len: usize) -> Vec<FuzzTargetOperation> {
-    let mut rng = rand::thread_rng();
-
-    (0..len).into_iter().map(|_| rng.gen()).collect()
-}
+use tabled::settings::Style;
+use tests::fuzzing::fuzz_target_operation::{Action, FuzzTargetOperation};
+use tests::utils::{TestingEnvConfig, TestingEnvironment};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-struct Args {
+struct CliArgs {
     #[arg(long, default_value = "150")]
     pub runs: u64,
     #[arg(long, default_value = "50")]
     pub run_len: usize,
     #[arg(long, default_value = "4")]
     pub threads: usize,
+    #[arg(short, long, default_value = "false")]
+    pub stop_run_if_invariant_failed: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -174,7 +34,7 @@ struct RunResult {
 }
 
 impl RunResult {
-    pub fn update_operation(&mut self, operation: &FuzzTargetOperation, is_ok: bool) {
+    pub fn update(&mut self, operation: &FuzzTargetOperation, is_ok: bool) {
         let operation_result = match operation {
             FuzzTargetOperation::Swap { .. } => &mut self.swaps,
             FuzzTargetOperation::Deposit { .. } => &mut self.deposits,
@@ -207,23 +67,22 @@ struct OperationResult {
 }
 
 fn main() {
-    let Args {
+    let CliArgs {
         runs,
         run_len,
         threads,
-    } = Args::parse();
+        stop_run_if_invariant_failed: stop_if_invariant_failed,
+    } = CliArgs::parse();
 
-    let path_to_read = Path::new("fuzz-report.txt");
-
+    let path_to_read = Path::new("fuzz-report.md");
     let available_parallelism = std::thread::available_parallelism().unwrap().get();
+    let successful_runs = Arc::new(Mutex::new(0));
 
     assert!(
         threads <= available_parallelism,
         "Available parallelism: {:?}",
         available_parallelism
     );
-
-    let successful_runs = Arc::new(Mutex::new(0));
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(threads)
@@ -232,51 +91,58 @@ fn main() {
 
     let runs = (0..runs)
         .into_par_iter()
-        .map(|_| generate_run(run_len))
+        .map(|_| FuzzTargetOperation::generate_run(run_len))
         .collect::<Vec<_>>();
 
-    fs::write(path_to_read, "\t\t\t✨ Fuzz report ✨\n\n").expect("unable to write");
+    fs::write(path_to_read, "# ✨ Fuzz report ✨\n").expect("unable to write");
 
     runs.par_iter().for_each(|operations| {
         let env = Env::default();
         let testing_env = TestingEnvironment::create(
             &env,
             TestingEnvConfig::default()
-                .with_yaro_admin_deposit(410_000.0)
-                .with_yusd_admin_deposit(440_000.0),
+                .with_yaro_admin_deposit(1_110_000.0)
+                .with_yusd_admin_deposit(1_140_000.0),
         );
 
-        let mut logs = Vec::with_capacity(operations.len());
         let mut run_result = RunResult::default();
+        let mut actions = Vec::with_capacity(run_len);
 
-        for (operation_index, operation) in operations.iter().enumerate() {
-            let result = operation.execute(&testing_env);
-            let status = match result {
-                Ok(_) => "✅",
-                Err(_) => "❌",
-            };
+        for (i, operation) in operations.iter().enumerate() {
+            let operation_result = operation.execute(&testing_env);
+            let invariant_result = testing_env.pool.invariant_total_lp_less_or_equal_d();
 
-            logs.push(format!(
-                "\t\t{status} {}. {}, result {:?}",
-                operation_index + 1,
-                &operation.to_string(),
-                result
-            ));
+            actions.push(Action {
+                status: match operation_result {
+                    Ok(_) => "✅",
+                    Err(_) => "❌",
+                },
+                index: i + 1,
+                log: operation.get_log_string(&operation_result),
+                total_lp: testing_env.pool.total_lp(),
+                d: testing_env.pool.d(),
+                invariant: invariant_result.clone().err().unwrap_or("OK".into()),
+            });
 
-            run_result.update_operation(&operation, result.is_ok());
+            run_result.update(&operation, operation_result.is_ok());
 
-            testing_env.pool.assert_total_lp_less_or_equal_d();
+            if invariant_result.is_err() {
+                eprintln!(
+                    "\n\n{} at operation #{}",
+                    invariant_result.err().unwrap().as_str(),
+                    i + 1
+                );
+
+                if stop_if_invariant_failed {
+                    break;
+                }
+            }
         }
 
-        let mut successful_runs = successful_runs.lock().unwrap();
-        *successful_runs += 1;
+        let mut current_run = successful_runs.lock().unwrap();
+        *current_run += 1;
 
-        let log = format!(
-            "✅ ({successful_runs} / {}) {}",
-            runs.len(),
-            &run_result.to_string()
-        );
-
+        let log = format!("{current_run}/{}. {}", runs.len(), &run_result.to_string());
         let file = OpenOptions::new()
             .write(true)
             .append(true)
@@ -284,15 +150,13 @@ fn main() {
             .expect("unable to open file");
         let mut f = BufWriter::new(file);
 
-        writeln!(
-            f,
-            "{}\n{}\n--------------------------------------------------------------------",
-            log,
-            logs.join("\n")
-        )
-        .expect("unable to write");
+        let mut table = Table::new(actions);
+        table.with(Style::markdown());
+        let table = table.to_string();
 
-        print!("\r{log}");
-        stdout().flush().unwrap();
+        writeln!(f, "{}\n\n{table}\n", log).expect("unable to write");
+
+        stdout().flush().expect("Unable to flush stdout");
+        print!("\r## {log}    ");
     });
 }
