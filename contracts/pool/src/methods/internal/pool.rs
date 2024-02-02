@@ -39,6 +39,7 @@ impl Pool {
         let d0 = self.get_current_d();
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
         let mut output = 0;
+        let fee = input * self.fee_share_bp / Self::BP;
 
         self.token_balances[token_from] += input_sp;
 
@@ -50,32 +51,31 @@ impl Pool {
             );
         }
 
-        let fee = output * self.fee_share_bp / Self::BP;
-
         output -= fee;
 
         (output, fee)
     }
 
-    pub fn calc_to_swap(&mut self, output: u128, token_to: Token) -> u128 {
+    pub fn calc_to_swap(&mut self, output: u128, token_to: Token) -> (u128, u128) {
         let token_from = token_to.opposite();
         let d0 = self.get_current_d();
         let output_sp = self.amount_to_system_precision(output, self.tokens_decimals[token_to]);
         let mut input = 0;
 
-        self.token_balances[token_to] += output_sp;
+        self.token_balances[token_to] -= output_sp;
 
         let token_from_new_amount = self.get_y(self.token_balances[token_to], d0);
-        if self.token_balances[token_from] > token_from_new_amount {
+        if self.token_balances[token_from] < token_from_new_amount {
             input = self.amount_from_system_precision(
-                self.token_balances[token_from] - token_from_new_amount,
+                token_from_new_amount - self.token_balances[token_from],
                 self.tokens_decimals[token_from],
             );
+            input = input / (Self::BP - self.fee_share_bp) * Self::BP;
         }
 
         let fee = input * self.fee_share_bp / Self::BP;
 
-        input + fee
+        (input, fee)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -416,7 +416,7 @@ mod tests {
             Ok(Pool::get(&env)?.calc_from_swap(amount, token_from))
         }
 
-        pub fn to_swap(env: Env, amount: u128, token_to: Token) -> Result<u128, Error> {
+        pub fn to_swap(env: Env, amount: u128, token_to: Token) -> Result<(u128, u128), Error> {
             Ok(Pool::get(&env)?.calc_to_swap(amount, token_to))
         }
 
@@ -444,8 +444,13 @@ mod tests {
 
         let input = 10_000_0000000u128;
         let (output, fee) = pool.from_swap(&input, &Token::A);
+        let (calc_input, calc_fee) = pool.to_swap(&output, &Token::B);
 
-        println!("Output: {output}, input: {input}, input fee: {fee}");
-        println!("{:?}", pool.to_swap(&output, &Token::B));
+        println!("input: {}", input);
+        println!("output: {}, fee: {}", output, fee);
+        println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
+
+        assert_eq!(input, calc_input);
+        assert_eq!(fee, calc_fee);
     }
 }
