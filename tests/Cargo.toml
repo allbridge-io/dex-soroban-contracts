@@ -17,9 +17,18 @@ rayon = "1"
 clap = "4.4"
 clap_derive = "4"
 tabled = "0.15"
+csv = "1"
+serde = "*"
+serde_derive = "*"
 
 [[bin]]
 name = "fuzz"
 path = "bin/fuzz.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "random_walk"
+path = "bin/random_walk.rs"
 test = false
 bench = false

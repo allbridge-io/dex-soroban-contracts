@@ -1,6 +1,7 @@
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use rand_derive2::RandGen;
+use serde_derive::Serialize;
 use tabled::Tabled;
 
 use crate::contracts::pool::Direction;
@@ -14,6 +15,23 @@ pub struct Action {
     pub d: u128,
     pub total_lp: u128,
     pub invariant: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ActionPoolChange {
+    pub d: u128,
+    pub total_lp: u128,
+    pub diff: i128,
+}
+
+impl From<Action> for ActionPoolChange {
+    fn from(Action { d, total_lp, .. }: Action) -> Self {
+        Self {
+            d,
+            total_lp,
+            diff: total_lp as i128 - d as i128,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, RandGen)]

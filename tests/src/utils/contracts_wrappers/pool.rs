@@ -46,7 +46,7 @@ impl Pool {
     }
 
     pub fn invariant_total_lp_less_or_equal_d(&self) -> Result<(), String> {
-        let max_diff = 10;
+        let max_diff = 2;
 
         let total_lp_amount = self.total_lp() as i128;
         let d = self.d() as i128;
