@@ -123,7 +123,7 @@ impl FuzzTargetOperation {
     pub fn generate_run(len: usize) -> Vec<FuzzTargetOperation> {
         let mut rng = rand::thread_rng();
 
-        (0..len).into_iter().map(|_| rng.gen()).collect()
+        (&mut rng).sample_iter(Standard).take(len).collect()
     }
 
     fn get_user(user_id: UserID, testing_env: &TestingEnvironment) -> &User {
