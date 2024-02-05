@@ -11,7 +11,7 @@ use tabled::Table;
 
 use tabled::settings::Style;
 use tests::fuzzing::fuzz_target_operation::{Action, FuzzTargetOperation};
-use tests::utils::{TestingEnvConfig, TestingEnvironment};
+use tests::utils::{Snapshot, TestingEnvConfig, TestingEnvironment};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -108,6 +108,12 @@ fn main() {
         let mut run_result = RunResult::default();
         let mut actions = Vec::with_capacity(run_len);
 
+        let snapshot_before = Snapshot::take(&testing_env);
+        let alice_balances =
+            snapshot_before.alice_yaro_balance + snapshot_before.alice_yusd_balance;
+        let bob_balances = snapshot_before.bob_yaro_balance + snapshot_before.bob_yusd_balance;
+        let users_balance_sum_before = alice_balances + bob_balances;
+
         for (i, operation) in operations.iter().enumerate() {
             let operation_result = operation.execute(&testing_env);
             let invariant_result = testing_env.pool.invariant_total_lp_less_or_equal_d();
@@ -126,18 +132,20 @@ fn main() {
 
             run_result.update(&operation, operation_result.is_ok());
 
-            if invariant_result.is_err() {
-                eprintln!(
-                    "\n\n{} at operation #{}",
-                    invariant_result.err().unwrap().as_str(),
-                    i + 1
-                );
-
-                if stop_if_invariant_failed {
-                    break;
-                }
+            if invariant_result.is_err() && stop_if_invariant_failed {
+                break;
             }
         }
+
+        let snapshot_after = Snapshot::take(&testing_env);
+        let alice_balances = snapshot_after.alice_yaro_balance + snapshot_after.alice_yusd_balance;
+        let bob_balances = snapshot_after.bob_yaro_balance + snapshot_after.bob_yusd_balance;
+        let users_balance_sum_after = alice_balances + bob_balances;
+
+        assert!(
+            users_balance_sum_after <= users_balance_sum_before,
+            "Profit invariant"
+        );
 
         let mut current_run = successful_runs.lock().unwrap();
         *current_run += 1;
@@ -154,9 +162,9 @@ fn main() {
         table.with(Style::markdown());
         let table = table.to_string();
 
-        writeln!(f, "{}\n\n{table}\n", log).expect("unable to write");
+        writeln!(f, "## {}\n\n{table}\n", log).expect("unable to write");
 
         stdout().flush().expect("Unable to flush stdout");
-        print!("\r## {log}    ");
+        print!("\r{log}    ");
     });
 }

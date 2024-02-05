@@ -3,7 +3,10 @@ use std::{cmp::Ordering, ops::Index};
 use color_print::cformat;
 
 use super::{signed_int_to_float, TestingEnvironment, User};
-use crate::{contracts::pool::Pool as PoolInfo, utils::format_diff};
+use crate::{
+    contracts::pool::{Pool as PoolInfo, UserDeposit},
+    utils::format_diff,
+};
 
 #[derive(Debug, Clone)]
 pub struct Snapshot {
@@ -28,6 +31,9 @@ pub struct Snapshot {
     pub admin_yaro_fee_rewards: u128,
     pub admin_yusd_fee_rewards: u128,
 
+    pub alice_deposit: UserDeposit,
+    pub bob_deposit: UserDeposit,
+
     pub d: u128,
 }
 
@@ -46,9 +52,11 @@ impl Index<&str> for Snapshot {
         match string {
             "alice_yaro_balance" => &self.alice_yaro_balance,
             "alice_yusd_balance" => &self.alice_yusd_balance,
+            "alice_deposit_lp" => &self.alice_deposit.lp_amount,
 
             "bob_yaro_balance" => &self.bob_yaro_balance,
             "bob_yusd_balance" => &self.bob_yusd_balance,
+            "bob_deposit_lp" => &self.bob_deposit.lp_amount,
 
             "pool_yaro_balance" => &self.pool_yaro_balance,
             "pool_yusd_balance" => &self.pool_yusd_balance,
@@ -74,10 +82,11 @@ pub fn format_diff_with_float_diff(a: u128, b: u128) -> (String, String) {
 }
 
 impl Snapshot {
-    pub fn get_user_balances(&self, user: &User) -> (u128, u128) {
+    pub fn get_user_balances(&self, user: &User) -> (u128, u128, u128) {
         (
             self[&format!("{}_yusd_balance", user.tag)],
             self[&format!("{}_yaro_balance", user.tag)],
+            self[&format!("{}_deposit_lp", user.tag)],
         )
     }
 
@@ -107,6 +116,9 @@ impl Snapshot {
         let admin_yusd_fee_rewards = pool_info.admin_fee_amount.data.0;
         let admin_yaro_fee_rewards = pool_info.admin_fee_amount.data.1;
 
+        let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
+        let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);
+
         Snapshot {
             d,
             pool_info,
@@ -123,6 +135,8 @@ impl Snapshot {
             acc_reward_yaro_per_share_p,
             admin_yusd_fee_rewards,
             admin_yaro_fee_rewards,
+            alice_deposit,
+            bob_deposit,
         }
     }
 
@@ -146,6 +160,12 @@ impl Snapshot {
                 true,
             ),
             (
+                "Alice lp change",
+                self.alice_deposit.lp_amount,
+                other.alice_deposit.lp_amount,
+                false,
+            ),
+            (
                 "Bob yaro balance change",
                 self.bob_yaro_balance,
                 other.bob_yaro_balance,
@@ -156,6 +176,12 @@ impl Snapshot {
                 self.bob_yusd_balance,
                 other.bob_yusd_balance,
                 true,
+            ),
+            (
+                "Bob lp change",
+                self.bob_deposit.lp_amount,
+                other.bob_deposit.lp_amount,
+                false,
             ),
             (
                 "Pool yaro balance change",
@@ -197,21 +223,21 @@ impl Snapshot {
                 "Pool admin yusd fee rewards",
                 self.admin_yusd_fee_rewards,
                 other.admin_yusd_fee_rewards,
-                true,
+                false,
             ),
             (
                 "Pool admin yaro fee rewards",
                 self.admin_yaro_fee_rewards,
                 other.admin_yaro_fee_rewards,
-                true,
+                false,
             ),
             (
                 "Pool total lp amount",
                 self.total_lp_amount,
                 other.total_lp_amount,
-                true,
+                false,
             ),
-            ("Pool d", self.d, other.d, true),
+            ("Pool d", self.d, other.d, false),
         ];
 
         for (title, a, b, use_float_diff) in balances {

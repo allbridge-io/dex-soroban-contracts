@@ -144,11 +144,6 @@ impl FuzzTargetOperation {
                 let sender = Self::get_user(*sender, testing_env);
                 let recipient = Self::get_user(*recipient, testing_env);
                 let direction: Direction = (*direction).into();
-                let (token_from, _) = testing_env.get_tokens_by_direction(direction.clone());
-
-                if token_from.balance_of_f64(sender.as_ref()) - amount.0 <= 0.0 {
-                    return Ok(());
-                }
 
                 testing_env
                     .pool
@@ -162,9 +157,6 @@ impl FuzzTargetOperation {
                 user,
             } => {
                 let sender = Self::get_user(*user, testing_env);
-                if yusd_amount.0 + yaro_amount.0 == 0.0 {
-                    return Ok(());
-                }
 
                 testing_env
                     .pool

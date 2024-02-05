@@ -1,11 +1,38 @@
+use std::cmp::Ordering;
+
+use ethnum::U256;
 use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::pool::{self, Direction, UserDeposit},
-    utils::{desoroban_result, float_to_int, float_to_int_sp, int_to_float_sp, CallResult},
+    utils::{
+        desoroban_result, float_to_int, float_to_int_sp, int_to_float_sp, CallResult,
+        SYSTEM_PRECISION,
+    },
 };
 
 use super::User;
+
+pub fn sqrt(n: &U256) -> U256 {
+    if *n == U256::ZERO {
+        return U256::ZERO;
+    }
+    let shift: u32 = (255 - n.leading_zeros()) & !1;
+    let mut bit = U256::ONE << shift;
+
+    let mut n = *n;
+    let mut result = U256::ZERO;
+    for _ in (0..shift + 1).step_by(2) {
+        let res_bit = result + bit;
+        result >>= 1;
+        if n >= res_bit {
+            n -= res_bit;
+            result += bit;
+        }
+        bit >>= 2;
+    }
+    result
+}
 
 pub struct Pool {
     pub id: soroban_sdk::Address,
@@ -13,10 +40,46 @@ pub struct Pool {
 }
 
 impl Pool {
+    pub const BP: u128 = 10000;
+
     pub fn new(env: &Env, id: Address) -> Pool {
         let client = pool::Client::new(env, &id);
-
         Pool { id, client }
+    }
+
+    pub fn get_y(&self, native_x: u128, d: u128) -> u128 {
+        let a = self.client.get_pool().a;
+
+        let a4 = a << 2;
+        let ddd = U256::new(d * d) * d;
+        // 4A(D - x) - D
+        let part1 = a4 as i128 * (d as i128 - native_x as i128) - d as i128;
+        // x * (4AD³ + x(part1²))
+        let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
+        // (sqrt(part2) + x(part1)) / 8Ax)
+        (sqrt(&part2).as_u128() as i128 + (native_x as i128 * part1)) as u128
+            / ((a << 3) * native_x)
+    }
+
+    pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
+        let d = self.d();
+        let (from_balance, to_balance) = match directin {
+            Direction::A2B => (self.token_a_balance(), self.token_b_balance()),
+            Direction::B2A => (self.token_b_balance(), self.token_a_balance()),
+        };
+        let (from_balance, to_balance) = (
+            self.amount_from_system_precision(from_balance, 7),
+            self.amount_from_system_precision(to_balance, 7),
+        );
+
+        let amount_sp = float_to_int_sp(amount);
+        let token_from_new_amount = self.amount_to_system_precision(from_balance, 7) + amount_sp;
+
+        let token_to_new_amount = self.get_y(token_from_new_amount, d);
+        let result = to_balance - self.amount_from_system_precision(token_to_new_amount, 7);
+        let fee = result * self.fee_share_bp() / Self::BP;
+        let result = result - fee;
+        (result, fee)
     }
 
     pub fn assert_initialization(
@@ -178,5 +241,21 @@ impl Pool {
             &float_to_int(receive_amount_min, 7),
             &direction,
         ))
+    }
+
+    pub fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
+        match decimals.cmp(&SYSTEM_PRECISION) {
+            Ordering::Greater => amount / (10u128.pow(decimals - SYSTEM_PRECISION)),
+            Ordering::Less => amount * (10u128.pow(SYSTEM_PRECISION - decimals)),
+            Ordering::Equal => amount,
+        }
+    }
+
+    pub fn amount_from_system_precision(&self, amount: u128, decimals: u32) -> u128 {
+        match decimals.cmp(&SYSTEM_PRECISION) {
+            Ordering::Greater => amount * (10u128.pow(decimals - SYSTEM_PRECISION)),
+            Ordering::Less => amount / (10u128.pow(SYSTEM_PRECISION - decimals)),
+            Ordering::Equal => amount,
+        }
     }
 }

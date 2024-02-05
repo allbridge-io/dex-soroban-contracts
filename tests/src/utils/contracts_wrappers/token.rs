@@ -11,7 +11,7 @@ pub struct Token {
 }
 
 impl Token {
-    pub const DEFAULT_AIRDROP: f64 = 1_000_000.0;
+    pub const DEFAULT_AIRDROP: f64 = 100_000_000.0;
 
     pub fn as_address(&self) -> Address {
         self.id.clone()
