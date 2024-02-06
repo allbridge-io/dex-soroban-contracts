@@ -60,10 +60,7 @@ pub struct Amount(pub f64);
 
 impl Distribution<Amount> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Amount {
-        let v1 = rng.gen::<u16>() as f64;
-        let v2 = rng.gen::<u16>() as f64;
-
-        Amount(v1 + v2)
+        Amount(rng.gen_range(1..100_000) as f64)
     }
 }
 
