@@ -18,7 +18,7 @@ pub fn get_pool(env: Env) -> Result<Pool, Error> {
 }
 
 pub fn get_d(env: Env) -> Result<u128, Error> {
-    Ok(Pool::get(&env)?.get_current_d())
+    Ok(Pool::get(&env)?.get_current_d()) //TODO: return total_lp_amount after tests
 }
 
 pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {

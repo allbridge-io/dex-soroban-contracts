@@ -208,11 +208,10 @@ impl Pool {
 
         let d1 = d0 - lp_amount;
         let (more, less) = if self.token_balances[0] > self.token_balances[1] {(0, 1)} else {(1, 0)};
+        let more_token_amount = self.token_balances[more] * lp_amount / d0;
+        let less_token_amount =  self.token_balances[less] - self.get_y(self.token_balances[more] - more_token_amount, d1);
 
-        for (index, token_amount) in [
-            (more, self.token_balances[more] * lp_amount / d0),
-            (less, self.token_balances[less] - self.get_y(self.token_balances[more], d1))
-        ] {
+        for (index, token_amount) in [(more, more_token_amount ), (less, less_token_amount )] {
             amounts[index] = token_amount;
             self.token_balances[index] -= token_amount;
             let token_amount =
