@@ -202,7 +202,7 @@ impl Pool {
     ) -> Result<(DoubleU128, DoubleU128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
-        let old_balances: u128 = self.token_balances.to_array().iter().sum();
+        let old_balances = self.token_balances.clone();
         let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
         let mut amounts = DoubleU128::default();
 
@@ -225,10 +225,10 @@ impl Pool {
             );
         }
 
-        let new_balances: u128 = self.token_balances.to_array().iter().sum();
+        let new_balances = self.token_balances.clone();
         let d1 = self.total_lp_amount;
 
-        require!(new_balances < old_balances && d1 < d0, Error::ZeroChanges);
+        require!(new_balances[0] < old_balances[0] && new_balances[1] < old_balances[1] && d1 < d0, Error::ZeroChanges);
 
         Ok((amounts, rewards_amounts))
     }
