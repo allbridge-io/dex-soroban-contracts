@@ -26,9 +26,11 @@ pub fn swap(
 
     pool.save(&env);
 
+    let (token_from, token_to) = direction.get_tokens();
+
     Swapped {
-        from_token: pool.tokens[0].clone(),
-        to_token: pool.tokens[1].clone(),
+        from_token: pool.tokens[token_from].clone(),
+        to_token: pool.tokens[token_to].clone(),
         from_amount,
         to_amount,
         sender,

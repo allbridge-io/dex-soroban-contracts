@@ -65,6 +65,27 @@ fn deposit() {
 }
 
 #[test]
+fn deposit_with_overflow() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ref yaro_token,
+        ref yusd_token,
+        ..
+    } = testing_env;
+
+    yusd_token.airdrop_amount(alice.as_ref(), 10_000_000_000.0);
+    yaro_token.airdrop_amount(alice.as_ref(), 10_000_000_000.0);
+
+    let deposits = (600_000_000.0, 600_000_000.0);
+    let call_result = pool.deposit(alice, deposits, 0.0);
+
+    expect_contract_error(&env, call_result, shared::Error::PoolOverflow)
+}
+
+#[test]
 fn smallest_deposit() {
     let env = Env::default();
     let testing_env = TestingEnvironment::default(&env);
