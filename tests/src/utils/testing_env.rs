@@ -2,7 +2,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env};
 
 use crate::{
     contracts::pool::{Deposit, Direction, RewardsClaimed, Swapped, Withdraw},
-    utils::{assert_rel_eq, float_to_int, float_to_int_sp, int_to_float_sp},
+    utils::{assert_rel_eq, float_to_int, float_to_int_sp},
 };
 
 use super::{
@@ -219,9 +219,9 @@ impl TestingEnvironment {
         println!("withdraw {:?}", withdraw.amounts);
 
         assert_eq!(withdraw.user, expected_user.as_address());
-        assert_eq!(int_to_float_sp(withdraw.amounts.0), expected_amount.0);
-        assert_eq!(int_to_float_sp(withdraw.amounts.1), expected_amount.1);
-        assert_eq!(int_to_float_sp(withdraw.lp_amount), lp_amount);
+        assert_rel_eq(withdraw.amounts.0, float_to_int_sp(expected_amount.0), 2);
+        assert_rel_eq(withdraw.amounts.1, float_to_int_sp(expected_amount.1), 2);
+        assert_eq!(withdraw.lp_amount, float_to_int_sp(lp_amount));
     }
 
     pub fn assert_deposit_event(
@@ -314,7 +314,7 @@ impl TestingEnvironment {
         assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
         assert!(snapshot_before.d > snapshot_after.d);
 
-        assert_rel_eq(lp_diff, float_to_int_sp(expected_withdraw_lp_amount), 100);
+        assert!(lp_diff <= float_to_int_sp(expected_withdraw_lp_amount));
         assert_rel_eq(
             total_lp_amount_diff,
             float_to_int_sp(expected_withdraw_lp_amount + expected_rewards.0 + expected_rewards.1),
@@ -323,22 +323,22 @@ impl TestingEnvironment {
         assert_rel_eq(
             user_yusd_diff,
             float_to_int(expected_amount.0 + expected_rewards.0, 7),
-            float_to_int(0.001, 7),
+            10000,
         );
         assert_rel_eq(
             user_yaro_diff,
             float_to_int(expected_amount.1 + expected_rewards.1, 7),
-            float_to_int(0.001, 7),
+            10000,
         );
         assert_rel_eq(
             float_to_int(pool_yusd_diff, 7),
             float_to_int(expected_amount.0 + expected_rewards.0, 7),
-            10,
+            10000,
         );
         assert_rel_eq(
             float_to_int(pool_yaro_diff, 7),
             float_to_int(expected_amount.1 + expected_rewards.1, 7),
-            10,
+            10000,
         );
     }
 

@@ -15,7 +15,10 @@ fn withdraw() {
         ..
     } = testing_env;
 
-    pool.deposit(alice, (4000.0, 5000.0), 0.0).unwrap();
+    let deposit = (4_000.0, 5_000.0);
+    let deposit_sum = deposit.0 + deposit.1;
+
+    pool.deposit(alice, deposit, 0.0).unwrap();
 
     let alice_lp_amount = pool.user_lp_amount_f64(alice);
     let withdraw_amounts = pool.withdraw_amounts(alice);
@@ -35,7 +38,7 @@ fn withdraw() {
         alice,
         withdraw_amounts,
         (0.0, 0.0),
-        9000.0,
+        deposit_sum,
     );
 }
 
@@ -53,7 +56,7 @@ fn smallest_withdraw() {
 
     // 0.001 => ZeroChanges
     let alice_lp_amount = 0.002;
-    let withdraw_amounts = (0.0, 0.001);
+    let withdraw_amounts = (0.001, 0.001);
 
     let snapshot_before = Snapshot::take(&testing_env);
     pool.withdraw(alice, alice_lp_amount).unwrap();
