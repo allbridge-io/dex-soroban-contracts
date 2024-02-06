@@ -36,7 +36,7 @@ impl Pool {
 
     pub fn calc_from_swap(&mut self, input: u128, token_from: Token) -> (u128, u128) {
         let token_to = token_from.opposite();
-        let d0 = self.get_current_d();
+        let d0 = self.total_lp_amount;
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
         let mut output = 0;
         let fee = input * self.fee_share_bp / Self::BP;
@@ -58,7 +58,7 @@ impl Pool {
 
     pub fn calc_to_swap(&mut self, output: u128, token_to: Token) -> (u128, u128) {
         let token_from = token_to.opposite();
-        let d0 = self.get_current_d();
+        let d0 = self.total_lp_amount;
         let output_sp = self.amount_to_system_precision(output, self.tokens_decimals[token_to]);
         let mut input = 0;
 
@@ -97,7 +97,7 @@ impl Pool {
         let from_decimals = self.tokens_decimals[token_from];
         let to_decimals = self.tokens_decimals[token_to];
 
-        let d0 = self.get_current_d();
+        let d0 = self.total_lp_amount;
         let amount_sp = self.amount_to_system_precision(amount, from_decimals);
 
         self.get_token(env, token_from)
@@ -141,7 +141,7 @@ impl Pool {
         min_lp_amount: u128,
     ) -> Result<(DoubleU128, u128), Error> {
         let current_contract = env.current_contract_address();
-        let d0 = self.get_current_d();
+        let d0 = self.total_lp_amount;
 
         let amounts_sp = DoubleU128::from((
             self.amount_to_system_precision(amounts[0], self.tokens_decimals[0]),
@@ -168,11 +168,7 @@ impl Pool {
 
         require!(d1 > d0, Error::Forbidden);
 
-        let lp_amount = if self.total_lp_amount == 0 {
-            d1
-        } else {
-            self.total_lp_amount * (d1 - d0) / d0
-        };
+        let lp_amount = d1 - d0;
 
         require!(lp_amount >= min_lp_amount, Error::Slippage);
         require!(
@@ -205,14 +201,18 @@ impl Pool {
         lp_amount: u128,
     ) -> Result<(DoubleU128, DoubleU128), Error> {
         let current_contract = env.current_contract_address();
-        let d0 = self.get_current_d();
+        let d0 = self.total_lp_amount;
         let old_balances: u128 = self.token_balances.to_array().iter().sum();
-        let old_total_lp_amount = self.total_lp_amount;
         let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
         let mut amounts = DoubleU128::default();
 
-        for (index, token_balance) in self.token_balances.to_array().into_iter().enumerate() {
-            let token_amount = token_balance * lp_amount / old_total_lp_amount;
+        let d1 = d0 - lp_amount;
+        let (more, less) = if self.token_balances[0] > self.token_balances[1] {(0, 1)} else {(1, 0)};
+
+        for (index, token_amount) in [
+            (more, self.token_balances[more] * lp_amount / d0),
+            (less, self.token_balances[less] - self.get_y(self.token_balances[more], d1))
+        ] {
             amounts[index] = token_amount;
             self.token_balances[index] -= token_amount;
             let token_amount =
@@ -227,7 +227,7 @@ impl Pool {
         }
 
         let new_balances: u128 = self.token_balances.to_array().iter().sum();
-        let d1 = self.get_current_d();
+        let d1 = self.total_lp_amount;
 
         require!(new_balances < old_balances && d1 < d0, Error::ZeroChanges);
 
