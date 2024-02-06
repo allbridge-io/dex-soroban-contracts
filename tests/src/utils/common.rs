@@ -22,8 +22,8 @@ pub fn desoroban_result<T, E: Debug>(soroban_result: SorobanCallResult<T, E>) ->
     soroban_result.map(Result::unwrap).map_err(Result::unwrap)
 }
 
-pub fn signed_int_to_float(amount: i128) -> f64 {
-    (amount as f64) / 10.0f64.powi(7)
+pub fn signed_int_to_float(amount: i128, decimals: i32) -> f64 {
+    (amount as f64) / 10.0f64.powi(decimals)
 }
 
 pub fn float_to_int(amount: f64, decimals: u32) -> u128 {

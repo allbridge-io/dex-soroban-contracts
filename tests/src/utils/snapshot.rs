@@ -61,16 +61,25 @@ impl Index<&str> for Snapshot {
             "pool_yaro_balance" => &self.pool_yaro_balance,
             "pool_yusd_balance" => &self.pool_yusd_balance,
 
+            "admin_yaro_balance" => &self.admin_yaro_balance,
+            "admin_yusd_balance" => &self.admin_yusd_balance,
+
             "acc_reward_yusd_per_share_p" => &self.acc_reward_yusd_per_share_p,
             "acc_reward_yaro_per_share_p" => &self.acc_reward_yaro_per_share_p,
+
+            "admin_yusd_fee_rewards" => &self.admin_yusd_fee_rewards,
+            "admin_yaro_fee_rewards" => &self.admin_yaro_fee_rewards,
+
+            "total_lp_amount" => &self.total_lp_amount,
+            "d" => &self.d,
 
             _ => panic!("BalancesSnapshot: unknown field: {}", string),
         }
     }
 }
 
-pub fn format_diff_with_float_diff(a: u128, b: u128) -> (String, String) {
-    let float_diff = signed_int_to_float(b as i128 - a as i128);
+pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
+    let float_diff = signed_int_to_float(b as i128 - a as i128, decimals as i32);
 
     let float_diff = match b.partial_cmp(&a).unwrap() {
         Ordering::Equal => String::new(),
@@ -153,110 +162,53 @@ impl Snapshot {
         println!("----------------------| {title} |----------------------");
 
         let balances = [
-            (
-                "Alice yaro balance change",
-                self.alice_yaro_balance,
-                other.alice_yaro_balance,
-                true,
-            ),
-            (
-                "Alice yusd balance change",
-                self.alice_yusd_balance,
-                other.alice_yusd_balance,
-                true,
-            ),
-            (
-                "Alice lp change",
-                self.alice_deposit.lp_amount,
-                other.alice_deposit.lp_amount,
-                false,
-            ),
-            (
-                "Bob yaro balance change",
-                self.bob_yaro_balance,
-                other.bob_yaro_balance,
-                true,
-            ),
-            (
-                "Bob yusd balance change",
-                self.bob_yusd_balance,
-                other.bob_yusd_balance,
-                true,
-            ),
-            (
-                "Bob lp change",
-                self.bob_deposit.lp_amount,
-                other.bob_deposit.lp_amount,
-                false,
-            ),
-            (
-                "Pool yaro balance change",
-                self.pool_yaro_balance,
-                other.pool_yaro_balance,
-                true,
-            ),
-            (
-                "Pool yusd balance change",
-                self.pool_yusd_balance,
-                other.pool_yusd_balance,
-                true,
-            ),
-            (
-                "Admin yaro balance change",
-                self.admin_yaro_balance,
-                other.admin_yaro_balance,
-                true,
-            ),
-            (
-                "Admin yusd balance change",
-                self.admin_yusd_balance,
-                other.admin_yusd_balance,
-                true,
-            ),
+            ("Alice yaro balance change", "alice_yaro_balance", Some(7)),
+            ("Alice yusd balance change", "alice_yusd_balance", Some(7)),
+            ("Alice lp change", "alice_deposit_lp", Some(3)),
+            ("Bob yaro balance change", "bob_yaro_balance", Some(7)),
+            ("Bob yusd balance change", "bob_yusd_balance", Some(7)),
+            ("Bob lp change", "bob_deposit_lp", Some(3)),
+            ("Pool yaro balance change", "pool_yaro_balance", Some(7)),
+            ("Pool yusd balance change", "pool_yusd_balance", Some(7)),
+            ("Admin yaro balance change", "admin_yaro_balance", Some(7)),
+            ("Admin yusd balance change", "admin_yusd_balance", Some(7)),
             (
                 "Pool acc reward yusd per share p",
-                self.acc_reward_yusd_per_share_p,
-                other.acc_reward_yusd_per_share_p,
-                false,
+                "acc_reward_yusd_per_share_p",
+                None,
             ),
             (
                 "Pool acc reward yaro per share p",
-                self.acc_reward_yaro_per_share_p,
-                other.acc_reward_yaro_per_share_p,
-                false,
+                "acc_reward_yaro_per_share_p",
+                None,
             ),
             (
                 "Pool admin yusd fee rewards",
-                self.admin_yusd_fee_rewards,
-                other.admin_yusd_fee_rewards,
-                false,
+                "admin_yusd_fee_rewards",
+                Some(3),
             ),
             (
                 "Pool admin yaro fee rewards",
-                self.admin_yaro_fee_rewards,
-                other.admin_yaro_fee_rewards,
-                false,
+                "admin_yaro_fee_rewards",
+                Some(3),
             ),
-            (
-                "Pool total lp amount",
-                self.total_lp_amount,
-                other.total_lp_amount,
-                false,
-            ),
-            ("Pool d", self.d, other.d, false),
+            ("Pool total lp amount", "total_lp_amount", Some(3)),
+            ("Pool d", "d", Some(3)),
         ];
 
-        for (title, a, b, use_float_diff) in balances {
-            if !use_float_diff {
-                println!("{}: {}", title, format_diff(a, b));
-                continue;
-            }
+        for (title, value_key, use_float_diff) in balances {
+            let (before, after) = (self[value_key], other[value_key]);
 
-            let (balance_diff, diff) = format_diff_with_float_diff(a, b);
-            if diff.is_empty() {
-                println!("{}: {}", title, &balance_diff);
-            } else {
-                println!("{}: {} ({})", title, &balance_diff, &diff);
+            match use_float_diff {
+                Some(decimals) => {
+                    let (balance_diff, diff) = format_diff_with_float_diff(before, after, decimals);
+                    if diff.is_empty() {
+                        println!("{}: {}", title, &balance_diff);
+                    } else {
+                        println!("{}: {} ({})", title, &balance_diff, &diff);
+                    }
+                }
+                None => println!("{}: {}", title, format_diff(before, after)),
             }
         }
     }
