@@ -58,10 +58,11 @@ impl Pool {
 
     pub fn calc_to_swap(&mut self, output: u128, token_to: Token) -> (u128, u128) {
         let token_from = token_to.opposite();
-        let d0 = self.get_current_d(); // TODO: use total_lp_amount after test fix
+        let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
         let output_with_fee = output + fee;
-        let output_sp = self.amount_to_system_precision(output_with_fee, self.tokens_decimals[token_to]);
+        let output_sp =
+            self.amount_to_system_precision(output_with_fee, self.tokens_decimals[token_to]);
         let mut input = 0;
 
         self.token_balances[token_to] -= output_sp;
@@ -205,11 +206,13 @@ impl Pool {
         let mut amounts = DoubleU128::default();
 
         let d1 = d0 - lp_amount;
+        #[rustfmt::skip]
         let (more, less) = if self.token_balances[0] > self.token_balances[1] {(0, 1)} else {(1, 0)};
         let more_token_amount = self.token_balances[more] * lp_amount / d0;
-        let less_token_amount =  self.token_balances[less] - self.get_y(self.token_balances[more] - more_token_amount, d1);
+        let less_token_amount = self.token_balances[less]
+            - self.get_y(self.token_balances[more] - more_token_amount, d1);
 
-        for (index, token_amount) in [(more, more_token_amount ), (less, less_token_amount )] {
+        for (index, token_amount) in [(more, more_token_amount), (less, less_token_amount)] {
             amounts[index] = token_amount;
             self.token_balances[index] -= token_amount;
             let token_amount =
@@ -226,7 +229,10 @@ impl Pool {
         let new_balances = self.token_balances.clone();
         let d1 = self.total_lp_amount;
 
-        require!(new_balances[0] < old_balances[0] && new_balances[1] < old_balances[1] && d1 < d0, Error::ZeroChanges);
+        require!(
+            new_balances[0] < old_balances[0] && new_balances[1] < old_balances[1] && d1 < d0,
+            Error::ZeroChanges
+        );
 
         Ok((amounts, rewards_amounts))
     }
@@ -404,7 +410,10 @@ mod tests {
 
         pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
             Pool::update(&env, |pool| {
+                let d0 = pool.total_lp_amount;
                 pool.token_balances = DoubleU128::from(new_balances);
+                let d1 = pool.get_current_d();
+                pool.total_lp_amount = d1 - d0;
                 Ok(())
             })
         }
