@@ -36,10 +36,9 @@ impl Pool {
 
     pub fn calc_from_swap(&mut self, input: u128, token_from: Token) -> (u128, u128) {
         let token_to = token_from.opposite();
-        let d0 = self.total_lp_amount;
+        let d0 = self.get_current_d(); // TODO: use total_lp_amount after test fix
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
         let mut output = 0;
-        let fee = input * self.fee_share_bp / Self::BP;
 
         self.token_balances[token_from] += input_sp;
 
@@ -50,6 +49,7 @@ impl Pool {
                 self.tokens_decimals[token_to],
             );
         }
+        let fee = output * self.fee_share_bp / Self::BP;
 
         output -= fee;
 
@@ -58,22 +58,20 @@ impl Pool {
 
     pub fn calc_to_swap(&mut self, output: u128, token_to: Token) -> (u128, u128) {
         let token_from = token_to.opposite();
-        let d0 = self.total_lp_amount;
-        let output_sp = self.amount_to_system_precision(output, self.tokens_decimals[token_to]);
+        let d0 = self.get_current_d(); // TODO: use total_lp_amount after test fix
+        let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
+        let output_with_fee = output + fee;
+        let output_sp = self.amount_to_system_precision(output_with_fee, self.tokens_decimals[token_to]);
         let mut input = 0;
 
         self.token_balances[token_to] -= output_sp;
-
         let token_from_new_amount = self.get_y(self.token_balances[token_to], d0);
         if self.token_balances[token_from] < token_from_new_amount {
             input = self.amount_from_system_precision(
                 token_from_new_amount - self.token_balances[token_from],
                 self.tokens_decimals[token_from],
             );
-            input = input / (Self::BP - self.fee_share_bp) * Self::BP;
         }
-
-        let fee = input * self.fee_share_bp / Self::BP;
 
         (input, fee)
     }
@@ -449,7 +447,7 @@ mod tests {
         println!("output: {}, fee: {}", output, fee);
         println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
 
-        // assert_eq!(input, calc_input);
-        // assert_eq!(fee, calc_fee);
+        assert_eq!(input, calc_input);
+        assert_eq!(fee, calc_fee);
     }
 }
