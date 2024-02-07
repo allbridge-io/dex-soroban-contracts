@@ -407,7 +407,7 @@ mod tests {
         pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
             Pool::update(&env, |pool| {
                 pool.token_balances = DoubleU128::from(new_balances);
-                pool.total_lp_amount = pool.get_current_d() - pool.total_lp_amount;
+                pool.total_lp_amount = pool.get_current_d();
                 Ok(())
             })
         }
