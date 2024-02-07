@@ -27,6 +27,13 @@ impl Direction {
     }
 }
 
+pub struct ReceiveAmount {
+    pub token_from_new_balance: u128,
+    pub token_to_new_amount: u128,
+    pub output: u128,
+    pub fee: u128,
+}
+
 impl Pool {
     const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
     const SYSTEM_PRECISION: u32 = 3;
@@ -34,15 +41,15 @@ impl Pool {
 
     pub const P: u128 = 48;
 
-    pub fn get_receive_amount(&mut self, input: u128, token_from: Token) -> (u128, u128) {
+    pub fn get_receive_amount(&self, input: u128, token_from: Token) -> ReceiveAmount {
         let token_to = token_from.opposite();
         let d0 = self.total_lp_amount;
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
         let mut output = 0;
 
-        self.token_balances[token_from] += input_sp;
+        let token_from_new_balance = self.token_balances[token_from] + input_sp;
 
-        let token_to_new_amount = self.get_y(self.token_balances[token_from], d0);
+        let token_to_new_amount = self.get_y(token_from_new_balance, d0);
         if self.token_balances[token_to] > token_to_new_amount {
             output = self.amount_from_system_precision(
                 self.token_balances[token_to] - token_to_new_amount,
@@ -53,10 +60,15 @@ impl Pool {
 
         output -= fee;
 
-        (output, fee)
+        ReceiveAmount {
+            token_from_new_balance,
+            token_to_new_amount,
+            output,
+            fee,
+        }
     }
 
-    pub fn get_send_amount(&mut self, output: u128, token_to: Token) -> (u128, u128) {
+    pub fn get_send_amount(&self, output: u128, token_to: Token) -> (u128, u128) {
         let token_from = token_to.opposite();
         let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
@@ -65,8 +77,9 @@ impl Pool {
             self.amount_to_system_precision(output_with_fee, self.tokens_decimals[token_to]);
         let mut input = 0;
 
-        self.token_balances[token_to] -= output_sp;
-        let token_from_new_amount = self.get_y(self.token_balances[token_to], d0);
+        let token_to_new_balance = self.token_balances[token_to] - output_sp;
+
+        let token_from_new_amount = self.get_y(token_to_new_balance, d0);
         if self.token_balances[token_from] < token_from_new_amount {
             input = self.amount_from_system_precision(
                 token_from_new_amount - self.token_balances[token_from],
@@ -93,42 +106,28 @@ impl Pool {
 
         let current_contract = env.current_contract_address();
         let (token_from, token_to) = direction.get_tokens();
-        let from_decimals = self.tokens_decimals[token_from];
-        let to_decimals = self.tokens_decimals[token_to];
-
-        let d0 = self.total_lp_amount;
-        let amount_sp = self.amount_to_system_precision(amount, from_decimals);
+        let receive_amount = self.get_receive_amount(amount, token_from);
 
         self.get_token(env, token_from)
             .transfer(&sender, &current_contract, &(amount as i128));
 
-        let mut result = 0;
+        self.token_balances[token_from] = receive_amount.token_from_new_balance;
+        self.token_balances[token_to] = receive_amount.token_to_new_amount;
 
-        self.token_balances[token_from] += amount_sp;
-
-        let token_to_new_amount = self.get_y(self.token_balances[token_from], d0);
-        if self.token_balances[token_to] > token_to_new_amount {
-            let result_sp = self.token_balances[token_to] - token_to_new_amount;
-            result = self.amount_from_system_precision(result_sp, to_decimals);
-        }
-
-        let fee = result * self.fee_share_bp / Self::BP;
-
-        result -= fee;
-
-        self.token_balances[token_to] = token_to_new_amount;
-
-        self.add_rewards(fee, token_to);
+        self.add_rewards(receive_amount.fee, token_to);
 
         require!(
-            result >= receive_amount_min,
+            receive_amount.output >= receive_amount_min,
             Error::InsufficientReceivedAmount
         );
 
-        self.get_token(env, token_to)
-            .transfer(&current_contract, &recipient, &(result as i128));
+        self.get_token(env, token_to).transfer(
+            &current_contract,
+            &recipient,
+            &(receive_amount.output as i128),
+        );
 
-        Ok((result, fee))
+        Ok((receive_amount.output, receive_amount.fee))
     }
 
     pub fn deposit(
@@ -384,8 +383,6 @@ impl Pool {
 #[cfg(test)]
 mod tests {
     extern crate std;
-
-    #[allow(unused_imports)]
     use std::println;
 
     use shared::{soroban_data::SimpleSorobanData, Error};
@@ -404,38 +401,32 @@ mod tests {
         pub fn init(env: Env) {
             let token_a = Address::generate(&env);
             let token_b = Address::generate(&env);
-            let pool = Pool::from_init_params(20, token_a, token_b, (7, 7), 100, 1);
-            pool.save(&env);
+            Pool::from_init_params(20, token_a, token_b, (7, 7), 100, 1).save(&env);
         }
 
         pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
             Pool::update(&env, |pool| {
-                let d0 = pool.total_lp_amount;
                 pool.token_balances = DoubleU128::from(new_balances);
-                let d1 = pool.get_current_d();
-                pool.total_lp_amount = d1 - d0;
+                pool.total_lp_amount = pool.get_current_d() - pool.total_lp_amount;
                 Ok(())
             })
         }
 
-        pub fn from_swap(env: Env, amount: u128, token_from: Token) -> Result<(u128, u128), Error> {
-            Ok(Pool::get(&env)?.get_receive_amount(amount, token_from))
+        pub fn get_receive_amount(
+            env: Env,
+            amount: u128,
+            token_from: Token,
+        ) -> Result<(u128, u128), Error> {
+            let receive_amount = Pool::get(&env)?.get_receive_amount(amount, token_from);
+            Ok((receive_amount.output, receive_amount.fee))
         }
 
-        pub fn to_swap(env: Env, amount: u128, token_to: Token) -> Result<(u128, u128), Error> {
+        pub fn get_send_amount(
+            env: Env,
+            amount: u128,
+            token_to: Token,
+        ) -> Result<(u128, u128), Error> {
             Ok(Pool::get(&env)?.get_send_amount(amount, token_to))
-        }
-
-        pub fn get_pool(env: Env) -> Result<Pool, Error> {
-            Pool::get(&env)
-        }
-
-        pub fn get_y(env: Env, x: u128) -> Result<u128, Error> {
-            let pool = Pool::get(&env)?;
-
-            let d = pool.get_current_d();
-
-            Ok(pool.get_y(x, d))
         }
     }
 
@@ -446,11 +437,32 @@ mod tests {
         let test_pool_id = env.register_contract(None, TestPool);
         let pool = TestPoolClient::new(&env, &test_pool_id);
         pool.init();
-        pool.set_balances(&(200_000_000, 250_000_000));
+        pool.set_balances(&(200_000_000, 200_000_000));
 
         let input = 10_000_0000000u128;
-        let (output, fee) = pool.from_swap(&input, &Token::A);
-        let (calc_input, calc_fee) = pool.to_swap(&output, &Token::B);
+        let (output, fee) = pool.get_receive_amount(&input, &Token::A);
+        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
+
+        println!("input: {}", input);
+        println!("output: {}, fee: {}", output, fee);
+        println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
+
+        assert_eq!(input, calc_input);
+        assert_eq!(fee, calc_fee);
+    }
+
+    #[test]
+    fn test_disbalance() {
+        let env = Env::default();
+
+        let test_pool_id = env.register_contract(None, TestPool);
+        let pool = TestPoolClient::new(&env, &test_pool_id);
+        pool.init();
+        pool.set_balances(&(200_000_000, 500_000_000));
+
+        let input = 10_000_0000000u128;
+        let (output, fee) = pool.get_receive_amount(&input, &Token::A);
+        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
 
         println!("input: {}", input);
         println!("output: {}, fee: {}", output, fee);

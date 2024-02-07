@@ -72,17 +72,17 @@ fn main() {
 
     for (i, operation) in operations.iter().enumerate() {
         let operation_result = operation.execute(&testing_env);
+        let operation_status = operation_result.is_ok();
         let invariant_result = testing_env.pool.invariant_total_lp_less_or_equal_d();
 
-        run_result.update(&operation, operation_result.is_ok());
+        run_result.update(&operation, operation_status);
 
         println!(
-            "\r {}/{}, operation: {:?}, status_ok: {}, invariant: {}",
+            "\r {}/{}, operation: {:?}, status_ok: {}",
             i + 1,
             run_len,
             operation,
-            operation_result.is_ok(),
-            invariant_result.err().unwrap_or("OK".into())
+            operation_status
         );
 
         let total_lp = testing_env.pool.total_lp();
@@ -94,6 +94,8 @@ fn main() {
             diff: total_lp as i128 - d as i128,
         })
         .unwrap();
+
+        invariant_result.unwrap();
     }
 
     wtr.flush().unwrap();

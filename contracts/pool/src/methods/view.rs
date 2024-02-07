@@ -18,7 +18,7 @@ pub fn get_pool(env: Env) -> Result<Pool, Error> {
 }
 
 pub fn get_d(env: Env) -> Result<u128, Error> {
-    Ok(Pool::get(&env)?.get_current_d()) //TODO: return total_lp_amount after tests
+    Ok(Pool::get(&env)?.total_lp_amount)
 }
 
 pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
@@ -26,7 +26,8 @@ pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
 }
 
 pub fn get_receive_amount(env: Env, input: u128, token_from: Token) -> Result<(u128, u128), Error> {
-    Ok(Pool::get(&env)?.get_receive_amount(input, token_from))
+    let receive_amount = Pool::get(&env)?.get_receive_amount(input, token_from);
+    Ok((receive_amount.output, receive_amount.fee))
 }
 
 pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
