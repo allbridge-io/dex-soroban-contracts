@@ -80,6 +80,7 @@ double_value!(DoubleAddress, Address);
 double_value!(DoubleU128, u128);
 double_value!(DoubleU32, u32);
 
+#[allow(clippy::derivable_impls)]
 impl Default for DoubleU128 {
     fn default() -> Self {
         Self {

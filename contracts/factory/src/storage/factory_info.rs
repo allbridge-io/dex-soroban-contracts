@@ -41,8 +41,8 @@ impl FactoryInfo {
         Ok(BytesN::from_array(
             env,
             &merge_slices_by_half::<32, 64>(
-                &address_to_bytes(env, &token_a)?.to_array(),
-                &address_to_bytes(env, &token_b)?.to_array(),
+                &address_to_bytes(env, token_a)?.to_array(),
+                &address_to_bytes(env, token_b)?.to_array(),
             ),
         ))
     }

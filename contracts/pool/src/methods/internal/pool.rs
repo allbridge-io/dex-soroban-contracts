@@ -205,8 +205,11 @@ impl Pool {
         let mut amounts = DoubleU128::default();
 
         let d1 = d0 - lp_amount;
-        #[rustfmt::skip]
-        let (more, less) = if self.token_balances[0] > self.token_balances[1] {(0, 1)} else {(1, 0)};
+        let (more, less) = if self.token_balances[0] > self.token_balances[1] {
+            (0, 1)
+        } else {
+            (1, 0)
+        };
         let more_token_amount = self.token_balances[more] * lp_amount / d0;
         let less_token_amount = self.token_balances[less]
             - self.get_y(self.token_balances[more] - more_token_amount, d1);

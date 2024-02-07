@@ -174,7 +174,7 @@ impl TestingEnvironment {
     }
 
     pub fn assert_claimed_reward_event(env: &Env, expected_user: &User, rewards: (f64, f64)) {
-        let rewards_claimed = get_latest_event::<RewardsClaimed>(&env).unwrap();
+        let rewards_claimed = get_latest_event::<RewardsClaimed>(env).unwrap();
 
         println!("reward {:?}", rewards_claimed.rewards);
         assert_eq!(rewards_claimed.user, expected_user.as_address());
@@ -182,6 +182,7 @@ impl TestingEnvironment {
         assert_rel_eq(rewards_claimed.rewards.1, float_to_int(rewards.1, 7), 10);
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn assert_swapped_event(
         &self,
         env: &Env,
@@ -192,7 +193,7 @@ impl TestingEnvironment {
         expected_to_amount: u128,
         extected_fee: u128,
     ) {
-        let swapped = get_latest_event::<Swapped>(&env).unwrap();
+        let swapped = get_latest_event::<Swapped>(env).unwrap();
 
         let (from_token, to_token) = match directin {
             Direction::A2B => (self.yusd_token.as_address(), self.yaro_token.as_address()),
@@ -216,7 +217,7 @@ impl TestingEnvironment {
         lp_amount: f64,
         expected_amount: (f64, f64),
     ) {
-        let withdraw = get_latest_event::<Withdraw>(&env).unwrap();
+        let withdraw = get_latest_event::<Withdraw>(env).unwrap();
         println!("withdraw {:?}", withdraw.amounts);
 
         assert_eq!(withdraw.user, expected_user.as_address());
@@ -231,7 +232,7 @@ impl TestingEnvironment {
         expected_lp_amount: f64,
         deposits: (f64, f64),
     ) {
-        let deposit = get_latest_event::<Deposit>(&env).unwrap();
+        let deposit = get_latest_event::<Deposit>(env).unwrap();
 
         assert_eq!(deposit.user, expected_user.as_address());
         assert_eq!(int_to_float(deposit.amounts.0, 7), deposits.0);
@@ -396,6 +397,7 @@ impl TestingEnvironment {
         assert_rel_eq_f64(pool_yusd_diff, expected_admin_rewards.0, 0.0001);
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn assert_swap(
         &self,
         snapshot_before: Snapshot,

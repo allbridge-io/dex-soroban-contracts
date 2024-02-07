@@ -126,7 +126,7 @@ fn main() {
                 invariant: invariant_result.clone().err().unwrap_or("OK".into()),
             });
 
-            run_result.update(&operation, operation_result.is_ok());
+            run_result.update(operation, operation_result.is_ok());
 
             if invariant_result.is_err() && stop_if_invariant_failed {
                 break;

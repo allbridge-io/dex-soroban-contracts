@@ -40,9 +40,9 @@ pub enum SwapDirection {
     YaroToYusd,
 }
 
-impl Into<Direction> for SwapDirection {
-    fn into(self) -> Direction {
-        match self {
+impl From<SwapDirection> for Direction {
+    fn from(value: SwapDirection) -> Self {
+        match value {
             SwapDirection::YusdToYaro => Direction::A2B,
             SwapDirection::YaroToYusd => Direction::B2A,
         }
@@ -167,7 +167,7 @@ impl FuzzTargetOperation {
     }
 
     pub fn get_log_string(&self, result: &CallResult) -> String {
-        let log = format!("{}", &self.to_string());
+        let log = self.to_string();
         match result {
             Ok(_) => log,
             Err(err) => format!("{}, error: {:?}", log.as_str(), err),
