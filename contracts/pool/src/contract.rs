@@ -5,7 +5,9 @@ use crate::{
     methods::{
         internal::pool::Direction,
         public::{claim_admin_fee, claim_rewards, deposit, initialize, swap, withdraw},
-        view::{calc_from_swap, calc_to_swap, get_d, get_pool, get_user_deposit, pending_reward},
+        view::{
+            get_d, get_pool, get_receive_amount, get_send_amount, get_user_deposit, pending_reward,
+        },
     },
     storage::{
         pool::{Pool, Token},
@@ -106,11 +108,15 @@ impl PoolContract {
         get_d(env)
     }
 
-    pub fn calc_from_swap(env: Env, input: u128, token_from: Token) -> Result<(u128, u128), Error> {
-        calc_from_swap(env, input, token_from)
+    pub fn get_receive_amount(
+        env: Env,
+        input: u128,
+        token_from: Token,
+    ) -> Result<(u128, u128), Error> {
+        get_receive_amount(env, input, token_from)
     }
 
-    pub fn calc_to_swap(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
-        calc_to_swap(env, output, token_to)
+    pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
+        get_send_amount(env, output, token_to)
     }
 }

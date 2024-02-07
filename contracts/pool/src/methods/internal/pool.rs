@@ -34,9 +34,9 @@ impl Pool {
 
     pub const P: u128 = 48;
 
-    pub fn calc_from_swap(&mut self, input: u128, token_from: Token) -> (u128, u128) {
+    pub fn get_receive_amount(&mut self, input: u128, token_from: Token) -> (u128, u128) {
         let token_to = token_from.opposite();
-        let d0 = self.get_current_d(); // TODO: use total_lp_amount after test fix
+        let d0 = self.total_lp_amount;
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
         let mut output = 0;
 
@@ -56,7 +56,7 @@ impl Pool {
         (output, fee)
     }
 
-    pub fn calc_to_swap(&mut self, output: u128, token_to: Token) -> (u128, u128) {
+    pub fn get_send_amount(&mut self, output: u128, token_to: Token) -> (u128, u128) {
         let token_from = token_to.opposite();
         let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
@@ -419,11 +419,11 @@ mod tests {
         }
 
         pub fn from_swap(env: Env, amount: u128, token_from: Token) -> Result<(u128, u128), Error> {
-            Ok(Pool::get(&env)?.calc_from_swap(amount, token_from))
+            Ok(Pool::get(&env)?.get_receive_amount(amount, token_from))
         }
 
         pub fn to_swap(env: Env, amount: u128, token_to: Token) -> Result<(u128, u128), Error> {
-            Ok(Pool::get(&env)?.calc_to_swap(amount, token_to))
+            Ok(Pool::get(&env)?.get_send_amount(amount, token_to))
         }
 
         pub fn get_pool(env: Env) -> Result<Pool, Error> {

@@ -25,10 +25,10 @@ pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
     Ok(UserDeposit::get(&env, user))
 }
 
-pub fn calc_from_swap(env: Env, input: u128, token_from: Token) -> Result<(u128, u128), Error> {
-    Ok(Pool::get(&env)?.calc_from_swap(input, token_from))
+pub fn get_receive_amount(env: Env, input: u128, token_from: Token) -> Result<(u128, u128), Error> {
+    Ok(Pool::get(&env)?.get_receive_amount(input, token_from))
 }
 
-pub fn calc_to_swap(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
-    Ok(Pool::get(&env)?.calc_to_swap(output, token_to))
+pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
+    Ok(Pool::get(&env)?.get_send_amount(output, token_to))
 }
