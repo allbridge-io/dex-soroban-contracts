@@ -55,6 +55,15 @@ pub enum UserID {
     Bob,
 }
 
+impl UserID {
+    pub fn get_user<'a>(&self, testing_env: &'a TestingEnvironment) -> &'a User {
+        match self {
+            UserID::Alice => &testing_env.alice,
+            UserID::Bob => &testing_env.bob,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Amount(pub f64);
 
@@ -123,13 +132,6 @@ impl FuzzTargetOperation {
         (&mut rng).sample_iter(Standard).take(len).collect()
     }
 
-    fn get_user(user_id: UserID, testing_env: &TestingEnvironment) -> &User {
-        match user_id {
-            UserID::Alice => &testing_env.alice,
-            UserID::Bob => &testing_env.bob,
-        }
-    }
-
     pub fn execute(&self, testing_env: &TestingEnvironment) -> CallResult<()> {
         match self {
             FuzzTargetOperation::Swap {
@@ -138,8 +140,8 @@ impl FuzzTargetOperation {
                 sender,
                 recipient,
             } => {
-                let sender = Self::get_user(*sender, testing_env);
-                let recipient = Self::get_user(*recipient, testing_env);
+                let sender = sender.get_user(testing_env);
+                let recipient = recipient.get_user(testing_env);
                 let direction: Direction = (*direction).into();
 
                 testing_env
@@ -152,18 +154,15 @@ impl FuzzTargetOperation {
                 yaro_amount,
                 yusd_amount,
                 user,
-            } => {
-                let sender = Self::get_user(*user, testing_env);
+            } => testing_env.pool.deposit(
+                user.get_user(testing_env),
+                (yusd_amount.0, yaro_amount.0),
+                0.0,
+            ),
 
-                testing_env
-                    .pool
-                    .deposit(sender, (yusd_amount.0, yaro_amount.0), 0.0)
-            }
-
-            FuzzTargetOperation::Withdraw { lp_amount, user } => {
-                let sender = Self::get_user(*user, testing_env);
-                testing_env.pool.withdraw(sender, lp_amount.0)
-            }
+            FuzzTargetOperation::Withdraw { lp_amount, user } => testing_env
+                .pool
+                .withdraw(user.get_user(testing_env), lp_amount.0),
         }
     }
 

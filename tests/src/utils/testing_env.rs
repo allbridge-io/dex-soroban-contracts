@@ -15,7 +15,7 @@ pub struct TestingEnvConfig {
     /// default: `0`
     pub pool_fee_share_bp: f64,
 
-    pub pool_admin_fee: u128,
+    pub pool_admin_fee_bp: f64,
 
     /// default: `100_000.0`
     pub yaro_admin_deposit: f64,
@@ -39,8 +39,8 @@ impl TestingEnvConfig {
         self
     }
 
-    pub fn with_pool_admin_fee(mut self, pool_admin_fee: u128) -> Self {
-        self.pool_admin_fee = pool_admin_fee;
+    pub fn with_pool_admin_fee(mut self, pool_admin_fee: f64) -> Self {
+        self.pool_admin_fee_bp = pool_admin_fee;
         self
     }
 }
@@ -49,7 +49,7 @@ impl Default for TestingEnvConfig {
     fn default() -> Self {
         TestingEnvConfig {
             pool_fee_share_bp: 0.0,
-            pool_admin_fee: 0,
+            pool_admin_fee_bp: 0.0,
             yaro_admin_deposit: 100_000.0,
             yusd_admin_deposit: 100_000.0,
         }
@@ -101,7 +101,7 @@ impl TestingEnvironment {
             &yusd_token,
             &yaro_token,
             config.pool_fee_share_bp,
-            config.pool_admin_fee,
+            config.pool_admin_fee_bp,
             (config.yusd_admin_deposit, config.yaro_admin_deposit),
         )
         .unwrap();
@@ -150,10 +150,11 @@ impl TestingEnvironment {
         token_a: &Token,
         token_b: &Token,
         fee_share_bp: f64,
-        admin_fee: u128,
+        admin_fee: f64,
         admin_deposits: (f64, f64),
     ) -> CallResult<Pool> {
         let fee_share_bp = (fee_share_bp * 10_000.0) as u128;
+        let admin_fee = (admin_fee * 10_000.0) as u128;
         let a = 20;
         let pool =
             factory.create_pair(admin, a, &token_a.id, &token_b.id, fee_share_bp, admin_fee)?;
@@ -251,6 +252,7 @@ impl TestingEnvironment {
         let (user_yusd_after, user_yaro_after, user_lp_amount_after) =
             snapshot_after.get_user_balances(user);
 
+        let total_deposits = deposits.0 + deposits.1;
         let (yusd_deposit, yaro_deposit) = deposits;
         let (expected_yusd_reward, expected_yaro_reward) = expected_rewards;
 
@@ -273,6 +275,7 @@ impl TestingEnvironment {
                 7,
             );
 
+        assert!(expected_lp_amount <= total_deposits);
         assert!(snapshot_before.total_lp_amount < snapshot_after.total_lp_amount);
         assert!(snapshot_before.d < snapshot_after.d);
 

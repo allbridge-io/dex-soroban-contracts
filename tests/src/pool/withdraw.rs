@@ -78,6 +78,47 @@ fn smallest_withdraw() {
 }
 
 #[test]
+fn withdraw_disbalance() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposit = (50_000_000.0, 5_000.0);
+    let total_deposit = deposit.0 + deposit.1;
+    let snapshot_before_deposit = Snapshot::take(&testing_env);
+
+    pool.deposit(alice, deposit, 0.0).unwrap();
+
+    let expected_lp_amount = pool.get_lp_amount(snapshot_before_deposit.total_lp_amount);
+
+    let alice_lp_amount = pool.user_lp_amount_f64(alice);
+    let withdraw_amounts = pool.withdraw_amounts(alice);
+
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.withdraw(alice, alice_lp_amount).unwrap();
+    let snapshot_after = Snapshot::take(&testing_env);
+
+    snapshot_before.print_change_with(&snapshot_after, Some("Withdraw"));
+
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    assert!(expected_lp_amount <= total_deposit);
+    TestingEnvironment::assert_withdraw_event(&env, alice, alice_lp_amount, withdraw_amounts);
+    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
+    TestingEnvironment::assert_withdraw(
+        snapshot_before,
+        snapshot_after,
+        alice,
+        withdraw_amounts,
+        (0.0, 0.0),
+        expected_lp_amount,
+    );
+}
+
+#[test]
 fn withdraw_with_rewards() {
     let env = Env::default();
     let testing_env = TestingEnvironment::create(

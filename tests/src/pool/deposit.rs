@@ -65,6 +65,38 @@ fn deposit() {
 }
 
 #[test]
+fn deposit_disbalance() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposit = (50_000_000.0, 5_000.0);
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.deposit(alice, deposit, 0.0).unwrap();
+    let snapshot_after = Snapshot::take(&testing_env);
+
+    let expected_lp_amount = pool.get_lp_amount(snapshot_before.total_lp_amount);
+
+    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
+
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposit);
+    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
+    TestingEnvironment::assert_deposit(
+        snapshot_before,
+        snapshot_after,
+        alice,
+        deposit,
+        (0.0, 0.0),
+        expected_lp_amount,
+    );
+}
+
+#[test]
 fn deposit_with_overflow() {
     let env = Env::default();
     let testing_env = TestingEnvironment::default(&env);

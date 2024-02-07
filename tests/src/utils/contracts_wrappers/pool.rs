@@ -6,7 +6,7 @@ use soroban_sdk::{Address, Env};
 use crate::{
     contracts::pool::{self, Direction, UserDeposit},
     utils::{
-        desoroban_result, float_to_int, float_to_int_sp, int_to_float_sp, CallResult,
+        desoroban_result, float_to_int, float_to_int_sp, int_to_float, int_to_float_sp, CallResult,
         SYSTEM_PRECISION,
     },
 };
@@ -62,24 +62,18 @@ impl Pool {
     }
 
     pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
-        let d = self.d();
-        let (from_balance, to_balance) = match directin {
-            Direction::A2B => (self.token_a_balance(), self.token_b_balance()),
-            Direction::B2A => (self.token_b_balance(), self.token_a_balance()),
-        };
-        let (from_balance, to_balance) = (
-            self.amount_from_system_precision(from_balance, 7),
-            self.amount_from_system_precision(to_balance, 7),
-        );
+        self.client.get_receive_amount(
+            &float_to_int(amount, 7),
+            &(match directin {
+                Direction::A2B => pool::Token::A,
+                Direction::B2A => pool::Token::B,
+            }),
+        )
+    }
 
-        let amount_sp = float_to_int_sp(amount);
-        let token_from_new_amount = self.amount_to_system_precision(from_balance, 7) + amount_sp;
-
-        let token_to_new_amount = self.get_y(token_from_new_amount, d);
-        let result = to_balance - self.amount_from_system_precision(token_to_new_amount, 7);
-        let fee = result * self.fee_share_bp() / Self::BP;
-        let result = result - fee;
-        (result, fee)
+    pub fn get_lp_amount(&self, d0: u128) -> f64 {
+        let lp_amount = self.amount_from_system_precision(self.d() - d0, 7);
+        int_to_float(lp_amount, 7)
     }
 
     pub fn assert_initialization(

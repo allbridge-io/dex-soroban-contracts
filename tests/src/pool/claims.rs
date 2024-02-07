@@ -12,7 +12,7 @@ fn claim_admin_fee() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share_bp(0.01)
-            .with_pool_admin_fee(100),
+            .with_pool_admin_fee(0.01),
     );
     let TestingEnvironment {
         ref pool,
@@ -38,7 +38,7 @@ fn claim_admin_fee() {
 fn claim_admin_fee_no_auth() {
     let env = Env::default();
     let testing_env =
-        TestingEnvironment::create(&env, TestingEnvConfig::default().with_pool_admin_fee(100));
+        TestingEnvironment::create(&env, TestingEnvConfig::default().with_pool_admin_fee(0.01));
     let TestingEnvironment {
         ref pool,
         ref alice,
