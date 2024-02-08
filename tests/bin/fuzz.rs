@@ -108,7 +108,7 @@ fn main() {
         let mut run_result = RunResult::default();
         let mut actions = Vec::with_capacity(run_len);
 
-        let users_balance_sum_before = Snapshot::take(&testing_env).get_user_balances_sum();
+        let users_balance_sum_before = Snapshot::take(&testing_env).get_users_balances_sum();
 
         for (i, operation) in operations.iter().enumerate() {
             let operation_result = operation.execute(&testing_env);
@@ -133,7 +133,7 @@ fn main() {
             }
         }
 
-        let users_balance_sum_after = Snapshot::take(&testing_env).get_user_balances_sum();
+        let users_balance_sum_after = Snapshot::take(&testing_env).get_users_balances_sum();
 
         assert!(
             users_balance_sum_after <= users_balance_sum_before,

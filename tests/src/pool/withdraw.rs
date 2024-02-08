@@ -43,6 +43,55 @@ fn withdraw() {
 }
 
 #[test]
+fn withdraw_full_and_try_again() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposit = (4_000.0, 5_000.0);
+
+    pool.deposit(alice, deposit, 0.0).unwrap();
+    let alice_lp_amount = pool.user_lp_amount_f64(alice);
+    pool.withdraw(alice, alice_lp_amount).unwrap();
+    let call_result = pool.withdraw(alice, alice_lp_amount);
+    expect_contract_error(&env, call_result, shared::Error::NotEnoughAmount);
+}
+
+#[test]
+fn withdraw_multiply_times() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposit = (4_000.0, 5_000.0);
+    let n = 4usize;
+
+    pool.deposit(alice, deposit, 0.0).unwrap();
+    let total_alice_lp_amount = pool.user_lp_amount_f64(alice);
+    let alice_lp_amount = total_alice_lp_amount / n as f64;
+    let snapshot_before = Snapshot::take(&testing_env);
+    let alice_balance_before = snapshot_before.get_user_balances_sum(alice);
+
+    for _ in 0..n {
+        pool.withdraw(alice, alice_lp_amount).unwrap();
+    }
+
+    let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, Some("Withdraw"));
+
+    let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
+    assert!(alice_balance_after <= alice_balance_before);
+}
+
+#[test]
 fn smallest_withdraw() {
     let env = Env::default();
     let testing_env = TestingEnvironment::default(&env);

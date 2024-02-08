@@ -99,7 +99,12 @@ impl Snapshot {
         )
     }
 
-    pub fn get_user_balances_sum(&self) -> u128 {
+    pub fn get_user_balances_sum(&self, user: &User) -> u128 {
+        let (a, b, _) = self.get_user_balances(user);
+        a + b
+    }
+
+    pub fn get_users_balances_sum(&self) -> u128 {
         let alice_balances = self.alice_yaro_balance + self.alice_yusd_balance;
         let bob_balances = self.bob_yaro_balance + self.bob_yusd_balance;
         alice_balances + bob_balances

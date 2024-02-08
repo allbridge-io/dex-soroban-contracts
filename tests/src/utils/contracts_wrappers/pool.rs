@@ -206,7 +206,7 @@ impl Pool {
                 float_to_int(deposit_amounts.0, 7),
                 float_to_int(deposit_amounts.1, 7),
             ),
-            &float_to_int(min_lp_amount, 7),
+            &float_to_int_sp(min_lp_amount),
         ))
     }
 

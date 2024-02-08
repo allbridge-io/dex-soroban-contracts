@@ -45,7 +45,7 @@ fn deposit() {
 
     let deposits = (100.0, 50.0);
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 0.0).unwrap();
+    pool.deposit(alice, deposits, 150.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
@@ -129,10 +129,10 @@ fn smallest_deposit() {
 
     let deposits = (0.001, 0.001);
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 0.0).unwrap();
+    pool.deposit(alice, deposits, 0.001 + 0.001).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
+    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 0.001 yusd, 0.001 yaro"));
     let expected_lp_amount = deposits.0 + deposits.1;
 
     pool.invariant_total_lp_less_or_equal_d().unwrap();
@@ -149,7 +149,7 @@ fn smallest_deposit() {
 }
 
 #[test]
-fn deposit_in_single_token() {
+fn deposit_only_yusd() {
     let env = Env::default();
     let testing_env = TestingEnvironment::default(&env);
     let TestingEnvironment {
@@ -160,10 +160,41 @@ fn deposit_in_single_token() {
 
     let deposits = (100.0, 0.0);
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 0.0).unwrap();
+    pool.deposit(alice, deposits, 99.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
+    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd"));
+    let expected_lp_amount = deposits.0 + deposits.1;
+
+    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
+    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
+    TestingEnvironment::assert_deposit(
+        snapshot_before,
+        snapshot_after,
+        alice,
+        deposits,
+        (0.0, 0.0),
+        expected_lp_amount,
+    );
+}
+
+#[test]
+fn deposit_only_yaro() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let TestingEnvironment {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposits = (100.0, 0.0);
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.deposit(alice, deposits, 99.0).unwrap();
+    let snapshot_after = Snapshot::take(&testing_env);
+
+    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yaro"));
     let expected_lp_amount = deposits.0 + deposits.1;
 
     pool.invariant_total_lp_less_or_equal_d().unwrap();
@@ -190,8 +221,8 @@ fn deposit_twice_in_different_tokens() {
     } = testing_env;
 
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, (100.0, 0.0), 0.0).unwrap();
-    pool.deposit(alice, (0.0, 100.0), 0.0).unwrap();
+    pool.deposit(alice, (100.0, 0.0), 99.0).unwrap();
+    pool.deposit(alice, (0.0, 100.0), 99.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
     let expected_lp_amount = 200.0;
 
@@ -228,7 +259,7 @@ fn get_reward_after_second_deposit() {
     let deposits = (2000.0, 2000.0);
     let expected_rewarsds = (1.0012199, 0.9987799);
 
-    pool.deposit(alice, deposits, 0.0).unwrap();
+    pool.deposit(alice, deposits, 4000.0).unwrap();
     pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
     pool.swap(bob, alice, 100.0, 98.0, Direction::B2A).unwrap();
 
