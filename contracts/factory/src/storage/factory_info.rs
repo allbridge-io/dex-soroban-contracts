@@ -5,7 +5,7 @@ use shared::{
     utils::{bytes::address_to_bytes, merge_slices_by_half},
     Error,
 };
-use soroban_sdk::{contracttype, Address, BytesN, Env, Map};
+use soroban_sdk::{contracttype, Address, BytesN, Map};
 
 #[contracttype]
 #[derive(SorobanData, SorobanSimpleData, SymbolKey)]
@@ -13,15 +13,15 @@ use soroban_sdk::{contracttype, Address, BytesN, Env, Map};
 #[extend_ttl_info_instance]
 pub struct FactoryInfo {
     pub wasm_hash: soroban_sdk::BytesN<32>,
-    /// token0 + token1 => pool
-    pub pairs: Map<BytesN<64>, Address>,
+    /// (token0, token1) => pool
+    pub pairs: Map<(Address, Address), Address>,
 }
 
 impl FactoryInfo {
-    pub fn new(env: &Env, wasm_hash: BytesN<32>) -> Self {
+    pub fn new(wasm_hash: BytesN<32>) -> Self {
         FactoryInfo {
-            wasm_hash,
-            pairs: Map::new(env),
+            wasm_hash: wasm_hash.clone(),
+            pairs: Map::new(wasm_hash.env()),
         }
     }
 
@@ -33,11 +33,9 @@ impl FactoryInfo {
         }
     }
 
-    pub fn merge_addresses(
-        env: &Env,
-        token_a: &Address,
-        token_b: &Address,
-    ) -> Result<BytesN<64>, Error> {
+    pub fn merge_addresses(token_a: &Address, token_b: &Address) -> Result<BytesN<64>, Error> {
+        let env = token_a.env();
+
         Ok(BytesN::from_array(
             env,
             &merge_slices_by_half::<32, 64>(
@@ -47,19 +45,23 @@ impl FactoryInfo {
         ))
     }
 
-    pub fn add_pair(&mut self, key: BytesN<64>, pool: &Address) {
-        self.pairs.set(key.clone(), pool.clone());
+    pub fn add_pair(&mut self, tokens: (Address, Address), pool: &Address) {
+        self.pairs.set(tokens, pool.clone());
     }
 
-    pub fn get_pool(
-        &self,
-        env: &Env,
-        token_a: &Address,
-        token_b: &Address,
-    ) -> Result<Address, Error> {
+    pub fn get_pool(&self, token_a: &Address, token_b: &Address) -> Result<Address, Error> {
         let (token_a, token_b) = FactoryInfo::sort_tokens(token_a.clone(), token_b.clone());
-        let bytes = Self::merge_addresses(env, &token_a, &token_b)?;
 
-        self.pairs.get(bytes).ok_or(Error::NotFound)
+        self.pairs.get((token_a, token_b)).ok_or(Error::NotFound)
+    }
+
+    pub fn get_pools(&self) -> Result<Map<Address, (Address, Address)>, Error> {
+        let mut map = Map::new(self.pairs.env());
+
+        self.pairs.iter().for_each(|(tokens, pool)| {
+            map.set(pool, tokens);
+        });
+
+        Ok(map)
     }
 }

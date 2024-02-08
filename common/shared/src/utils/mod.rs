@@ -33,3 +33,11 @@ pub fn merge_slices_by_half<const N: usize, const R: usize>(a: &[u8; N], b: &[u8
 
     slice
 }
+
+pub fn get_slices<const N: usize>(a: &[u8; N]) -> [u8; N] {
+    let mut slice = [0u8; N];
+
+    slice[..N].copy_from_slice(a);
+
+    slice
+}

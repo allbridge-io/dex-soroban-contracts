@@ -25,12 +25,12 @@ pub fn create_pair(
 
     require!(token_a != token_b, Error::IdenticalAddresses);
     require!(
-        factory_info.get_pool(&env, &token_a, &token_b).is_err(),
+        factory_info.get_pool(&token_a, &token_b).is_err(),
         Error::PairExist
     );
 
     let (token_a, token_b) = FactoryInfo::sort_tokens(token_a, token_b);
-    let bytes = FactoryInfo::merge_addresses(&env, &token_a, &token_b)?;
+    let bytes = FactoryInfo::merge_addresses(&token_a, &token_b)?;
     let salt = env.crypto().keccak256(&bytes.clone().into());
 
     let deployed_pool = env
@@ -38,7 +38,7 @@ pub fn create_pair(
         .with_address(deployer, salt)
         .deploy(factory_info.wasm_hash.clone());
 
-    factory_info.add_pair(bytes, &deployed_pool);
+    factory_info.add_pair((token_a.clone(), token_b.clone()), &deployed_pool);
 
     pool::Client::new(&env, &deployed_pool).initialize(
         &pool_admin,

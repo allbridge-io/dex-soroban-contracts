@@ -12,7 +12,7 @@ pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
 
     let wasm_hash = env.deployer().upload_contract_wasm(pool::WASM);
 
-    FactoryInfo::new(&env, wasm_hash).save(&env);
+    FactoryInfo::new(wasm_hash).save(&env);
     Admin(admin).save(&env);
 
     Ok(())

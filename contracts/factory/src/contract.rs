@@ -1,7 +1,7 @@
 use shared::{utils::extend_ttl_instance, Error};
-use soroban_sdk::{contract, contractimpl, Address, Env};
+use soroban_sdk::{contract, contractimpl, Address, Env, Map};
 
-use crate::methods::public::{create_pair, get_pool, initialize};
+use crate::methods::public::{create_pair, get_pool, get_pools, initialize};
 
 #[contract]
 pub struct FactoryContract;
@@ -39,5 +39,11 @@ impl FactoryContract {
 
     pub fn pool(env: Env, token_a: Address, token_b: Address) -> Result<Address, Error> {
         get_pool(env, &token_a, &token_b)
+    }
+
+    pub fn pools(env: Env) -> Result<Map<Address, (Address, Address)>, Error> {
+        extend_ttl_instance(&env);
+
+        get_pools(env)
     }
 }
