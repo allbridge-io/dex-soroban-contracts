@@ -44,15 +44,15 @@ build-pool:
 build-factory: build-pool
 	cargo build --target wasm32-unknown-unknown --release --package factory
 
-optimize-pool:
+optimize-pool: build-pool
 	soroban contract optimize --wasm $(POOL_WASM_PATH)
 
-optimize-factory:
+optimize-factory: build-factory
 	soroban contract optimize --wasm $(FACTORY_WASM_PATH)
 
-fuzz:
-	cargo run --bin fuzz
-#	cargo run --bin fuzz -- --runs 10  --run-len 50 --threads 8
+optimize:
+	make optimize-pool
+	make optimize-factory
 
 pool-generate-types:
 	soroban contract bindings typescript \
@@ -103,6 +103,14 @@ factory-get-pool:
 		pool \
 		--token-a $(YARO_ADDRESS) \
 		--token-b $(USDY_ADDRESS)
+
+factory-get-pools:
+	soroban contract invoke \
+		--id $(FACTORY_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		-- \
+		pools
 
 #----------------POOL----------------------------
 
