@@ -29,7 +29,7 @@ impl Direction {
 
 pub struct ReceiveAmount {
     pub token_from_new_balance: u128,
-    pub token_to_new_amount: u128,
+    pub token_to_new_balance: u128,
     pub output: u128,
     pub fee: u128,
 }
@@ -62,7 +62,7 @@ impl Pool {
 
         ReceiveAmount {
             token_from_new_balance,
-            token_to_new_amount,
+            token_to_new_balance: token_to_new_amount,
             output,
             fee,
         }
@@ -112,7 +112,7 @@ impl Pool {
             .transfer(&sender, &current_contract, &(amount as i128));
 
         self.token_balances[token_from] = receive_amount.token_from_new_balance;
-        self.token_balances[token_to] = receive_amount.token_to_new_amount;
+        self.token_balances[token_to] = receive_amount.token_to_new_balance;
 
         self.add_rewards(receive_amount.fee, token_to);
 
