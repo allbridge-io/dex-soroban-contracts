@@ -24,7 +24,7 @@ pub struct TestingEnvConfig {
 }
 
 impl TestingEnvConfig {
-    pub fn with_pool_fee_share_bp(mut self, fee_share_bp: f64) -> Self {
+    pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
         self.pool_fee_share_bp = fee_share_bp;
         self
     }
@@ -266,7 +266,7 @@ impl TestingEnvironment {
                 snapshot_after.pool_yusd_balance - snapshot_before.pool_yusd_balance,
                 7,
             );
-        
+
         // TODO: Exactly equal here
         assert_rel_eq_f64(user_yusd_diff, expected_yusd_reward, 0.0001);
         assert_rel_eq_f64(pool_yusd_diff, expected_yusd_reward, 0.0001);

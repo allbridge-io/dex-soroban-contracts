@@ -88,3 +88,15 @@ impl Default for DoubleU128 {
         }
     }
 }
+
+impl DoubleU128 {
+    #[inline]
+    pub fn sum(&self) -> u128 {
+        self.data.0 + self.data.1
+    }
+
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.sum() == 0
+    }
+}

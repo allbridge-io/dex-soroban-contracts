@@ -35,12 +35,13 @@ pub fn deposit(
     }
     .publish(&env);
 
-    // TODO: Do not send on 0 rewards
-    RewardsClaimed {
-        user: sender.clone(),
-        rewards: rewards.data,
+    if !rewards.is_zero() {
+        RewardsClaimed {
+            user: sender.clone(),
+            rewards: rewards.data,
+        }
+        .publish(&env);
     }
-    .publish(&env);
 
     Ok(())
 }

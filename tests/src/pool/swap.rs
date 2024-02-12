@@ -11,7 +11,7 @@ fn swap() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.001)
+            .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
             .with_yusd_admin_deposit(450_000.0),
     );
@@ -61,7 +61,7 @@ fn swap_b2a() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.001)
+            .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
             .with_yusd_admin_deposit(450_000.0),
     );
@@ -111,7 +111,7 @@ fn smallest_swap() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.001)
+            .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
             .with_yusd_admin_deposit(450_000.0),
     );
@@ -161,7 +161,7 @@ fn smallest_swap_b2a() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.001)
+            .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
             .with_yusd_admin_deposit(450_000.0),
     );
@@ -211,7 +211,7 @@ fn swap_more_yaro() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.001)
+            .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(750_000.0)
             .with_yusd_admin_deposit(500_000.0),
     );
@@ -261,7 +261,7 @@ fn swap_more_yusd() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.001)
+            .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(500_000.0)
             .with_yusd_admin_deposit(750_000.0),
     );
@@ -308,10 +308,8 @@ fn swap_more_yusd() {
 #[test]
 fn swap_insufficient_received_amount() {
     let env = Env::default();
-    let testing_env = TestingEnvironment::create(
-        &env,
-        TestingEnvConfig::default().with_pool_fee_share_bp(0.001),
-    );
+    let testing_env =
+        TestingEnvironment::create(&env, TestingEnvConfig::default().with_pool_fee_share(0.001));
     let TestingEnvironment {
         ref pool,
         ref alice,

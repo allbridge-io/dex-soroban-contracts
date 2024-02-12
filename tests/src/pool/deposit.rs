@@ -84,8 +84,10 @@ fn deposit_disbalance() {
     // TODO: Hardcode values here
     let expected_lp_amount = pool.get_lp_amount(snapshot_before.total_lp_amount);
 
-    // TODO: Change text below to actual amounts
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
+    snapshot_before.print_change_with(
+        &snapshot_after,
+        Some("Deposit: 50 000 000 yusd, 5 000 yaro"),
+    );
 
     pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposit);
@@ -259,7 +261,7 @@ fn get_reward_after_second_deposit() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.01) // TODO: This is not BP
+            .with_pool_fee_share(0.01)
             .with_yaro_admin_deposit(0.0)
             .with_yusd_admin_deposit(0.0),
     );
@@ -272,8 +274,7 @@ fn get_reward_after_second_deposit() {
 
     let deposits = (2000.0, 2000.0);
 
-    // TODO: rewarsds
-    let expected_rewarsds = (1.0012199, 0.9987799);
+    let expected_rewards = (1.0012199, 0.9987799);
 
     pool.deposit(alice, deposits, 4000.0).unwrap();
     pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
@@ -281,23 +282,23 @@ fn get_reward_after_second_deposit() {
 
     let snapshot_before = Snapshot::take(&testing_env);
 
+    // TODO: Hardcode
+    let expected_lp_amount = deposits.0 + deposits.1;
+
     // TODO: Change min LP amount to expected LP diff
     pool.deposit(alice, deposits, 0.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, None);
 
-    // TODO: Hardcode
-    let expected_lp_amount = deposits.0 + deposits.1;
-
     pool.invariant_total_lp_less_or_equal_d().unwrap();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewarsds);
+    TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
         alice,
         deposits,
-        expected_rewarsds,
+        expected_rewards,
         expected_lp_amount,
     );
 }

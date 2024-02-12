@@ -11,7 +11,7 @@ fn claim_admin_fee() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.01)
+            .with_pool_fee_share(0.01)
             .with_pool_admin_fee(0.01),
     );
     let TestingEnvironment {
@@ -59,7 +59,7 @@ fn claim_rewards() {
     let testing_env = TestingEnvironment::create(
         &env,
         TestingEnvConfig::default()
-            .with_pool_fee_share_bp(0.01)
+            .with_pool_fee_share(0.01)
             .with_yaro_admin_deposit(0.0)
             .with_yusd_admin_deposit(0.0),
     );

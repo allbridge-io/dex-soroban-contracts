@@ -170,10 +170,8 @@ fn withdraw_disbalance() {
 #[test]
 fn withdraw_with_rewards() {
     let env = Env::default();
-    let testing_env = TestingEnvironment::create(
-        &env,
-        TestingEnvConfig::default().with_pool_fee_share_bp(0.001),
-    );
+    let testing_env =
+        TestingEnvironment::create(&env, TestingEnvConfig::default().with_pool_fee_share(0.001));
     let TestingEnvironment {
         ref pool,
         ref alice,

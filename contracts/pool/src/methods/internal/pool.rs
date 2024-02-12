@@ -147,7 +147,7 @@ impl Pool {
             self.amount_to_system_precision(amounts[0], self.tokens_decimals[0]),
             self.amount_to_system_precision(amounts[1], self.tokens_decimals[1]),
         ));
-        let total_amount: u128 = amounts_sp.to_array().iter().sum();
+        let total_amount = amounts_sp.sum();
         require!(total_amount > 0, Error::ZeroAmount);
 
         for (index, amount) in amounts.to_array().into_iter().enumerate() {
@@ -172,7 +172,7 @@ impl Pool {
 
         require!(lp_amount >= min_lp_amount, Error::Slippage);
         require!(
-            self.token_balances.to_array().iter().sum::<u128>() < Self::MAX_TOKEN_BALANCE,
+            self.token_balances.sum() < Self::MAX_TOKEN_BALANCE,
             Error::PoolOverflow
         );
 
@@ -250,7 +250,7 @@ impl Pool {
 
         self.total_lp_amount += lp_amount;
         user.lp_amount += lp_amount;
-        user.reward_debts = self.get_reward_depts(user);
+        user.reward_debts = self.get_reward_debts(user);
 
         Ok(pending)
     }
@@ -266,7 +266,7 @@ impl Pool {
 
         self.total_lp_amount -= lp_amount;
         user.lp_amount -= lp_amount;
-        user.reward_debts = self.get_reward_depts(user);
+        user.reward_debts = self.get_reward_debts(user);
 
         Ok(pending)
     }
@@ -283,7 +283,7 @@ impl Pool {
             return Ok(pending);
         }
 
-        let rewards = self.get_reward_depts(user);
+        let rewards = self.get_reward_debts(user);
 
         for (index, reward) in rewards.to_array().into_iter().enumerate() {
             pending[index] = reward - user.reward_debts[index];
@@ -323,8 +323,7 @@ impl Pool {
         ))
     }
 
-    // TODO: Typo depts -> debts
-    pub fn get_reward_depts(&self, user: &UserDeposit) -> DoubleU128 {
+    pub fn get_reward_debts(&self, user: &UserDeposit) -> DoubleU128 {
         DoubleU128::from((
             (user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
             (user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P,

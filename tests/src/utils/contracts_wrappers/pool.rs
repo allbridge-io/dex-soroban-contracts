@@ -108,9 +108,8 @@ impl Pool {
 
         let total_lp_amount = self.total_lp() as i128;
         let d = self.d() as i128;
-        let diff = total_lp_amount - d;
+        let diff = total_lp_amount.abs_diff(d);
 
-        // TODO: Do abs diff
         if diff > max_diff {
             return Err("InvariantFailed: Total lp amount  must be less or equal to D".into());
         }
