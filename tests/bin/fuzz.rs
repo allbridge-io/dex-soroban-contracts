@@ -1,16 +1,14 @@
-use std::fs::{self, OpenOptions};
-use std::io::{stdout, BufWriter, Write};
-use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::{
+    io::{stdout, Write},
+    sync::{Arc, Mutex},
+};
 
 use clap::Parser;
 use clap_derive::Parser;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use soroban_sdk::Env;
-use tabled::Table;
 
-use tabled::settings::Style;
-use tests::fuzzing::fuzz_target_operation::{Action, FuzzTargetOperation};
+use tests::fuzzing::fuzz_target_operation::FuzzTargetOperation;
 use tests::utils::{Snapshot, TestingEnvConfig, TestingEnvironment};
 
 #[derive(Parser, Debug)]
@@ -22,8 +20,6 @@ struct CliArgs {
     pub run_len: usize,
     #[arg(long, default_value = "4")]
     pub threads: usize,
-    #[arg(short, long, default_value = "false")]
-    pub stop_run_if_invariant_failed: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -71,10 +67,8 @@ fn main() {
         runs,
         run_len,
         threads,
-        stop_run_if_invariant_failed: stop_if_invariant_failed,
     } = CliArgs::parse();
 
-    let path_to_read = Path::new("fuzz-report.md");
     let available_parallelism = std::thread::available_parallelism().unwrap().get();
     let successful_runs = Arc::new(Mutex::new(0));
 
@@ -94,8 +88,6 @@ fn main() {
         .map(|_| FuzzTargetOperation::generate_run(run_len))
         .collect::<Vec<_>>();
 
-    fs::write(path_to_read, "# ✨ Fuzz report ✨\n").expect("unable to write");
-
     runs.par_iter().for_each(|operations| {
         let env = Env::default();
         let testing_env = TestingEnvironment::create(
@@ -106,31 +98,15 @@ fn main() {
         );
 
         let mut run_result = RunResult::default();
-        let mut actions = Vec::with_capacity(run_len);
 
         let users_balance_sum_before = Snapshot::take(&testing_env).get_users_balances_sum();
 
-        for (i, operation) in operations.iter().enumerate() {
+        for operation in operations.iter() {
             let operation_result = operation.execute(&testing_env);
-            let invariant_result = testing_env.pool.invariant_total_lp_less_or_equal_d();
-
-            actions.push(Action {
-                status: match operation_result {
-                    Ok(_) => "✅",
-                    Err(_) => "❌",
-                },
-                index: i + 1,
-                log: operation.get_log_string(&operation_result),
-                total_lp: testing_env.pool.total_lp(),
-                d: testing_env.pool.d(),
-                invariant: invariant_result.clone().err().unwrap_or("OK".into()),
-            });
 
             run_result.update(operation, operation_result.is_ok());
 
-            if invariant_result.is_err() && stop_if_invariant_failed {
-                break;
-            }
+            testing_env.pool.invariant_total_lp_less_or_equal_d();
         }
 
         let users_balance_sum_after = Snapshot::take(&testing_env).get_users_balances_sum();
@@ -144,18 +120,6 @@ fn main() {
         *current_run += 1;
 
         let log = format!("{current_run}/{}. {}", runs.len(), &run_result.to_string());
-        let file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(path_to_read)
-            .expect("unable to open file");
-        let mut f = BufWriter::new(file);
-
-        let mut table = Table::new(actions);
-        table.with(Style::markdown());
-        let table = table.to_string();
-
-        writeln!(f, "## {}\n\n{table}\n", log).expect("unable to write");
 
         stdout().flush().expect("Unable to flush stdout");
         print!("\r{log}    ");

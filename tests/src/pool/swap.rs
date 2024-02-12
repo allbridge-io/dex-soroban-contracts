@@ -33,7 +33,7 @@ fn swap() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 1000 yusd => yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -83,7 +83,7 @@ fn swap_b2a() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 1000 yusd => yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -133,7 +133,7 @@ fn smallest_swap() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 0.0000001 yusd => yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -183,7 +183,7 @@ fn smallest_swap_b2a() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 0.0000001 yusd => yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -233,7 +233,7 @@ fn swap_more_yaro() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 10 000 yusd => yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -283,7 +283,7 @@ fn swap_more_yusd() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Swap 10_000 yusd => yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,

@@ -2,19 +2,17 @@ use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use rand_derive2::RandGen;
 use serde_derive::Serialize;
-use tabled::Tabled;
 
 use crate::contracts::pool::Direction;
 use crate::utils::{CallResult, TestingEnvironment, User};
 
-#[derive(Debug, Clone, Default, Tabled)]
+#[derive(Debug, Clone, Default)]
 pub struct Action {
     pub status: &'static str,
     pub index: usize,
     pub log: String,
     pub d: u128,
     pub total_lp: u128,
-    pub invariant: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

@@ -80,7 +80,7 @@ fn claim_rewards() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, Some("Alice claim rewards"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     // TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_claim(snapshot_before, snapshot_after, alice, expected_rewards);
 }

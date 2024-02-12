@@ -53,7 +53,7 @@ fn deposit() {
     // TODO: Expected LP diff hardcode
     let expected_lp_amount = deposits.0 + deposits.1;
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -89,7 +89,7 @@ fn deposit_disbalance() {
         Some("Deposit: 50 000 000 yusd, 5 000 yaro"),
     );
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposit);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -146,7 +146,7 @@ fn smallest_deposit() {
     // TODO: Hardcode
     let expected_lp_amount = deposits.0 + deposits.1;
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -179,7 +179,7 @@ fn deposit_only_yusd() {
     // TODO: Hardcode
     let expected_lp_amount = deposits.0 + deposits.1;
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -213,7 +213,7 @@ fn deposit_only_yaro() {
     // TODO: Same
     let expected_lp_amount = deposits.0 + deposits.1;
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
@@ -244,7 +244,7 @@ fn deposit_twice_in_different_tokens() {
 
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 100 yaro"));
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -290,7 +290,7 @@ fn get_reward_after_second_deposit() {
     let snapshot_after = Snapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, None);
 
-    pool.invariant_total_lp_less_or_equal_d().unwrap();
+    pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_deposit(

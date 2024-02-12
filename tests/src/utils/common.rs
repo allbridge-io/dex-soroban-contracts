@@ -27,7 +27,7 @@ pub fn signed_int_to_float(amount: i128, decimals: i32) -> f64 {
 }
 
 pub fn float_to_int(amount: f64, decimals: u32) -> u128 {
-    // TODO: Assert amount > 0
+    assert!(amount > 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
 }
 
