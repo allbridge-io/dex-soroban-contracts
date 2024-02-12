@@ -102,6 +102,7 @@ impl Pool {
         self.client.get_d()
     }
 
+    // TODO: Rewrite to assert
     pub fn invariant_total_lp_less_or_equal_d(&self) -> Result<(), String> {
         let max_diff = 2;
 
@@ -109,6 +110,7 @@ impl Pool {
         let d = self.d() as i128;
         let diff = total_lp_amount - d;
 
+        // TODO: Do abs diff
         if diff > max_diff {
             return Err("InvariantFailed: Total lp amount  must be less or equal to D".into());
         }

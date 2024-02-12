@@ -266,7 +266,8 @@ impl TestingEnvironment {
                 snapshot_after.pool_yusd_balance - snapshot_before.pool_yusd_balance,
                 7,
             );
-
+        
+        // TODO: Exactly equal here
         assert_rel_eq_f64(user_yusd_diff, expected_yusd_reward, 0.0001);
         assert_rel_eq_f64(pool_yusd_diff, expected_yusd_reward, 0.0001);
 
@@ -277,9 +278,12 @@ impl TestingEnvironment {
             );
 
         assert!(expected_lp_amount <= total_deposits);
+
+        // TODO: Also compare pool LP diff with user LP diff
         assert!(snapshot_before.total_lp_amount < snapshot_after.total_lp_amount);
         assert!(snapshot_before.d < snapshot_after.d);
 
+        // TODO: Exactly equal here
         assert_rel_eq_f64(user_yaro_diff, expected_yaro_reward, 0.0001);
         assert_rel_eq_f64(pool_yaro_diff, expected_yaro_reward, 0.0001);
 

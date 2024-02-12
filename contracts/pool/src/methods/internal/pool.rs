@@ -141,6 +141,8 @@ impl Pool {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
 
+        // Check equal amounts on first deposit
+
         let amounts_sp = DoubleU128::from((
             self.amount_to_system_precision(amounts[0], self.tokens_decimals[0]),
             self.amount_to_system_precision(amounts[1], self.tokens_decimals[1]),
@@ -321,6 +323,7 @@ impl Pool {
         ))
     }
 
+    // TODO: Typo depts -> debts
     pub fn get_reward_depts(&self, user: &UserDeposit) -> DoubleU128 {
         DoubleU128::from((
             (user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
@@ -442,7 +445,7 @@ mod tests {
         pool.init();
         pool.set_balances(&(200_000_000, 200_000_000));
 
-        let input = 10_000_0000000u128;
+        let input = 10_000_0000000_u128;
         let (output, fee) = pool.get_receive_amount(&input, &Token::A);
         let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
 
@@ -463,7 +466,7 @@ mod tests {
         pool.init();
         pool.set_balances(&(200_000_000, 500_000_000));
 
-        let input = 10_000_0000000u128;
+        let input = 10_000_0000000_u128;
         let (output, fee) = pool.get_receive_amount(&input, &Token::A);
         let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
 
