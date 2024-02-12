@@ -27,7 +27,7 @@ pub fn signed_int_to_float(amount: i128, decimals: i32) -> f64 {
 }
 
 pub fn float_to_int(amount: f64, decimals: u32) -> u128 {
-    assert!(amount > 0.0);
+    assert!(amount >= 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
 }
 
@@ -86,10 +86,6 @@ pub fn assert_rel_eq(a: u128, b: u128, d: u128) {
         d,
         a.abs_diff(b)
     );
-}
-
-pub fn assert_rel_eq_f64(a: f64, b: f64, d: f64) {
-    assert_rel_eq(float_to_int(a, 7), float_to_int(b, 7), float_to_int(d, 7));
 }
 
 pub fn contract_id(address: &Address) -> BytesN<32> {

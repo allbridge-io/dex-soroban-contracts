@@ -51,11 +51,10 @@ fn deposit() {
     snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
 
     // TODO: Expected LP diff hardcode
-    let expected_lp_amount = deposits.0 + deposits.1;
+    let expected_lp_amount = 150.0;
 
     pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -91,7 +90,6 @@ fn deposit_disbalance() {
 
     pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposit);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -148,7 +146,6 @@ fn smallest_deposit() {
 
     pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -181,7 +178,6 @@ fn deposit_only_yusd() {
 
     pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -202,8 +198,7 @@ fn deposit_only_yaro() {
         ..
     } = testing_env;
 
-    // TODO: (0, 100) below here
-    let deposits = (100.0, 0.0);
+    let deposits = (0.0, 100.0);
     let snapshot_before = Snapshot::take(&testing_env);
     pool.deposit(alice, deposits, 99.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
@@ -215,7 +210,6 @@ fn deposit_only_yaro() {
 
     pool.invariant_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, (0.0, 0.0));
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,

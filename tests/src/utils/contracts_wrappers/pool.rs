@@ -103,14 +103,13 @@ impl Pool {
     }
 
     pub fn invariant_total_lp_less_or_equal_d(&self) {
-        let max_diff = 2;
-
+        let allowed_range = 0..2;
         let total_lp_amount = self.total_lp() as i128;
         let d = self.d() as i128;
         let diff = total_lp_amount.abs_diff(d);
 
         assert!(
-            diff > max_diff,
+            allowed_range.contains(&diff),
             "InvariantFailed: Total lp amount  must be less or equal to D"
         );
     }

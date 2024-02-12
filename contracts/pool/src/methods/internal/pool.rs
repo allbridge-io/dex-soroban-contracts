@@ -135,7 +135,7 @@ impl Pool {
         env: &Env,
         amounts: DoubleU128,
         sender: Address,
-        user: &mut UserDeposit,
+        user_deposit: &mut UserDeposit,
         min_lp_amount: u128,
     ) -> Result<(DoubleU128, u128), Error> {
         let current_contract = env.current_contract_address();
@@ -176,7 +176,7 @@ impl Pool {
             Error::PoolOverflow
         );
 
-        let rewards = self.deposit_lp(user, lp_amount)?;
+        let rewards = self.deposit_lp(user_deposit, lp_amount)?;
 
         for (index, reward) in rewards.to_array().into_iter().enumerate() {
             if reward == 0 {
@@ -197,13 +197,13 @@ impl Pool {
         &mut self,
         env: &Env,
         sender: Address,
-        user: &mut UserDeposit,
+        user_deposit: &mut UserDeposit,
         lp_amount: u128,
     ) -> Result<(DoubleU128, DoubleU128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
         let old_balances = self.token_balances.clone();
-        let rewards_amounts = self.withdraw_lp(user, lp_amount)?;
+        let rewards_amounts = self.withdraw_lp(user_deposit, lp_amount)?;
         let mut amounts = DoubleU128::default();
 
         let d1 = d0 - lp_amount;
@@ -243,30 +243,30 @@ impl Pool {
 
     pub(crate) fn deposit_lp(
         &mut self,
-        user: &mut UserDeposit,
+        user_deposit: &mut UserDeposit,
         lp_amount: u128,
     ) -> Result<DoubleU128, Error> {
-        let pending = self.get_pending(user);
+        let pending = self.get_pending(user_deposit);
 
         self.total_lp_amount += lp_amount;
-        user.lp_amount += lp_amount;
-        user.reward_debts = self.get_reward_debts(user);
+        user_deposit.lp_amount += lp_amount;
+        user_deposit.reward_debts = self.get_reward_debts(user_deposit);
 
         Ok(pending)
     }
 
     pub(crate) fn withdraw_lp(
         &mut self,
-        user: &mut UserDeposit,
+        user_deposit: &mut UserDeposit,
         lp_amount: u128,
     ) -> Result<DoubleU128, Error> {
-        require!(user.lp_amount >= lp_amount, Error::NotEnoughAmount);
+        require!(user_deposit.lp_amount >= lp_amount, Error::NotEnoughAmount);
 
-        let pending = self.get_pending(user);
+        let pending = self.get_pending(user_deposit);
 
         self.total_lp_amount -= lp_amount;
-        user.lp_amount -= lp_amount;
-        user.reward_debts = self.get_reward_debts(user);
+        user_deposit.lp_amount -= lp_amount;
+        user_deposit.reward_debts = self.get_reward_debts(user_deposit);
 
         Ok(pending)
     }
@@ -274,26 +274,26 @@ impl Pool {
     pub fn claim_rewards(
         &self,
         env: &Env,
-        sender: Address,
-        user: &mut UserDeposit,
+        user: Address,
+        user_deposit: &mut UserDeposit,
     ) -> Result<DoubleU128, Error> {
         let mut pending = DoubleU128::default();
 
-        if user.lp_amount == 0 {
+        if user_deposit.lp_amount == 0 {
             return Ok(pending);
         }
 
-        let rewards = self.get_reward_debts(user);
+        let rewards = self.get_reward_debts(user_deposit);
 
         for (index, reward) in rewards.to_array().into_iter().enumerate() {
-            pending[index] = reward - user.reward_debts[index];
+            pending[index] = reward - user_deposit.reward_debts[index];
 
             if pending[index] > 0 {
-                user.reward_debts[index] = reward;
+                user_deposit.reward_debts[index] = reward;
 
                 self.get_token_by_index(env, index).transfer(
                     &env.current_contract_address(),
-                    &sender,
+                    &user,
                     &(pending[index] as i128),
                 );
             }
@@ -312,21 +312,23 @@ impl Pool {
         }
     }
 
-    pub fn get_pending(&self, user: &UserDeposit) -> DoubleU128 {
-        if user.lp_amount == 0 {
+    pub fn get_pending(&self, user_deposit: &UserDeposit) -> DoubleU128 {
+        if user_deposit.lp_amount == 0 {
             return DoubleU128::default();
         }
 
         DoubleU128::from((
-            ((user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P) - user.reward_debts[0],
-            ((user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P) - user.reward_debts[1],
+            ((user_deposit.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P)
+                - user_deposit.reward_debts[0],
+            ((user_deposit.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P)
+                - user_deposit.reward_debts[1],
         ))
     }
 
-    pub fn get_reward_debts(&self, user: &UserDeposit) -> DoubleU128 {
+    pub fn get_reward_debts(&self, user_deposit: &UserDeposit) -> DoubleU128 {
         DoubleU128::from((
-            (user.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
-            (user.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P,
+            (user_deposit.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
+            (user_deposit.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P,
         ))
     }
 
