@@ -21,10 +21,11 @@ fn claim_admin_fee() {
         ..
     } = testing_env;
 
+    // Expected is 1% of 1% of 100 USD, which is around 1 cent
     let expected_admin_fees = (0.0099997, 0.0100002);
 
     pool.swap(alice, bob, 100.0, 98.0, Direction::B2A).unwrap();
-    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
+    pool.swap(alice, bob, 100.0, 99.0, Direction::A2B).unwrap();
 
     let snapshot_before = Snapshot::take(&testing_env);
     pool.claim_admin_fee().unwrap();
@@ -32,6 +33,8 @@ fn claim_admin_fee() {
     snapshot_before.print_change_with(&snapshot_after, Some("Admin claim fee"));
 
     TestingEnvironment::assert_claim_admin_fee(snapshot_before, snapshot_after, expected_admin_fees)
+
+    // TODO: Claim again, receive nothing!
 }
 
 #[test]
@@ -69,9 +72,12 @@ fn claim_rewards() {
         ref bob,
         ..
     } = testing_env;
+    // Expected 1% of 100 USD, which is around 1%
     let expected_rewards = (1.0012199, 0.9987799);
 
     pool.deposit(alice, (2000.0, 2000.0), 0.0).unwrap();
+
+    // TODO: Keep Bob and Alice separate!
     pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
     pool.swap(bob, alice, 100.0, 98.0, Direction::B2A).unwrap();
 
@@ -83,4 +89,19 @@ fn claim_rewards() {
     pool.invariant_total_lp_less_or_equal_d();
     // TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_claim(snapshot_before, snapshot_after, alice, expected_rewards);
+
+    // TODO: Do one more claim, check if it is zero (or error)
 }
+
+// TODO: Init env with admin share and check that total rewards is equal to the sum of claimed by admin and user
+//   Give admin realistic percentage (20% of all fees)
+
+// TODO: Long test
+// - Deposit
+// - Swap
+// - Claim
+// - Swap
+// - Claim again, you can continue (claim_rewards test), check if there are new rewards after second swap session
+
+
+

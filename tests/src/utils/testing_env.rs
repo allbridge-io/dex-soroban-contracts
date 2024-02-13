@@ -9,6 +9,7 @@ use super::{get_latest_event, CallResult, Pool, PoolFactory, Snapshot, Token, Us
 
 #[derive(Debug, Clone)]
 pub struct TestingEnvConfig {
+    // TODO: And these 2 are not BP!!!
     /// default: `0`
     pub pool_fee_share_bp: f64,
     /// default: `0`
@@ -20,6 +21,7 @@ pub struct TestingEnvConfig {
 }
 
 impl TestingEnvConfig {
+    // TODO: This is not BP!
     pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
         self.pool_fee_share_bp = fee_share_bp;
         self
@@ -282,6 +284,7 @@ impl TestingEnvironment {
         snapshot_after: Snapshot,
         user: &User,
         (yusd_amount, yaro_amount): (f64, f64),
+        // TODO: Name expected_...
         (yusd_reward, yaro_reward): (f64, f64),
         expected_withdraw_lp_amount: f64,
     ) {
@@ -292,20 +295,25 @@ impl TestingEnvironment {
 
         let user_yaro_diff = user_yaro_after - user_yaro_before;
         let user_yusd_diff = user_yusd_after - user_yusd_before;
+        // TODO: Naming user_lp_diff
         let lp_diff = user_lp_amount_before - user_lp_amount_after;
 
         let pool_yaro_diff = snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance;
         let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
 
+        assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
+        // TODO: Remove rewards here, naming pool_lp_amount_diff
         let total_lp_amount_diff = snapshot_before.total_lp_amount - snapshot_after.total_lp_amount
             + float_to_int_sp(yusd_reward + yaro_reward);
 
         let expected_yusd_diff = float_to_uint(yusd_amount + yusd_reward, 7);
         let expected_yaro_diff = float_to_uint(yaro_amount + yaro_reward, 7);
-
-        assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
+        
         assert!(snapshot_before.d > snapshot_after.d);
 
+        // TODO: Equal user LD diff to pool LP diff
+
+        // TODO: Try to make it equal (or almost equal)
         assert!(lp_diff <= float_to_int_sp(expected_withdraw_lp_amount));
         assert_rel_eq(
             total_lp_amount_diff,

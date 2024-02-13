@@ -62,6 +62,7 @@ impl Pool {
 
         ReceiveAmount {
             token_from_new_balance,
+            // TODO: Rename
             token_to_new_balance: token_to_new_amount,
             output,
             fee,
@@ -108,6 +109,7 @@ impl Pool {
         let (token_from, token_to) = direction.get_tokens();
         let receive_amount = self.get_receive_amount(amount, token_from);
 
+        // TODO: Safe cast to i128
         self.get_token(env, token_from)
             .transfer(&sender, &current_contract, &(amount as i128));
 

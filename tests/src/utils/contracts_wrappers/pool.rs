@@ -102,6 +102,7 @@ impl Pool {
         self.client.get_d()
     }
 
+    // TODO: Call it assert_...
     pub fn invariant_total_lp_less_or_equal_d(&self) {
         let allowed_range = 0..2;
         let total_lp_amount = self.total_lp() as i128;
