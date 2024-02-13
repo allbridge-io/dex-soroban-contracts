@@ -1,12 +1,12 @@
 use soroban_sdk::{token, Address, Env};
 
-use crate::utils::{float_to_int, int_to_float};
+use crate::utils::{float_to_uint, uint_to_float};
 
 use super::User;
 
 pub struct Token {
     pub id: soroban_sdk::Address,
-    pub client: token::Client<'static>,
+    pub client: token::TokenClient<'static>,
     pub asset_client: token::StellarAssetClient<'static>,
 }
 
@@ -46,13 +46,13 @@ impl Token {
 
     pub fn airdrop_amount(&self, id: &Address, amount: f64) {
         self.asset_client
-            .mint(id, &(float_to_int(amount, self.client.decimals()) as i128));
+            .mint(id, &(float_to_uint(amount, self.client.decimals()) as i128));
     }
 
     pub fn airdrop(&self, id: &Address) {
         self.asset_client.mint(
             id,
-            &(float_to_int(Self::DEFAULT_AIRDROP, self.client.decimals()) as i128),
+            &(float_to_uint(Self::DEFAULT_AIRDROP, self.client.decimals()) as i128),
         );
     }
 
@@ -65,6 +65,6 @@ impl Token {
     }
 
     pub fn balance_of_f64(&self, id: &Address) -> f64 {
-        int_to_float(self.client.balance(id) as u128, 7)
+        uint_to_float(self.client.balance(id) as u128, 7)
     }
 }

@@ -22,25 +22,25 @@ pub fn desoroban_result<T, E: Debug>(soroban_result: SorobanCallResult<T, E>) ->
     soroban_result.map(Result::unwrap).map_err(Result::unwrap)
 }
 
-pub fn signed_int_to_float(amount: i128, decimals: i32) -> f64 {
+pub fn int_to_float(amount: i128, decimals: i32) -> f64 {
     (amount as f64) / 10.0f64.powi(decimals)
 }
 
-pub fn float_to_int(amount: f64, decimals: u32) -> u128 {
+pub fn float_to_uint(amount: f64, decimals: u32) -> u128 {
     assert!(amount >= 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
 }
 
-pub fn int_to_float(amount: u128, decimals: u32) -> f64 {
+pub fn uint_to_float(amount: u128, decimals: u32) -> f64 {
     (amount as f64) / 10.0f64.powi(decimals as i32)
 }
 
 pub fn float_to_int_sp(amount: f64) -> u128 {
-    float_to_int(amount, SYSTEM_PRECISION)
+    float_to_uint(amount, SYSTEM_PRECISION)
 }
 
 pub fn int_to_float_sp(amount: u128) -> f64 {
-    int_to_float(amount, SYSTEM_PRECISION)
+    uint_to_float(amount, SYSTEM_PRECISION)
 }
 
 pub fn format_diff<T: PartialOrd + Display>(start: T, to: T) -> String {

@@ -2,7 +2,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env};
 
 use crate::{
     contracts::pool::{Deposit, Direction, RewardsClaimed, Swapped, Withdraw},
-    utils::{assert_rel_eq, float_to_int, float_to_int_sp},
+    utils::{assert_rel_eq, float_to_int_sp, float_to_uint},
 };
 
 use super::{get_latest_event, CallResult, Pool, PoolFactory, Snapshot, Token, User};
@@ -11,9 +11,8 @@ use super::{get_latest_event, CallResult, Pool, PoolFactory, Snapshot, Token, Us
 pub struct TestingEnvConfig {
     /// default: `0`
     pub pool_fee_share_bp: f64,
-
+    /// default: `0`
     pub pool_admin_fee_bp: f64,
-
     /// default: `100_000.0`
     pub yaro_admin_deposit: f64,
     /// default: `100_000.0`
@@ -173,10 +172,9 @@ impl TestingEnvironment {
     pub fn assert_claimed_reward_event(env: &Env, expected_user: &User, rewards: (f64, f64)) {
         let rewards_claimed = get_latest_event::<RewardsClaimed>(env).unwrap();
 
-        println!("reward {:?}", rewards_claimed.rewards);
         assert_eq!(rewards_claimed.user, expected_user.as_address());
-        assert_rel_eq(rewards_claimed.rewards.0, float_to_int(rewards.0, 7), 10);
-        assert_rel_eq(rewards_claimed.rewards.1, float_to_int(rewards.1, 7), 10);
+        assert_rel_eq(rewards_claimed.rewards.0, float_to_uint(rewards.0, 7), 10);
+        assert_rel_eq(rewards_claimed.rewards.1, float_to_uint(rewards.1, 7), 10);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -200,7 +198,7 @@ impl TestingEnvironment {
         assert_eq!(swapped.sender, sender.as_address());
         assert_eq!(swapped.recipient, recipient.as_address());
 
-        assert_eq!(swapped.from_amount, float_to_int(from_amount, 7));
+        assert_eq!(swapped.from_amount, float_to_uint(from_amount, 7));
         assert_eq!(swapped.to_amount, expected_to_amount);
         assert_rel_eq(swapped.fee, extected_fee, 10);
 
@@ -215,7 +213,6 @@ impl TestingEnvironment {
         (yusd_amount, yaro_amount): (f64, f64),
     ) {
         let withdraw = get_latest_event::<Withdraw>(env).unwrap();
-        println!("withdraw {:?}", withdraw.amounts);
 
         assert_eq!(withdraw.user, expected_user.as_address());
         assert_rel_eq(withdraw.amounts.0, float_to_int_sp(yusd_amount), 2);
@@ -232,8 +229,8 @@ impl TestingEnvironment {
         let deposit = get_latest_event::<Deposit>(env).unwrap();
 
         assert_eq!(deposit.user, expected_user.as_address());
-        assert_eq!(deposit.amounts.0, float_to_int(yusd_deposit, 7));
-        assert_eq!(deposit.amounts.1, float_to_int(yaro_deposit, 7));
+        assert_eq!(deposit.amounts.0, float_to_uint(yusd_deposit, 7));
+        assert_eq!(deposit.amounts.1, float_to_uint(yaro_deposit, 7));
         assert_rel_eq(float_to_int_sp(expected_lp_amount), deposit.lp_amount, 10);
     }
 
@@ -250,10 +247,10 @@ impl TestingEnvironment {
         let (user_yusd_after, user_yaro_after, user_lp_amount_after) =
             snapshot_after.get_user_balances(user);
 
-        let expected_yusd_reward = float_to_int(expected_yusd_reward, 7);
-        let expected_yaro_reward = float_to_int(expected_yaro_reward, 7);
-        let yusd_deposit = float_to_int(yusd_deposit, 7);
-        let yaro_deposit = float_to_int(yaro_deposit, 7);
+        let expected_yusd_reward = float_to_uint(expected_yusd_reward, 7);
+        let expected_yaro_reward = float_to_uint(expected_yaro_reward, 7);
+        let yusd_deposit = float_to_uint(yusd_deposit, 7);
+        let yaro_deposit = float_to_uint(yaro_deposit, 7);
 
         let lp_diff = user_lp_amount_after - user_lp_amount_before;
         let user_yusd_diff = yusd_deposit - (user_yusd_before - user_yusd_after);
@@ -303,8 +300,8 @@ impl TestingEnvironment {
         let total_lp_amount_diff = snapshot_before.total_lp_amount - snapshot_after.total_lp_amount
             + float_to_int_sp(yusd_reward + yaro_reward);
 
-        let expected_yusd_diff = float_to_int(yusd_amount + yusd_reward, 7);
-        let expected_yaro_diff = float_to_int(yaro_amount + yaro_reward, 7);
+        let expected_yusd_diff = float_to_uint(yusd_amount + yusd_reward, 7);
+        let expected_yaro_diff = float_to_uint(yaro_amount + yaro_reward, 7);
 
         assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
         assert!(snapshot_before.d > snapshot_after.d);
@@ -336,8 +333,8 @@ impl TestingEnvironment {
         let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
         let pool_yaro_diff = snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance;
 
-        let yusd_reward = float_to_int(yusd_reward, 7);
-        let yaro_reward = float_to_int(yaro_reward, 7);
+        let yusd_reward = float_to_uint(yusd_reward, 7);
+        let yaro_reward = float_to_uint(yaro_reward, 7);
 
         assert_eq!(user_yusd_diff, yusd_reward);
         assert_eq!(pool_yusd_diff, yusd_reward);
@@ -350,8 +347,8 @@ impl TestingEnvironment {
         snapshot_after: Snapshot,
         (yusd_reward, yaro_reward): (f64, f64),
     ) {
-        let yusd_reward = float_to_int(yusd_reward, 7);
-        let yaro_reward = float_to_int(yaro_reward, 7);
+        let yusd_reward = float_to_uint(yusd_reward, 7);
+        let yaro_reward = float_to_uint(yaro_reward, 7);
 
         let admin_yaro_diff =
             snapshot_after.admin_yaro_balance - snapshot_before.admin_yaro_balance;
@@ -393,8 +390,8 @@ impl TestingEnvironment {
         let pool_to_balance_key = format!("pool_{to_token_tag}_balance");
         let acc_reward_token_to_per_share_p_key = format!("acc_reward_{to_token_tag}_per_share_p");
 
-        let receive_amount_min = float_to_int(receive_amount_min, 7);
-        let amount = float_to_int(amount, 7);
+        let receive_amount_min = float_to_uint(receive_amount_min, 7);
+        let amount = float_to_uint(amount, 7);
 
         let sender_from_token_diff =
             snapshot_before[&sender_balance_key] - snapshot_after[&sender_balance_key];

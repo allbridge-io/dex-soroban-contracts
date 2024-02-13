@@ -6,8 +6,8 @@ use soroban_sdk::{Address, Env};
 use crate::{
     contracts::pool::{self, Direction, UserDeposit},
     utils::{
-        desoroban_result, float_to_int, float_to_int_sp, int_to_float, int_to_float_sp, CallResult,
-        SYSTEM_PRECISION,
+        desoroban_result, float_to_int_sp, float_to_uint, int_to_float_sp, uint_to_float,
+        CallResult, SYSTEM_PRECISION,
     },
 };
 
@@ -63,7 +63,7 @@ impl Pool {
 
     pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
         self.client.get_receive_amount(
-            &float_to_int(amount, 7),
+            &float_to_uint(amount, 7),
             &(match directin {
                 Direction::A2B => pool::Token::A,
                 Direction::B2A => pool::Token::B,
@@ -73,7 +73,7 @@ impl Pool {
 
     pub fn get_lp_amount(&self, d0: u128) -> f64 {
         let lp_amount = self.amount_from_system_precision(self.d() - d0, 7);
-        int_to_float(lp_amount, 7)
+        uint_to_float(lp_amount, 7)
     }
 
     pub fn assert_initialization(
@@ -201,8 +201,8 @@ impl Pool {
         desoroban_result(self.client.try_deposit(
             user,
             &(
-                float_to_int(deposit_amounts.0, 7),
-                float_to_int(deposit_amounts.1, 7),
+                float_to_uint(deposit_amounts.0, 7),
+                float_to_uint(deposit_amounts.1, 7),
             ),
             &float_to_int_sp(min_lp_amount),
         ))
@@ -229,8 +229,8 @@ impl Pool {
         desoroban_result(self.client.try_swap(
             &sender.as_address(),
             &recipient.as_address(),
-            &float_to_int(amount, 7),
-            &float_to_int(receive_amount_min, 7),
+            &float_to_uint(amount, 7),
+            &float_to_uint(receive_amount_min, 7),
             &direction,
         ))
     }
