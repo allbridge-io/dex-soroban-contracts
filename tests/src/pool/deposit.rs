@@ -33,6 +33,20 @@ fn deposit_slippage() {
     expect_contract_error(&env, call_result, shared::Error::Slippage)
 }
 
+// #[test]
+// fn deposit_invalid_first_deposit() {
+//     let env = Env::default();
+//     let testing_env = TestingEnvironment::default(&env);
+//     let TestingEnvironment {
+//         ref pool,
+//         ref alice,
+//         ..
+//     } = testing_env;
+
+//     let call_result = pool.deposit(alice, (100.0, 0.0), 0.0);
+//     expect_contract_error(&env, call_result, shared::Error::InvalidFirstDeposit)
+// }
+
 #[test]
 fn deposit() {
     let env = Env::default();
@@ -44,16 +58,14 @@ fn deposit() {
     } = testing_env;
 
     let deposits = (100.0, 50.0);
+    let expected_lp_amount = 150.0;
+
     let snapshot_before = Snapshot::take(&testing_env);
     pool.deposit(alice, deposits, 150.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd, 50 yaro");
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 50 yaro"));
-
-    // TODO: Expected LP diff hardcode
-    let expected_lp_amount = 150.0;
-
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_deposit(
         snapshot_before,
@@ -76,19 +88,14 @@ fn deposit_disbalance() {
     } = testing_env;
 
     let deposit = (50_000_000.0, 5_000.0);
+    let expected_lp_amount = 31_492_001.07;
+
     let snapshot_before = Snapshot::take(&testing_env);
     pool.deposit(alice, deposit, 0.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, "Deposit: 50 000 000 yusd, 5 000 yaro");
 
-    // TODO: Hardcode values here
-    let expected_lp_amount = pool.get_lp_amount(snapshot_before.total_lp_amount);
-
-    snapshot_before.print_change_with(
-        &snapshot_after,
-        Some("Deposit: 50 000 000 yusd, 5 000 yaro"),
-    );
-
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposit);
     TestingEnvironment::assert_deposit(
         snapshot_before,
@@ -135,16 +142,14 @@ fn smallest_deposit() {
     } = testing_env;
 
     let deposits = (0.001, 0.001);
+    let expected_lp_amount = 0.002;
+
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 0.001 + 0.001).unwrap();
+    pool.deposit(alice, deposits, expected_lp_amount).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, "Deposit: 0.001 yusd, 0.001 yaro");
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 0.001 yusd, 0.001 yaro"));
-
-    // TODO: Hardcode
-    let expected_lp_amount = deposits.0 + deposits.1;
-
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_deposit(
         snapshot_before,
@@ -167,16 +172,15 @@ fn deposit_only_yusd() {
     } = testing_env;
 
     let deposits = (100.0, 0.0);
+    let expected_lp_amount = 100.0;
+
     let snapshot_before = Snapshot::take(&testing_env);
     pool.deposit(alice, deposits, 99.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd"));
+    snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd");
 
-    // TODO: Hardcode
-    let expected_lp_amount = deposits.0 + deposits.1;
-
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_deposit(
         snapshot_before,
@@ -199,16 +203,14 @@ fn deposit_only_yaro() {
     } = testing_env;
 
     let deposits = (0.0, 100.0);
+    let expected_lp_amount = 100.0;
+
     let snapshot_before = Snapshot::take(&testing_env);
     pool.deposit(alice, deposits, 99.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yaro");
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yaro"));
-
-    // TODO: Same
-    let expected_lp_amount = deposits.0 + deposits.1;
-
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_deposit(
         snapshot_before,
@@ -230,15 +232,16 @@ fn deposit_twice_in_different_tokens() {
         ..
     } = testing_env;
 
+    let expected_lp_amount = 200.0;
+
     let snapshot_before = Snapshot::take(&testing_env);
     pool.deposit(alice, (100.0, 0.0), 99.0).unwrap();
     pool.deposit(alice, (0.0, 100.0), 99.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
-    let expected_lp_amount = 200.0;
 
-    snapshot_before.print_change_with(&snapshot_after, Some("Deposit: 100 yusd, 100 yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd, 100 yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit(
         snapshot_before,
         snapshot_after,
@@ -267,8 +270,8 @@ fn get_reward_after_second_deposit() {
     } = testing_env;
 
     let deposits = (2000.0, 2000.0);
-
     let expected_rewards = (1.0012199, 0.9987799);
+    let expected_lp_amount = 4000.0;
 
     pool.deposit(alice, deposits, 4000.0).unwrap();
     pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
@@ -276,15 +279,11 @@ fn get_reward_after_second_deposit() {
 
     let snapshot_before = Snapshot::take(&testing_env);
 
-    // TODO: Hardcode
-    let expected_lp_amount = deposits.0 + deposits.1;
-
-    // TODO: Change min LP amount to expected LP diff
-    pool.deposit(alice, deposits, 0.0).unwrap();
+    pool.deposit(alice, deposits, 4000.0).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, None);
+    snapshot_before.print_change_with(&snapshot_after, "After second deposit");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
     TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_deposit(

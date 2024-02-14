@@ -68,6 +68,44 @@ fn identical_addresses() {
 }
 
 #[test]
+fn invalid_fee_share() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let (yellow_token, duck_token) =
+        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
+
+    let call_result = testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &yellow_token.id,
+        &duck_token.id,
+        10_000,
+        10,
+    );
+
+    expect_contract_error(&env, call_result, shared::Error::InvalidArg);
+}
+
+#[test]
+fn invalid_admin_fee_share() {
+    let env = Env::default();
+    let testing_env = TestingEnvironment::default(&env);
+    let (yellow_token, duck_token) =
+        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
+
+    let call_result = testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &yellow_token.id,
+        &duck_token.id,
+        10,
+        10_000,
+    );
+
+    expect_contract_error(&env, call_result, shared::Error::InvalidArg);
+}
+
+#[test]
 fn pair_exist() {
     let env = Env::default();
     let testing_env = TestingEnvironment::default(&env);

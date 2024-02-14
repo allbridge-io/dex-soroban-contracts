@@ -161,9 +161,7 @@ impl Snapshot {
     }
 
     #[allow(dead_code)]
-    pub fn print_change_with(&self, other: &Snapshot, title: Option<&str>) {
-        let title = title.unwrap_or("Diff");
-
+    pub fn print_change_with(&self, other: &Snapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
         let balances = [

@@ -7,6 +7,8 @@ pub mod require;
 
 pub use extend_ttl::*;
 
+use crate::Error;
+
 pub fn is_bytesn32_empty(bytesn: &BytesN<32>) -> bool {
     bytesn.is_empty() || bytesn.to_array() == [0; 32]
 }
@@ -40,4 +42,9 @@ pub fn get_slices<const N: usize>(a: &[u8; N]) -> [u8; N] {
     slice[..N].copy_from_slice(a);
 
     slice
+}
+
+#[inline]
+pub fn safe_cast<T, K: TryFrom<T>>(from: T) -> Result<K, Error> {
+    K::try_from(from).map_err(|_| Error::CastFailed)
 }

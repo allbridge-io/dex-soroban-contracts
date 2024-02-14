@@ -26,10 +26,10 @@ pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
 }
 
 pub fn get_receive_amount(env: Env, input: u128, token_from: Token) -> Result<(u128, u128), Error> {
-    let receive_amount = Pool::get(&env)?.get_receive_amount(input, token_from);
+    let receive_amount = Pool::get(&env)?.get_receive_amount(input, token_from)?;
     Ok((receive_amount.output, receive_amount.fee))
 }
 
 pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
-    Ok(Pool::get(&env)?.get_send_amount(output, token_to))
+    Pool::get(&env)?.get_send_amount(output, token_to)
 }

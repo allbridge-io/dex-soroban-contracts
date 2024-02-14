@@ -1,4 +1,4 @@
-use shared::{soroban_data::SimpleSorobanData, Error};
+use shared::{soroban_data::SimpleSorobanData, utils::safe_cast, Error};
 use soroban_sdk::{token, Env};
 use storage::Admin;
 
@@ -15,7 +15,7 @@ pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
             token::Client::new(&env, &token).transfer(
                 &env.current_contract_address(),
                 admin.as_ref(),
-                &(pool.admin_fee_amount[index] as i128),
+                &safe_cast(pool.admin_fee_amount[index])?,
             );
             pool.admin_fee_amount[index] = 0;
             pool.save(&env);

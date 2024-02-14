@@ -2,18 +2,17 @@ use soroban_sdk::{testutils::Address as _, Address, Env};
 
 use crate::{
     contracts::pool::{Deposit, Direction, RewardsClaimed, Swapped, Withdraw},
-    utils::{assert_rel_eq, float_to_int_sp, float_to_uint},
+    utils::{assert_rel_eq, float_to_uint, float_to_uint_sp},
 };
 
 use super::{get_latest_event, CallResult, Pool, PoolFactory, Snapshot, Token, User};
 
 #[derive(Debug, Clone)]
 pub struct TestingEnvConfig {
-    // TODO: And these 2 are not BP!!!
     /// default: `0`
-    pub pool_fee_share_bp: f64,
+    pub pool_fee_share: f64,
     /// default: `0`
-    pub pool_admin_fee_bp: f64,
+    pub pool_admin_fee: f64,
     /// default: `100_000.0`
     pub yaro_admin_deposit: f64,
     /// default: `100_000.0`
@@ -21,9 +20,8 @@ pub struct TestingEnvConfig {
 }
 
 impl TestingEnvConfig {
-    // TODO: This is not BP!
     pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
-        self.pool_fee_share_bp = fee_share_bp;
+        self.pool_fee_share = fee_share_bp;
         self
     }
 
@@ -38,7 +36,7 @@ impl TestingEnvConfig {
     }
 
     pub fn with_pool_admin_fee(mut self, pool_admin_fee: f64) -> Self {
-        self.pool_admin_fee_bp = pool_admin_fee;
+        self.pool_admin_fee = pool_admin_fee;
         self
     }
 }
@@ -46,8 +44,8 @@ impl TestingEnvConfig {
 impl Default for TestingEnvConfig {
     fn default() -> Self {
         TestingEnvConfig {
-            pool_fee_share_bp: 0.0,
-            pool_admin_fee_bp: 0.0,
+            pool_fee_share: 0.0,
+            pool_admin_fee: 0.0,
             yaro_admin_deposit: 100_000.0,
             yusd_admin_deposit: 100_000.0,
         }
@@ -98,8 +96,8 @@ impl TestingEnvironment {
             &admin,
             &yusd_token,
             &yaro_token,
-            config.pool_fee_share_bp,
-            config.pool_admin_fee_bp,
+            config.pool_fee_share,
+            config.pool_admin_fee,
             (config.yusd_admin_deposit, config.yaro_admin_deposit),
         )
         .unwrap();
@@ -147,36 +145,55 @@ impl TestingEnvironment {
         admin: &Address,
         token_a: &Token,
         token_b: &Token,
-        fee_share_bp: f64,
+        fee_share: f64,
         admin_fee: f64,
         admin_deposits: (f64, f64),
     ) -> CallResult<Pool> {
-        let fee_share_bp = (fee_share_bp * 10_000.0) as u128;
-        let admin_fee = (admin_fee * 10_000.0) as u128;
+        let fee_share_bp = Pool::convert_to_bp(fee_share);
+        let admin_fee_bp = Pool::convert_to_bp(admin_fee);
         let a = 20;
-        let pool =
-            factory.create_pair(admin, a, &token_a.id, &token_b.id, fee_share_bp, admin_fee)?;
+        let pool = factory.create_pair(
+            admin,
+            a,
+            &token_a.id,
+            &token_b.id,
+            fee_share_bp,
+            admin_fee_bp,
+        )?;
 
         let pool = Pool::new(env, pool);
 
-        pool.assert_initialization(a, fee_share_bp, admin_fee);
+        pool.assert_initialization(a, fee_share_bp, admin_fee_bp);
 
         token_a.airdrop_amount(admin, admin_deposits.0 * 2.0);
         token_b.airdrop_amount(admin, admin_deposits.1 * 2.0);
 
         if admin_deposits.0 > 0.0 || admin_deposits.1 > 0.0 {
-            pool.deposit_by_id(admin, admin_deposits, 0.0).unwrap();
+            pool.deposit_with_address(admin, admin_deposits, 0.0)
+                .unwrap();
         }
 
         Ok(pool)
     }
 
-    pub fn assert_claimed_reward_event(env: &Env, expected_user: &User, rewards: (f64, f64)) {
+    pub fn assert_claimed_reward_event(
+        env: &Env,
+        expected_user: &User,
+        (expected_yusd_reward, expected_yaro_reward): (f64, f64),
+    ) {
         let rewards_claimed = get_latest_event::<RewardsClaimed>(env).unwrap();
 
         assert_eq!(rewards_claimed.user, expected_user.as_address());
-        assert_rel_eq(rewards_claimed.rewards.0, float_to_uint(rewards.0, 7), 10);
-        assert_rel_eq(rewards_claimed.rewards.1, float_to_uint(rewards.1, 7), 10);
+        assert_rel_eq(
+            rewards_claimed.rewards.0,
+            float_to_uint(expected_yusd_reward, 7),
+            10,
+        );
+        assert_rel_eq(
+            rewards_claimed.rewards.1,
+            float_to_uint(expected_yaro_reward, 7),
+            10,
+        );
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -217,9 +234,9 @@ impl TestingEnvironment {
         let withdraw = get_latest_event::<Withdraw>(env).unwrap();
 
         assert_eq!(withdraw.user, expected_user.as_address());
-        assert_rel_eq(withdraw.amounts.0, float_to_int_sp(yusd_amount), 2);
-        assert_rel_eq(withdraw.amounts.1, float_to_int_sp(yaro_amount), 2);
-        assert_eq!(withdraw.lp_amount, float_to_int_sp(lp_amount));
+        assert_rel_eq(withdraw.amounts.0, float_to_uint_sp(yusd_amount), 2);
+        assert_rel_eq(withdraw.amounts.1, float_to_uint_sp(yaro_amount), 2);
+        assert_eq!(withdraw.lp_amount, float_to_uint_sp(lp_amount));
     }
 
     pub fn assert_deposit_event(
@@ -233,7 +250,7 @@ impl TestingEnvironment {
         assert_eq!(deposit.user, expected_user.as_address());
         assert_eq!(deposit.amounts.0, float_to_uint(yusd_deposit, 7));
         assert_eq!(deposit.amounts.1, float_to_uint(yaro_deposit, 7));
-        assert_rel_eq(float_to_int_sp(expected_lp_amount), deposit.lp_amount, 10);
+        assert_rel_eq(float_to_uint_sp(expected_lp_amount), deposit.lp_amount, 10);
     }
 
     pub fn assert_deposit(
@@ -253,30 +270,30 @@ impl TestingEnvironment {
         let expected_yaro_reward = float_to_uint(expected_yaro_reward, 7);
         let yusd_deposit = float_to_uint(yusd_deposit, 7);
         let yaro_deposit = float_to_uint(yaro_deposit, 7);
+        let expected_lp_amount = float_to_uint_sp(expected_lp_amount);
 
-        let lp_diff = user_lp_amount_after - user_lp_amount_before;
+        let user_lp_diff = user_lp_amount_after - user_lp_amount_before;
         let user_yusd_diff = yusd_deposit - (user_yusd_before - user_yusd_after);
         let user_yaro_diff = yaro_deposit - (user_yaro_before - user_yaro_after);
 
         let pool_yusd_diff =
             yusd_deposit - (snapshot_after.pool_yusd_balance - snapshot_before.pool_yusd_balance);
+        let pool_yaro_diff =
+            yaro_deposit - (snapshot_after.pool_yaro_balance - snapshot_before.pool_yaro_balance);
+
+        assert!(snapshot_before.total_lp_amount < snapshot_after.total_lp_amount);
+        assert_eq!(
+            snapshot_after.total_lp_amount - snapshot_before.total_lp_amount,
+            user_lp_diff
+        );
+        assert!(snapshot_before.d < snapshot_after.d);
+        assert_rel_eq(user_lp_diff, expected_lp_amount, 5);
 
         assert_eq!(user_yusd_diff, expected_yusd_reward);
         assert_eq!(pool_yusd_diff, expected_yusd_reward);
 
-        let pool_yaro_diff =
-            yaro_deposit - (snapshot_after.pool_yaro_balance - snapshot_before.pool_yaro_balance);
-
-        // assert!(expected_lp_amount <= total_deposits);
-
-        // TODO: Also compare pool LP diff with user LP diff
-        assert!(snapshot_before.total_lp_amount < snapshot_after.total_lp_amount);
-        assert!(snapshot_before.d < snapshot_after.d);
-
         assert_eq!(user_yaro_diff, expected_yaro_reward);
         assert_eq!(pool_yaro_diff, expected_yaro_reward);
-
-        assert_rel_eq(lp_diff, float_to_int_sp(expected_lp_amount), 5);
     }
 
     pub fn assert_withdraw(
@@ -284,9 +301,8 @@ impl TestingEnvironment {
         snapshot_after: Snapshot,
         user: &User,
         (yusd_amount, yaro_amount): (f64, f64),
-        // TODO: Name expected_...
-        (yusd_reward, yaro_reward): (f64, f64),
-        expected_withdraw_lp_amount: f64,
+        (expected_yusd_reward, expected_yaro_reward): (f64, f64),
+        expected_user_withdraw_lp_diff: f64,
     ) {
         let (user_yusd_before, user_yaro_before, user_lp_amount_before) =
             snapshot_before.get_user_balances(user);
@@ -295,31 +311,24 @@ impl TestingEnvironment {
 
         let user_yaro_diff = user_yaro_after - user_yaro_before;
         let user_yusd_diff = user_yusd_after - user_yusd_before;
-        // TODO: Naming user_lp_diff
-        let lp_diff = user_lp_amount_before - user_lp_amount_after;
+        let user_lp_diff = user_lp_amount_before - user_lp_amount_after;
+
+        let expected_yusd_diff = float_to_uint(yusd_amount + expected_yusd_reward, 7);
+        let expected_yaro_diff = float_to_uint(yaro_amount + expected_yaro_reward, 7);
 
         let pool_yaro_diff = snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance;
         let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
+        let expected_user_withdraw_lp_amount = float_to_uint_sp(expected_user_withdraw_lp_diff);
 
         assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
-        // TODO: Remove rewards here, naming pool_lp_amount_diff
-        let total_lp_amount_diff = snapshot_before.total_lp_amount - snapshot_after.total_lp_amount
-            + float_to_int_sp(yusd_reward + yaro_reward);
+        let pool_lp_amount_diff = snapshot_before.total_lp_amount - snapshot_after.total_lp_amount;
 
-        let expected_yusd_diff = float_to_uint(yusd_amount + yusd_reward, 7);
-        let expected_yaro_diff = float_to_uint(yaro_amount + yaro_reward, 7);
-        
         assert!(snapshot_before.d > snapshot_after.d);
+        assert_eq!(user_lp_diff, pool_lp_amount_diff);
+        assert_eq!(user_lp_diff, expected_user_withdraw_lp_amount);
+        assert_eq!(pool_lp_amount_diff, expected_user_withdraw_lp_amount);
 
-        // TODO: Equal user LD diff to pool LP diff
-
-        // TODO: Try to make it equal (or almost equal)
-        assert!(lp_diff <= float_to_int_sp(expected_withdraw_lp_amount));
-        assert_rel_eq(
-            total_lp_amount_diff,
-            float_to_int_sp(expected_withdraw_lp_amount + yusd_reward + yaro_reward),
-            100,
-        );
+        // 10000 with 7 precision => 0.001
         assert_rel_eq(user_yusd_diff, expected_yusd_diff, 10000);
         assert_rel_eq(user_yaro_diff, expected_yaro_diff, 10000);
         assert_rel_eq(pool_yusd_diff, expected_yusd_diff, 10000);

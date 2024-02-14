@@ -6,8 +6,8 @@ use soroban_sdk::{Address, Env};
 use crate::{
     contracts::pool::{self, Direction, UserDeposit},
     utils::{
-        desoroban_result, float_to_int_sp, float_to_uint, int_to_float_sp, uint_to_float,
-        CallResult, SYSTEM_PRECISION,
+        desoroban_result, float_to_uint, float_to_uint_sp, uint_to_float_sp, CallResult,
+        SYSTEM_PRECISION,
     },
 };
 
@@ -47,20 +47,6 @@ impl Pool {
         Pool { id, client }
     }
 
-    pub fn get_y(&self, native_x: u128, d: u128) -> u128 {
-        let a = self.client.get_pool().a;
-
-        let a4 = a << 2;
-        let ddd = U256::new(d * d) * d;
-        // 4A(D - x) - D
-        let part1 = a4 as i128 * (d as i128 - native_x as i128) - d as i128;
-        // x * (4AD³ + x(part1²))
-        let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
-        // (sqrt(part2) + x(part1)) / 8Ax)
-        (sqrt(&part2).as_u128() as i128 + (native_x as i128 * part1)) as u128
-            / ((a << 3) * native_x)
-    }
-
     pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
         self.client.get_receive_amount(
             &float_to_uint(amount, 7),
@@ -69,11 +55,6 @@ impl Pool {
                 Direction::B2A => pool::Token::B,
             }),
         )
-    }
-
-    pub fn get_lp_amount(&self, d0: u128) -> f64 {
-        let lp_amount = self.amount_from_system_precision(self.d() - d0, 7);
-        uint_to_float(lp_amount, 7)
     }
 
     pub fn assert_initialization(
@@ -102,8 +83,25 @@ impl Pool {
         self.client.get_d()
     }
 
-    // TODO: Call it assert_...
-    pub fn invariant_total_lp_less_or_equal_d(&self) {
+    pub fn convert_to_bp(v: f64) -> u128 {
+        (v * 10_000.0) as u128
+    }
+
+    pub fn set_admin_fee_share(&self, admin_fee: f64) -> CallResult {
+        desoroban_result(
+            self.client
+                .try_set_admin_fee_share(&Pool::convert_to_bp(admin_fee)),
+        )
+    }
+
+    pub fn set_fee_share(&self, fee_share: f64) -> CallResult {
+        desoroban_result(
+            self.client
+                .try_set_fee_share(&Pool::convert_to_bp(fee_share)),
+        )
+    }
+
+    pub fn assert_total_lp_less_or_equal_d(&self) {
         let allowed_range = 0..2;
         let total_lp_amount = self.total_lp() as i128;
         let d = self.d() as i128;
@@ -120,7 +118,7 @@ impl Pool {
     }
 
     pub fn user_lp_amount_f64(&self, user: &User) -> f64 {
-        int_to_float_sp(self.user_deposit(user).lp_amount)
+        uint_to_float_sp(self.user_deposit(user).lp_amount)
     }
 
     pub fn withdraw_amounts(&self, user: &User) -> (f64, f64) {
@@ -129,8 +127,8 @@ impl Pool {
         let token_b_amount = self.token_b_balance() * user_lp_amount / self.total_lp_amount();
 
         (
-            int_to_float_sp(token_a_amount),
-            int_to_float_sp(token_b_amount),
+            uint_to_float_sp(token_a_amount),
+            uint_to_float_sp(token_b_amount),
         )
     }
 
@@ -181,7 +179,7 @@ impl Pool {
     pub fn withdraw(&self, user: &User, withdraw_amount: f64) -> CallResult {
         desoroban_result(
             self.client
-                .try_withdraw(&user.as_address(), &float_to_int_sp(withdraw_amount)),
+                .try_withdraw(&user.as_address(), &float_to_uint_sp(withdraw_amount)),
         )
     }
 
@@ -193,7 +191,7 @@ impl Pool {
     }
 
     /// (yusd, yaro)
-    pub fn deposit_by_id(
+    pub fn deposit_with_address(
         &self,
         user: &Address,
         deposit_amounts: (f64, f64),
@@ -205,7 +203,7 @@ impl Pool {
                 float_to_uint(deposit_amounts.0, 7),
                 float_to_uint(deposit_amounts.1, 7),
             ),
-            &float_to_int_sp(min_lp_amount),
+            &float_to_uint_sp(min_lp_amount),
         ))
     }
 
@@ -216,7 +214,7 @@ impl Pool {
         deposit_amounts: (f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
-        self.deposit_by_id(&user.as_address(), deposit_amounts, min_lp_amount)
+        self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount)
     }
 
     pub fn swap(

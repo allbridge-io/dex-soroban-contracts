@@ -4,7 +4,10 @@ use soroban_sdk::{contract, contractimpl, Address, Env};
 use crate::{
     methods::{
         internal::pool::Direction,
-        public::{claim_admin_fee, claim_rewards, deposit, initialize, swap, withdraw},
+        public::{
+            claim_admin_fee, claim_rewards, deposit, initialize, set_admin, set_admin_fee_share,
+            set_fee_share, swap, withdraw,
+        },
         view::{
             get_d, get_pool, get_receive_amount, get_send_amount, get_user_deposit, pending_reward,
         },
@@ -84,14 +87,34 @@ impl PoolContract {
         claim_rewards(env, sender)
     }
 
-    /// `admin`
+    // -------- Admin --------
+
     pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
         claim_admin_fee(env)
     }
 
-    /// `view`
+    pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        extend_ttl_instance(&env);
+
+        set_admin(env, new_admin)
+    }
+
+    pub fn set_admin_fee_share(env: Env, admin_fee_share_bp: u128) -> Result<(), Error> {
+        extend_ttl_instance(&env);
+
+        set_admin_fee_share(env, admin_fee_share_bp)
+    }
+
+    pub fn set_fee_share(env: Env, fee_share_bp: u128) -> Result<(), Error> {
+        extend_ttl_instance(&env);
+
+        set_fee_share(env, fee_share_bp)
+    }
+
+    // -------- View --------
+
     pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
         pending_reward(env, user)
     }

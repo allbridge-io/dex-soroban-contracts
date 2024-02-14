@@ -13,6 +13,7 @@ pub enum Error {
     BrokenAddress = 5,
     NotFound = 6,
     Forbidden = 7,
+    CastFailed = 9,
 
     // Pool
     ZeroAmount = 100,
@@ -21,6 +22,7 @@ pub enum Error {
     NotEnoughAmount = 103,
     InsufficientReceivedAmount = 104,
     Slippage = 105,
+    InvalidFirstDeposit = 106,
 
     // Factory
     PairExist = 200,

@@ -106,7 +106,7 @@ fn main() {
 
             run_result.update(operation, operation_result.is_ok());
 
-            testing_env.pool.invariant_total_lp_less_or_equal_d();
+            testing_env.pool.assert_total_lp_less_or_equal_d();
         }
 
         let users_balance_sum_after = Snapshot::take(&testing_env).get_users_balances_sum();

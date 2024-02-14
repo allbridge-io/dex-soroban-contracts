@@ -13,7 +13,7 @@ fn swap() {
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(450_000.0),
+            .with_yusd_admin_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -31,9 +31,9 @@ fn swap() {
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Swap 1000 yusd => yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Swap 1000 yusd => yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -63,7 +63,7 @@ fn swap_b2a() {
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(450_000.0),
+            .with_yusd_admin_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -81,9 +81,9 @@ fn swap_b2a() {
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Swap 1000 yusd => yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Swap 1000 yusd => yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -113,7 +113,7 @@ fn smallest_swap() {
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(450_000.0),
+            .with_yusd_admin_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -131,9 +131,9 @@ fn smallest_swap() {
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Swap 0.0000001 yusd => yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Swap 0.0000001 yusd => yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -163,7 +163,7 @@ fn smallest_swap_b2a() {
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(450_000.0),
+            .with_yusd_admin_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -181,9 +181,9 @@ fn smallest_swap_b2a() {
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Swap 0.0000001 yusd => yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Swap 0.0000001 yusd => yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -212,14 +212,18 @@ fn swap_more_yaro() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(750_000.0)
+            .with_yaro_admin_deposit(500_000.0)
             .with_yusd_admin_deposit(500_000.0),
     );
     let TestingEnvironment {
         ref pool,
         ref alice,
+        ref admin,
         ..
     } = testing_env;
+
+    pool.deposit_with_address(admin, (0.0, 250_000.0), 249_000.0)
+        .unwrap();
 
     let snapshot_before = Snapshot::take(&testing_env);
 
@@ -231,9 +235,9 @@ fn swap_more_yaro() {
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Swap 10 000 yusd => yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Swap 10 000 yusd => yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -263,13 +267,17 @@ fn swap_more_yusd() {
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
             .with_yaro_admin_deposit(500_000.0)
-            .with_yusd_admin_deposit(750_000.0),
+            .with_yusd_admin_deposit(500_000.0),
     );
     let TestingEnvironment {
         ref pool,
         ref alice,
+        ref admin,
         ..
     } = testing_env;
+
+    pool.deposit_with_address(admin, (250_000.0, 0.0), 249_000.0)
+        .unwrap();
 
     let snapshot_before = Snapshot::take(&testing_env);
 
@@ -281,9 +289,9 @@ fn swap_more_yusd() {
         .unwrap();
 
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Swap 10_000 yusd => yaro"));
+    snapshot_before.print_change_with(&snapshot_after, "Swap 10_000 yusd => yaro");
 
-    pool.invariant_total_lp_less_or_equal_d();
+    pool.assert_total_lp_less_or_equal_d();
     testing_env.assert_swapped_event(
         &env,
         alice,
@@ -352,7 +360,7 @@ fn swap_more_than_pool_balance() {
     pool.withdraw(alice, pool.user_lp_amount_f64(alice))
         .unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Withdraw all"));
+    snapshot_before.print_change_with(&snapshot_after, "Withdraw all");
     let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
 
     assert!(alice_balance_after <= alice_balance_before);
@@ -387,7 +395,7 @@ fn swap_more_than_pool_balance_b2a() {
     pool.withdraw(alice, pool.user_lp_amount_f64(alice))
         .unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Withdraw all"));
+    snapshot_before.print_change_with(&snapshot_after, "Withdraw all");
 
     let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
 

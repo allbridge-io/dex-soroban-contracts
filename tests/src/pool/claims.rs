@@ -30,11 +30,20 @@ fn claim_admin_fee() {
     let snapshot_before = Snapshot::take(&testing_env);
     pool.claim_admin_fee().unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Admin claim fee"));
+    snapshot_before.print_change_with(&snapshot_after, "Admin claim fee");
 
-    TestingEnvironment::assert_claim_admin_fee(snapshot_before, snapshot_after, expected_admin_fees)
+    TestingEnvironment::assert_claim_admin_fee(
+        snapshot_before,
+        snapshot_after,
+        expected_admin_fees,
+    );
 
-    // TODO: Claim again, receive nothing!
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.claim_admin_fee().unwrap();
+    let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, "Admin claim fee");
+
+    TestingEnvironment::assert_claim_admin_fee(snapshot_before, snapshot_after, (0.0, 0.0));
 }
 
 #[test]
@@ -43,14 +52,11 @@ fn claim_admin_fee_no_auth() {
     let testing_env =
         TestingEnvironment::create(&env, TestingEnvConfig::default().with_pool_admin_fee(0.01));
     let TestingEnvironment {
-        ref pool,
-        ref alice,
-        ref bob,
-        ..
+        ref pool, ref bob, ..
     } = testing_env;
 
-    pool.swap(alice, bob, 100.0, 98.0, Direction::B2A).unwrap();
-    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
+    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A).unwrap();
+    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B).unwrap();
 
     env.mock_auths(&[]);
     expect_auth_error(&env, pool.claim_admin_fee());
@@ -77,20 +83,45 @@ fn claim_rewards() {
 
     pool.deposit(alice, (2000.0, 2000.0), 0.0).unwrap();
 
-    // TODO: Keep Bob and Alice separate!
-    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
-    pool.swap(bob, alice, 100.0, 98.0, Direction::B2A).unwrap();
+    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B).unwrap();
+    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A).unwrap();
 
     let snapshot_before = Snapshot::take(&testing_env);
     pool.claim_rewards(alice).unwrap();
     let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, Some("Alice claim rewards"));
+    snapshot_before.print_change_with(&snapshot_after, "Alice claim rewards");
 
-    pool.invariant_total_lp_less_or_equal_d();
-    // TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
+    pool.assert_total_lp_less_or_equal_d();
+    TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
     TestingEnvironment::assert_claim(snapshot_before, snapshot_after, alice, expected_rewards);
 
-    // TODO: Do one more claim, check if it is zero (or error)
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.claim_rewards(alice).unwrap();
+    let snapshot_after = Snapshot::take(&testing_env);
+
+    snapshot_before.print_change_with(&snapshot_after, "Second claim rewards");
+
+    assert_eq!(
+        snapshot_before.alice_yusd_balance,
+        snapshot_after.alice_yusd_balance
+    );
+    assert_eq!(
+        snapshot_before.alice_yaro_balance,
+        snapshot_after.alice_yaro_balance
+    );
+    assert_eq!(
+        snapshot_before.pool_yusd_balance,
+        snapshot_after.pool_yusd_balance
+    );
+    assert_eq!(
+        snapshot_before.pool_yaro_balance,
+        snapshot_after.pool_yaro_balance
+    );
+    assert_eq!(snapshot_before.d, snapshot_after.d);
+    assert_eq!(
+        snapshot_before.total_lp_amount,
+        snapshot_after.total_lp_amount
+    );
 }
 
 // TODO: Init env with admin share and check that total rewards is equal to the sum of claimed by admin and user
@@ -102,6 +133,3 @@ fn claim_rewards() {
 // - Claim
 // - Swap
 // - Claim again, you can continue (claim_rewards test), check if there are new rewards after second swap session
-
-
-
