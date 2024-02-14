@@ -14,29 +14,22 @@ pub struct TestingEnvConfig {
     /// default: `0`
     pub pool_admin_fee: f64,
     /// default: `100_000.0`
-    pub yaro_admin_deposit: f64,
-    /// default: `100_000.0`
-    pub yusd_admin_deposit: f64,
+    pub admin_init_deposit: f64,
 }
 
 impl TestingEnvConfig {
-    pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
-        self.pool_fee_share = fee_share_bp;
-        self
-    }
-
-    pub fn with_yaro_admin_deposit(mut self, yaro_admin_deposit: f64) -> Self {
-        self.yaro_admin_deposit = yaro_admin_deposit;
-        self
-    }
-
-    pub fn with_yusd_admin_deposit(mut self, yusd_admin_deposit: f64) -> Self {
-        self.yusd_admin_deposit = yusd_admin_deposit;
+    pub fn with_admin_init_deposit(mut self, admin_init_deposit: f64) -> Self {
+        self.admin_init_deposit = admin_init_deposit;
         self
     }
 
     pub fn with_pool_admin_fee(mut self, pool_admin_fee: f64) -> Self {
         self.pool_admin_fee = pool_admin_fee;
+        self
+    }
+
+    pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
+        self.pool_fee_share = fee_share_bp;
         self
     }
 }
@@ -46,8 +39,7 @@ impl Default for TestingEnvConfig {
         TestingEnvConfig {
             pool_fee_share: 0.0,
             pool_admin_fee: 0.0,
-            yaro_admin_deposit: 100_000.0,
-            yusd_admin_deposit: 100_000.0,
+            admin_init_deposit: 100_000.0,
         }
     }
 }
@@ -98,7 +90,7 @@ impl TestingEnvironment {
             &yaro_token,
             config.pool_fee_share,
             config.pool_admin_fee,
-            (config.yusd_admin_deposit, config.yaro_admin_deposit),
+            config.admin_init_deposit,
         )
         .unwrap();
 
@@ -147,7 +139,7 @@ impl TestingEnvironment {
         token_b: &Token,
         fee_share: f64,
         admin_fee: f64,
-        admin_deposits: (f64, f64),
+        admin_init_deposit: f64,
     ) -> CallResult<Pool> {
         let fee_share_bp = Pool::convert_to_bp(fee_share);
         let admin_fee_bp = Pool::convert_to_bp(admin_fee);
@@ -165,11 +157,11 @@ impl TestingEnvironment {
 
         pool.assert_initialization(a, fee_share_bp, admin_fee_bp);
 
-        token_a.airdrop_amount(admin, admin_deposits.0 * 2.0);
-        token_b.airdrop_amount(admin, admin_deposits.1 * 2.0);
+        token_a.airdrop_amount(admin, admin_init_deposit * 2.0);
+        token_b.airdrop_amount(admin, admin_init_deposit * 2.0);
 
-        if admin_deposits.0 > 0.0 || admin_deposits.1 > 0.0 {
-            pool.deposit_with_address(admin, admin_deposits, 0.0)
+        if admin_init_deposit > 0.0 {
+            pool.deposit_with_address(admin, (admin_init_deposit, admin_init_deposit), 0.0)
                 .unwrap();
         }
 

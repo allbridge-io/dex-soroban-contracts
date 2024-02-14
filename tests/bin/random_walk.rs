@@ -60,9 +60,7 @@ fn main() {
     let env = Env::default();
     let testing_env = TestingEnvironment::create(
         &env,
-        TestingEnvConfig::default()
-            .with_yaro_admin_deposit(1_110_000.0)
-            .with_yusd_admin_deposit(1_140_000.0),
+        TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
     );
 
     let mut run_result = RunResult::default();

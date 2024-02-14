@@ -110,6 +110,35 @@ impl Snapshot {
         alice_balances + bob_balances
     }
 
+    pub fn assert_zero_changes(&self, other: &Snapshot) {
+        assert_eq!(self.alice_yusd_balance, other.alice_yusd_balance);
+        assert_eq!(self.alice_yaro_balance, other.alice_yaro_balance);
+
+        assert_eq!(self.bob_yusd_balance, other.bob_yusd_balance);
+        assert_eq!(self.bob_yaro_balance, other.bob_yaro_balance);
+
+        assert_eq!(self.admin_yusd_balance, other.admin_yusd_balance);
+        assert_eq!(self.admin_yaro_balance, other.admin_yaro_balance);
+
+        assert_eq!(self.pool_yusd_balance, other.pool_yusd_balance);
+        assert_eq!(self.pool_yaro_balance, other.pool_yaro_balance);
+
+        assert_eq!(self.d, other.d);
+        assert_eq!(self.total_lp_amount, other.total_lp_amount);
+
+        assert_eq!(
+            self.acc_reward_yusd_per_share_p,
+            other.acc_reward_yusd_per_share_p
+        );
+        assert_eq!(
+            self.acc_reward_yaro_per_share_p,
+            other.acc_reward_yaro_per_share_p
+        );
+
+        assert_eq!(self.admin_yusd_fee_rewards, other.admin_yusd_fee_rewards);
+        assert_eq!(self.admin_yaro_fee_rewards, other.admin_yaro_fee_rewards);
+    }
+
     pub fn take(testing_env: &TestingEnvironment) -> Snapshot {
         let alice_address = testing_env.alice.as_address();
         let bob_address = testing_env.bob.as_address();

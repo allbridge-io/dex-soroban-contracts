@@ -12,8 +12,7 @@ fn swap() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(400_000.0),
+            .with_admin_init_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -62,8 +61,7 @@ fn swap_b2a() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(400_000.0),
+            .with_admin_init_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -112,8 +110,7 @@ fn smallest_swap() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(400_000.0),
+            .with_admin_init_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -162,8 +159,7 @@ fn smallest_swap_b2a() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(400_000.0)
-            .with_yusd_admin_deposit(400_000.0),
+            .with_admin_init_deposit(400_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -212,8 +208,7 @@ fn swap_more_yaro() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(500_000.0)
-            .with_yusd_admin_deposit(500_000.0),
+            .with_admin_init_deposit(500_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -266,8 +261,7 @@ fn swap_more_yusd() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.001)
-            .with_yaro_admin_deposit(500_000.0)
-            .with_yusd_admin_deposit(500_000.0),
+            .with_admin_init_deposit(500_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -336,9 +330,7 @@ fn swap_more_than_pool_balance() {
     let env = Env::default();
     let testing_env = TestingEnvironment::create(
         &env,
-        TestingEnvConfig::default()
-            .with_yaro_admin_deposit(100_000.0)
-            .with_yusd_admin_deposit(100_000.0),
+        TestingEnvConfig::default().with_admin_init_deposit(100_000.0),
     );
     let TestingEnvironment {
         ref pool,
@@ -371,9 +363,7 @@ fn swap_more_than_pool_balance_b2a() {
     let env = Env::default();
     let testing_env = TestingEnvironment::create(
         &env,
-        TestingEnvConfig::default()
-            .with_yaro_admin_deposit(100_000.0)
-            .with_yusd_admin_deposit(100_000.0),
+        TestingEnvConfig::default().with_admin_init_deposit(100_000.0),
     );
     let TestingEnvironment {
         ref pool,

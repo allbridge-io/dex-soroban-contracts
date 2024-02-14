@@ -259,8 +259,7 @@ fn get_reward_after_second_deposit() {
         &env,
         TestingEnvConfig::default()
             .with_pool_fee_share(0.01)
-            .with_yaro_admin_deposit(0.0)
-            .with_yusd_admin_deposit(0.0),
+            .with_admin_init_deposit(0.0),
     );
     let TestingEnvironment {
         ref pool,
