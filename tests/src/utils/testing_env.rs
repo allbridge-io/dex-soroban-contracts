@@ -28,8 +28,8 @@ impl TestingEnvConfig {
         self
     }
 
-    pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
-        self.pool_fee_share = fee_share_bp;
+    pub fn with_pool_fee_share(mut self, fee_share: f64) -> Self {
+        self.pool_fee_share = fee_share;
         self
     }
 }
