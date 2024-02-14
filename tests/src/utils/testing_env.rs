@@ -28,6 +28,7 @@ impl TestingEnvConfig {
         self
     }
 
+    // TODO: This is not BP
     pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
         self.pool_fee_share = fee_share_bp;
         self
@@ -380,9 +381,11 @@ impl TestingEnvironment {
         snapshot_after: Snapshot,
         sender: &User,
         recipient: &User,
+        // TODO: Typo
         directin: Direction,
         amount: f64,
         receive_amount_min: f64,
+        // TODO: Change to f64
         expected_receive_amount: u128,
     ) {
         let sender_tag = sender.tag;
@@ -415,12 +418,14 @@ impl TestingEnvironment {
 
         assert!(
             snapshot_after[&acc_reward_token_to_per_share_p_key]
-                >= snapshot_before[&acc_reward_token_to_per_share_p_key]
+                > snapshot_before[&acc_reward_token_to_per_share_p_key]
         );
         assert!(recipient_to_token_diff >= receive_amount_min);
+        // TODO: Assert almost equal
         assert!(recipient_to_token_diff <= expected_receive_amount);
 
         assert!(pool_to_token_diff >= receive_amount_min);
+        // TODO: Assert almost equal
         assert!(pool_to_token_diff <= expected_receive_amount);
 
         assert_eq!(sender_from_token_diff, amount);
