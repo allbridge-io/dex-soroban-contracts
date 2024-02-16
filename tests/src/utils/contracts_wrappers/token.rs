@@ -8,6 +8,7 @@ pub struct Token {
     pub id: soroban_sdk::Address,
     pub client: token::TokenClient<'static>,
     pub asset_client: token::StellarAssetClient<'static>,
+    pub env: Env,
 }
 
 impl Token {
@@ -26,17 +27,7 @@ impl Token {
             id,
             client,
             asset_client,
-        }
-    }
-
-    pub fn clone_token(&self, env: &Env) -> Token {
-        let client = token::Client::new(env, &self.id);
-        let asset_client = token::StellarAssetClient::new(env, &self.id);
-
-        Token {
-            id: self.id.clone(),
-            client,
-            asset_client,
+            env: env.clone(),
         }
     }
 

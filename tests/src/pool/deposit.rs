@@ -1,57 +1,58 @@
-use soroban_sdk::Env;
-
 use crate::{
     contracts::pool::Direction,
-    utils::{expect_contract_error, Snapshot, TestingEnvConfig, TestingEnvironment},
+    utils::{Snapshot, TestingEnv, TestingEnvConfig},
 };
 
 #[test]
+#[should_panic = "DexContract(ZeroAmount)"]
 fn deposit_zero_amount() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
-    let call_result = pool.deposit(alice, (0.0, 0.0), 0.0);
-    expect_contract_error(&env, call_result, shared::Error::ZeroAmount)
+    let testing_env = TestingEnv::default();
+    testing_env
+        .pool
+        .deposit(&testing_env.alice, (0.0, 0.0), 0.0);
 }
 
 #[test]
+#[should_panic = "DexContract(Slippage)"]
 fn deposit_slippage() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
+    let testing_env = TestingEnv::default();
+    testing_env
+        .pool
+        .deposit(&testing_env.alice, (100.0, 0.0), 100.0);
+}
+
+#[test]
+#[should_panic = "DexContract(PoolOverflow)"]
+fn deposit_with_overflow() {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
         ref pool,
         ref alice,
+        ref yaro_token,
+        ref yusd_token,
         ..
     } = testing_env;
 
-    let call_result = pool.deposit(alice, (100.0, 0.0), 100.0);
-    expect_contract_error(&env, call_result, shared::Error::Slippage)
+    yusd_token.airdrop_amount(alice.as_ref(), 10_000_000_000.0);
+    yaro_token.airdrop_amount(alice.as_ref(), 10_000_000_000.0);
+
+    pool.deposit(alice, (600_000_000.0, 600_000_000.0), 0.0);
 }
 
-// #[test]
-// fn deposit_invalid_first_deposit() {
-//     let env = Env::default();
-//     let testing_env = TestingEnvironment::default(&env);
-//     let TestingEnvironment {
-//         ref pool,
-//         ref alice,
-//         ..
-//     } = testing_env;
-
-//     let call_result = pool.deposit(alice, (100.0, 0.0), 0.0);
-//     expect_contract_error(&env, call_result, shared::Error::InvalidFirstDeposit)
-// }
+// TODO
+#[test]
+#[should_panic = "DexContract(InvalidFirstDeposit)"]
+fn deposit_invalid_first_deposit() {
+    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
+    testing_env
+        .pool
+        .deposit(&testing_env.alice, (100.0, 25.0), 0.0);
+}
 
 #[test]
 fn deposit() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
         ref pool,
         ref alice,
         ..
@@ -60,14 +61,12 @@ fn deposit() {
     let deposits = (100.0, 50.0);
     let expected_lp_amount = 150.0;
 
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 150.0).unwrap();
-    let snapshot_after = Snapshot::take(&testing_env);
+    let (snapshot_before, snapshot_after) =
+        pool.deposit_with_snapshots(&testing_env, alice, deposits, 150.0);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd, 50 yaro");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit_event(alice, expected_lp_amount, deposits);
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
         alice,
@@ -79,9 +78,8 @@ fn deposit() {
 
 #[test]
 fn deposit_disbalance() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
         ref pool,
         ref alice,
         ..
@@ -90,14 +88,12 @@ fn deposit_disbalance() {
     let deposit = (50_000_000.0, 5_000.0);
     let expected_lp_amount = 31_492_001.07;
 
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposit, 0.0).unwrap();
-    let snapshot_after = Snapshot::take(&testing_env);
+    let (snapshot_before, snapshot_after) =
+        pool.deposit_with_snapshots(&testing_env, alice, deposit, 0.0);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 50 000 000 yusd, 5 000 yaro");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposit);
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit_event(alice, expected_lp_amount, deposit);
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
         alice,
@@ -107,35 +103,13 @@ fn deposit_disbalance() {
     );
 }
 
-#[test]
-fn deposit_with_overflow() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
-        ref pool,
-        ref alice,
-        ref yaro_token,
-        ref yusd_token,
-        ..
-    } = testing_env;
-
-    yusd_token.airdrop_amount(alice.as_ref(), 10_000_000_000.0);
-    yaro_token.airdrop_amount(alice.as_ref(), 10_000_000_000.0);
-
-    let deposits = (600_000_000.0, 600_000_000.0);
-    let call_result = pool.deposit(alice, deposits, 0.0);
-
-    expect_contract_error(&env, call_result, shared::Error::PoolOverflow)
-}
-
 // TODO: Also add test for depositing slightly less than MAX amount
 //       Swap to big disbalance 1:100 and check for overflows
 
 #[test]
 fn smallest_deposit() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
         ref pool,
         ref alice,
         ..
@@ -144,14 +118,12 @@ fn smallest_deposit() {
     let deposits = (0.001, 0.001);
     let expected_lp_amount = 0.002;
 
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, expected_lp_amount).unwrap();
-    let snapshot_after = Snapshot::take(&testing_env);
+    let (snapshot_before, snapshot_after) =
+        pool.deposit_with_snapshots(&testing_env, alice, deposits, expected_lp_amount);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 0.001 yusd, 0.001 yaro");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit_event(alice, expected_lp_amount, deposits);
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
         alice,
@@ -163,29 +135,21 @@ fn smallest_deposit() {
 
 #[test]
 fn deposit_only_yusd() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
+    let testing_env = TestingEnv::default();
     let deposits = (100.0, 0.0);
     let expected_lp_amount = 100.0;
 
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 99.0).unwrap();
-    let snapshot_after = Snapshot::take(&testing_env);
-
+    let (snapshot_before, snapshot_after) =
+        testing_env
+            .pool
+            .deposit_with_snapshots(&testing_env, &testing_env.alice, deposits, 99.0);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit_event(&testing_env.alice, expected_lp_amount, deposits);
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
-        alice,
+        &testing_env.alice,
         deposits,
         (0.0, 0.0),
         expected_lp_amount,
@@ -194,28 +158,21 @@ fn deposit_only_yusd() {
 
 #[test]
 fn deposit_only_yaro() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
+    let testing_env = TestingEnv::default();
     let deposits = (0.0, 100.0);
     let expected_lp_amount = 100.0;
 
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, deposits, 99.0).unwrap();
-    let snapshot_after = Snapshot::take(&testing_env);
+    let (snapshot_before, snapshot_after) =
+        testing_env
+            .pool
+            .deposit_with_snapshots(&testing_env, &testing_env.alice, deposits, 99.0);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yaro");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit_event(&testing_env.alice, expected_lp_amount, deposits);
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
-        alice,
+        &testing_env.alice,
         deposits,
         (0.0, 0.0),
         expected_lp_amount,
@@ -224,9 +181,8 @@ fn deposit_only_yaro() {
 
 #[test]
 fn deposit_twice_in_different_tokens() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
         ref pool,
         ref alice,
         ..
@@ -235,14 +191,12 @@ fn deposit_twice_in_different_tokens() {
     let expected_lp_amount = 200.0;
 
     let snapshot_before = Snapshot::take(&testing_env);
-    pool.deposit(alice, (100.0, 0.0), 99.0).unwrap();
-    pool.deposit(alice, (0.0, 100.0), 99.0).unwrap();
+    pool.deposit(alice, (100.0, 0.0), 99.0);
+    pool.deposit(alice, (0.0, 100.0), 99.0);
     let snapshot_after = Snapshot::take(&testing_env);
-
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd, 100 yaro");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
         alice,
@@ -254,14 +208,12 @@ fn deposit_twice_in_different_tokens() {
 
 #[test]
 fn get_reward_after_second_deposit() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::create(
-        &env,
+    let testing_env = TestingEnv::create(
         TestingEnvConfig::default()
             .with_pool_fee_share(0.01)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnvironment {
+    let TestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -272,20 +224,17 @@ fn get_reward_after_second_deposit() {
     let expected_rewards = (1.0012199, 0.9987799);
     let expected_lp_amount = 4000.0;
 
-    pool.deposit(alice, deposits, 4000.0).unwrap();
-    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B).unwrap();
-    pool.swap(bob, alice, 100.0, 99.0, Direction::B2A).unwrap();
+    pool.deposit(alice, deposits, 4000.0);
+    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B);
+    pool.swap(bob, alice, 100.0, 99.0, Direction::B2A);
 
-    let snapshot_before = Snapshot::take(&testing_env);
-
-    pool.deposit(alice, deposits, 4000.0).unwrap();
-    let snapshot_after = Snapshot::take(&testing_env);
+    let (snapshot_before, snapshot_after) =
+        pool.deposit_with_snapshots(&testing_env, alice, deposits, 4000.0);
     snapshot_before.print_change_with(&snapshot_after, "After second deposit");
 
-    pool.assert_total_lp_less_or_equal_d();
-    TestingEnvironment::assert_deposit_event(&env, alice, expected_lp_amount, deposits);
-    TestingEnvironment::assert_claimed_reward_event(&env, alice, expected_rewards);
-    TestingEnvironment::assert_deposit(
+    testing_env.assert_deposit_event(alice, expected_lp_amount, deposits);
+    testing_env.assert_claimed_reward_event(alice, expected_rewards);
+    testing_env.assert_deposit(
         snapshot_before,
         snapshot_after,
         alice,

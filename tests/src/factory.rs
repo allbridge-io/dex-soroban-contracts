@@ -1,155 +1,126 @@
-use soroban_sdk::Env;
+use crate::utils::TestingEnv;
 
-use crate::utils::{expect_auth_error, expect_contract_error, TestingEnvironment};
+#[test]
+#[should_panic = "Context(InvalidAction)"]
+fn add_new_pair_no_auth() {
+    let testing_env = TestingEnv::default();
+    let (yellow_token, duck_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
+    testing_env.clear_mock_auth();
+
+    testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &yellow_token.id,
+        &duck_token.id,
+        10,
+        10,
+    );
+}
+
+#[test]
+#[should_panic = "DexContract(IdenticalAddresses)"]
+fn identical_addresses() {
+    let testing_env = TestingEnv::default();
+    testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &testing_env.yaro_token.id,
+        &testing_env.yaro_token.id,
+        10,
+        10,
+    );
+}
+
+#[test]
+#[should_panic = "DexContract(InvalidArg)"]
+fn invalid_fee_share() {
+    let testing_env = TestingEnv::default();
+    let (yellow, duck) = TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
+
+    testing_env
+        .factory
+        .create_pair(&testing_env.admin, 10, &yellow.id, &duck.id, 10_000, 10);
+}
+
+#[test]
+#[should_panic = "DexContract(InvalidArg)"]
+fn invalid_admin_fee_share() {
+    let testing_env = TestingEnv::default();
+    let (yellow_token, duck_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
+
+    testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &yellow_token.id,
+        &duck_token.id,
+        10,
+        10_000,
+    );
+}
+
+#[test]
+#[should_panic = "DexContract(PairExist)"]
+fn pair_exist() {
+    let testing_env = TestingEnv::default();
+
+    testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &testing_env.yaro_token.id,
+        &testing_env.yusd_token.id,
+        10,
+        10,
+    );
+}
+
+#[test]
+#[should_panic = "DexContract(PairExist)"]
+fn pair_exist_reverse() {
+    let testing_env = TestingEnv::default();
+    testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &testing_env.yusd_token.id,
+        &testing_env.yaro_token.id,
+        10,
+        10,
+    );
+}
 
 #[test]
 fn add_new_pair() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
+    let testing_env = TestingEnv::default();
     let (yellow_token, duck_token) =
-        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
+        TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
 
-    let deployed_pool = testing_env
-        .factory
-        .create_pair(
-            &testing_env.admin,
-            10,
-            &yellow_token.id,
-            &duck_token.id,
-            10,
-            10,
-        )
-        .unwrap();
+    let deployed_pool = testing_env.factory.create_pair(
+        &testing_env.admin,
+        10,
+        &yellow_token.id,
+        &duck_token.id,
+        10,
+        10,
+    );
 
-    let pool = testing_env
-        .factory
-        .get_pool(&yellow_token.id, &duck_token.id)
-        .unwrap();
+    let pool = testing_env.factory.pool(&yellow_token.id, &duck_token.id);
 
     assert_eq!(deployed_pool, pool);
 }
 
 #[test]
-fn add_new_pair_no_auth() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let (yellow_token, duck_token) =
-        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
-
-    env.mock_auths(&[]);
-    let call_resulktt = testing_env.factory.create_pair(
-        &testing_env.admin,
-        10,
-        &yellow_token.id,
-        &duck_token.id,
-        10,
-        10,
-    );
-
-    expect_auth_error(&env, call_resulktt);
-}
-
-#[test]
-fn identical_addresses() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
-        ref yaro_token,
-        ref admin,
-        ..
-    } = testing_env;
-
-    let call_result =
-        testing_env
-            .factory
-            .create_pair(admin, 10, &yaro_token.id, &yaro_token.id, 10, 10);
-
-    expect_contract_error(&env, call_result, shared::Error::IdenticalAddresses);
-}
-
-#[test]
-fn invalid_fee_share() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let (yellow_token, duck_token) =
-        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
-
-    let call_result = testing_env.factory.create_pair(
-        &testing_env.admin,
-        10,
-        &yellow_token.id,
-        &duck_token.id,
-        10_000,
-        10,
-    );
-
-    expect_contract_error(&env, call_result, shared::Error::InvalidArg);
-}
-
-#[test]
-fn invalid_admin_fee_share() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let (yellow_token, duck_token) =
-        TestingEnvironment::generate_token_pair(&env, &testing_env.admin);
-
-    let call_result = testing_env.factory.create_pair(
-        &testing_env.admin,
-        10,
-        &yellow_token.id,
-        &duck_token.id,
-        10,
-        10_000,
-    );
-
-    expect_contract_error(&env, call_result, shared::Error::InvalidArg);
-}
-
-#[test]
-fn pair_exist() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
-        ref yaro_token,
-        ref yusd_token,
-        ref admin,
-        ..
-    } = testing_env;
-
-    let call_result =
-        testing_env
-            .factory
-            .create_pair(admin, 10, &yaro_token.id, &yusd_token.id, 10, 10);
-
-    expect_contract_error(&env, call_result, shared::Error::PairExist);
-
-    let call_result =
-        testing_env
-            .factory
-            .create_pair(admin, 10, &yusd_token.id, &yaro_token.id, 10, 10);
-
-    expect_contract_error(&env, call_result, shared::Error::PairExist);
-}
-
-#[test]
 fn get_pool() {
-    let env = Env::default();
-    let testing_env = TestingEnvironment::default(&env);
-    let TestingEnvironment {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
         ref yaro_token,
         ref yusd_token,
         ..
     } = testing_env;
 
-    let pool = testing_env
-        .factory
-        .get_pool(&yaro_token.id, &yusd_token.id)
-        .unwrap();
+    let pool = testing_env.factory.pool(&yaro_token.id, &yusd_token.id);
     assert_eq!(pool, testing_env.pool.id);
 
-    let pool = testing_env
-        .factory
-        .get_pool(&yusd_token.id, &yaro_token.id)
-        .unwrap();
+    let pool = testing_env.factory.pool(&yusd_token.id, &yaro_token.id);
     assert_eq!(pool, testing_env.pool.id);
 }

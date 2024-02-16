@@ -1,11 +1,13 @@
+use std::ops::RangeInclusive;
+
 use soroban_sdk::{testutils::Address as _, Address, Env};
 
 use crate::{
     contracts::pool::{Deposit, Direction, RewardsClaimed, Swapped, Withdraw},
-    utils::{assert_rel_eq, float_to_uint, float_to_uint_sp},
+    utils::{assert_rel_eq, float_range_to_uint, float_to_uint, float_to_uint_sp},
 };
 
-use super::{get_latest_event, CallResult, Pool, PoolFactory, Snapshot, Token, User};
+use super::{get_latest_event, Pool, PoolFactory, Snapshot, Token, User};
 
 #[derive(Debug, Clone)]
 pub struct TestingEnvConfig {
@@ -28,9 +30,8 @@ impl TestingEnvConfig {
         self
     }
 
-    // TODO: This is not BP
-    pub fn with_pool_fee_share(mut self, fee_share_bp: f64) -> Self {
-        self.pool_fee_share = fee_share_bp;
+    pub fn with_pool_fee_share(mut self, fee_share: f64) -> Self {
+        self.pool_fee_share = fee_share;
         self
     }
 }
@@ -46,11 +47,9 @@ impl Default for TestingEnvConfig {
 }
 
 #[allow(dead_code)]
-pub struct TestingEnvironment {
-    config: TestingEnvConfig,
-
+pub struct TestingEnv {
+    pub env: Env,
     pub admin: Address,
-
     pub native_token: Token,
 
     pub alice: User,
@@ -63,28 +62,32 @@ pub struct TestingEnvironment {
     pub factory: PoolFactory,
 }
 
-impl TestingEnvironment {
-    pub fn default(env: &Env) -> TestingEnvironment {
-        Self::create(env, TestingEnvConfig::default())
+impl Default for TestingEnv {
+    fn default() -> Self {
+        Self::create(TestingEnvConfig::default())
     }
+}
 
-    pub fn create(env: &Env, config: TestingEnvConfig) -> TestingEnvironment {
+impl TestingEnv {
+    pub fn create(config: TestingEnvConfig) -> TestingEnv {
+        let env = Env::default();
+
         env.mock_all_auths();
         env.budget().reset_limits(u64::MAX, u64::MAX);
 
-        let admin = Address::generate(env);
-        let native_token = Token::create(env, &admin);
-        let alice = User::generate(env, "alice");
-        let bob = User::generate(env, "bob");
+        let admin = Address::generate(&env);
+        let native_token = Token::create(&env, &admin);
+        let alice = User::generate(&env, "alice");
+        let bob = User::generate(&env, "bob");
 
-        let factory = PoolFactory::create(env, &admin);
+        let factory = PoolFactory::create(&env, &admin);
 
         native_token.airdrop_user(&alice);
         native_token.airdrop_user(&bob);
 
-        let (yusd_token, yaro_token) = TestingEnvironment::generate_token_pair(env, &admin);
-        let pool = TestingEnvironment::create_pool(
-            env,
+        let (yusd_token, yaro_token) = TestingEnv::generate_token_pair(&env, &admin);
+        let pool = TestingEnv::create_pool(
+            &env,
             &factory,
             &admin,
             &yusd_token,
@@ -92,8 +95,7 @@ impl TestingEnvironment {
             config.pool_fee_share,
             config.pool_admin_fee,
             config.admin_init_deposit,
-        )
-        .unwrap();
+        );
 
         yusd_token.airdrop_user(&alice);
         yusd_token.airdrop_user(&bob);
@@ -101,8 +103,8 @@ impl TestingEnvironment {
         yaro_token.airdrop_user(&alice);
         yaro_token.airdrop_user(&bob);
 
-        TestingEnvironment {
-            config,
+        TestingEnv {
+            env,
 
             admin,
             native_token,
@@ -117,18 +119,15 @@ impl TestingEnvironment {
         }
     }
 
+    pub fn clear_mock_auth(&self) {
+        self.env.mock_auths(&[]);
+    }
+
     pub fn generate_token_pair(env: &Env, admin: &Address) -> (Token, Token) {
         let token_a = Token::create(env, admin);
         let token_b = Token::create(env, admin);
 
         (token_a, token_b)
-    }
-
-    pub fn get_tokens_by_direction(&self, direction: Direction) -> (&Token, &Token) {
-        match direction {
-            Direction::A2B => (&self.yusd_token, &self.yaro_token),
-            Direction::B2A => (&self.yaro_token, &self.yusd_token),
-        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -141,7 +140,7 @@ impl TestingEnvironment {
         fee_share: f64,
         admin_fee: f64,
         admin_init_deposit: f64,
-    ) -> CallResult<Pool> {
+    ) -> Pool {
         let fee_share_bp = Pool::convert_to_bp(fee_share);
         let admin_fee_bp = Pool::convert_to_bp(admin_fee);
         let a = 20;
@@ -152,7 +151,7 @@ impl TestingEnvironment {
             &token_b.id,
             fee_share_bp,
             admin_fee_bp,
-        )?;
+        );
 
         let pool = Pool::new(env, pool);
 
@@ -162,19 +161,18 @@ impl TestingEnvironment {
         token_b.airdrop_amount(admin, admin_init_deposit * 2.0);
 
         if admin_init_deposit > 0.0 {
-            pool.deposit_with_address(admin, (admin_init_deposit, admin_init_deposit), 0.0)
-                .unwrap();
+            pool.deposit_with_address(admin, (admin_init_deposit, admin_init_deposit), 0.0);
         }
 
-        Ok(pool)
+        pool
     }
 
     pub fn assert_claimed_reward_event(
-        env: &Env,
+        &self,
         expected_user: &User,
         (expected_yusd_reward, expected_yaro_reward): (f64, f64),
     ) {
-        let rewards_claimed = get_latest_event::<RewardsClaimed>(env).unwrap();
+        let rewards_claimed = get_latest_event::<RewardsClaimed>(&self.env).unwrap();
 
         assert_eq!(rewards_claimed.user, expected_user.as_address());
         assert_rel_eq(
@@ -189,18 +187,16 @@ impl TestingEnvironment {
         );
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn assert_swapped_event(
         &self,
-        env: &Env,
         sender: &User,
         recipient: &User,
         directin: Direction,
         from_amount: f64,
-        expected_to_amount: u128,
+        expected_to_amount: f64,
         extected_fee: u128,
     ) {
-        let swapped = get_latest_event::<Swapped>(env).unwrap();
+        let swapped = get_latest_event::<Swapped>(&self.env).unwrap();
 
         let (from_token, to_token) = match directin {
             Direction::A2B => (self.yusd_token.as_address(), self.yaro_token.as_address()),
@@ -211,7 +207,7 @@ impl TestingEnvironment {
         assert_eq!(swapped.recipient, recipient.as_address());
 
         assert_eq!(swapped.from_amount, float_to_uint(from_amount, 7));
-        assert_eq!(swapped.to_amount, expected_to_amount);
+        assert_eq!(swapped.to_amount, float_to_uint(expected_to_amount, 7));
         assert_rel_eq(swapped.fee, extected_fee, 10);
 
         assert_eq!(swapped.from_token, from_token);
@@ -219,12 +215,12 @@ impl TestingEnvironment {
     }
 
     pub fn assert_withdraw_event(
-        env: &Env,
+        &self,
         expected_user: &User,
         lp_amount: f64,
         (yusd_amount, yaro_amount): (f64, f64),
     ) {
-        let withdraw = get_latest_event::<Withdraw>(env).unwrap();
+        let withdraw = get_latest_event::<Withdraw>(&self.env).unwrap();
 
         assert_eq!(withdraw.user, expected_user.as_address());
         assert_rel_eq(withdraw.amounts.0, float_to_uint_sp(yusd_amount), 2);
@@ -233,12 +229,12 @@ impl TestingEnvironment {
     }
 
     pub fn assert_deposit_event(
-        env: &Env,
+        &self,
         expected_user: &User,
         expected_lp_amount: f64,
         (yusd_deposit, yaro_deposit): (f64, f64),
     ) {
-        let deposit = get_latest_event::<Deposit>(env).unwrap();
+        let deposit = get_latest_event::<Deposit>(&self.env).unwrap();
 
         assert_eq!(deposit.user, expected_user.as_address());
         assert_eq!(deposit.amounts.0, float_to_uint(yusd_deposit, 7));
@@ -247,6 +243,7 @@ impl TestingEnvironment {
     }
 
     pub fn assert_deposit(
+        &self,
         snapshot_before: Snapshot,
         snapshot_after: Snapshot,
         user: &User,
@@ -254,6 +251,8 @@ impl TestingEnvironment {
         (expected_yusd_reward, expected_yaro_reward): (f64, f64),
         expected_lp_amount: f64,
     ) {
+        self.pool.assert_total_lp_less_or_equal_d();
+
         let (user_yusd_before, user_yaro_before, user_lp_amount_before) =
             snapshot_before.get_user_balances(user);
         let (user_yusd_after, user_yaro_after, user_lp_amount_after) =
@@ -290,6 +289,7 @@ impl TestingEnvironment {
     }
 
     pub fn assert_withdraw(
+        &self,
         snapshot_before: Snapshot,
         snapshot_after: Snapshot,
         user: &User,
@@ -297,6 +297,13 @@ impl TestingEnvironment {
         (expected_yusd_reward, expected_yaro_reward): (f64, f64),
         expected_user_withdraw_lp_diff: f64,
     ) {
+        self.pool.assert_total_lp_less_or_equal_d();
+        self.assert_withdraw_event(
+            user,
+            expected_user_withdraw_lp_diff,
+            (yusd_amount, yaro_amount),
+        );
+
         let (user_yusd_before, user_yaro_before, user_lp_amount_before) =
             snapshot_before.get_user_balances(user);
         let (user_yusd_after, user_yaro_after, user_lp_amount_after) =
@@ -329,11 +336,15 @@ impl TestingEnvironment {
     }
 
     pub fn assert_claim(
+        &self,
         snapshot_before: Snapshot,
         snapshot_after: Snapshot,
         user: &User,
         (yusd_reward, yaro_reward): (f64, f64),
     ) {
+        self.pool.assert_total_lp_less_or_equal_d();
+        self.assert_claimed_reward_event(user, (yusd_reward, yaro_reward));
+
         let (user_yusd_before, user_yaro_before, _) = snapshot_before.get_user_balances(user);
         let (user_yusd_after, user_yaro_after, _) = snapshot_after.get_user_balances(user);
 
@@ -381,17 +392,26 @@ impl TestingEnvironment {
         snapshot_after: Snapshot,
         sender: &User,
         recipient: &User,
-        // TODO: Typo
-        directin: Direction,
+        direction: Direction,
         amount: f64,
-        receive_amount_min: f64,
-        // TODO: Change to f64
-        expected_receive_amount: u128,
+        receive_amount_range: RangeInclusive<f64>,
+        expected_receive_amount: f64,
+        fee: u128,
     ) {
+        self.pool.assert_total_lp_less_or_equal_d();
+        self.assert_swapped_event(
+            sender,
+            recipient,
+            direction.clone(),
+            amount,
+            expected_receive_amount,
+            fee,
+        );
+
         let sender_tag = sender.tag;
         let recipient_tag = recipient.tag;
 
-        let (from_token_tag, to_token_tag) = match directin {
+        let (from_token_tag, to_token_tag) = match direction {
             Direction::A2B => ("yusd", "yaro"),
             Direction::B2A => ("yaro", "yusd"),
         };
@@ -402,7 +422,8 @@ impl TestingEnvironment {
         let pool_to_balance_key = format!("pool_{to_token_tag}_balance");
         let acc_reward_token_to_per_share_p_key = format!("acc_reward_{to_token_tag}_per_share_p");
 
-        let receive_amount_min = float_to_uint(receive_amount_min, 7);
+        let receive_amount_range = float_range_to_uint(receive_amount_range, 7);
+        let expected_receive_amount = float_to_uint(expected_receive_amount, 7);
         let amount = float_to_uint(amount, 7);
 
         let sender_from_token_diff =
@@ -420,13 +441,15 @@ impl TestingEnvironment {
             snapshot_after[&acc_reward_token_to_per_share_p_key]
                 > snapshot_before[&acc_reward_token_to_per_share_p_key]
         );
-        assert!(recipient_to_token_diff >= receive_amount_min);
-        // TODO: Assert almost equal
-        assert!(recipient_to_token_diff <= expected_receive_amount);
 
-        assert!(pool_to_token_diff >= receive_amount_min);
-        // TODO: Assert almost equal
-        assert!(pool_to_token_diff <= expected_receive_amount);
+        assert_eq!(recipient_to_token_diff, expected_receive_amount);
+        assert_eq!(pool_to_token_diff, expected_receive_amount);
+
+        assert!(receive_amount_range.contains(&recipient_to_token_diff));
+        assert!(receive_amount_range.contains(&expected_receive_amount));
+
+        assert!(receive_amount_range.contains(&pool_to_token_diff));
+        assert!(receive_amount_range.contains(&expected_receive_amount));
 
         assert_eq!(sender_from_token_diff, amount);
         assert_eq!(pool_from_token_diff, amount);

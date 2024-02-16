@@ -6,8 +6,8 @@ use soroban_sdk::{Address, Env};
 use crate::{
     contracts::pool::{self, Direction, UserDeposit},
     utils::{
-        desoroban_result, float_to_uint, float_to_uint_sp, uint_to_float_sp, CallResult,
-        SYSTEM_PRECISION,
+        desoroban_result, float_to_uint, float_to_uint_sp, uint_to_float_sp, unwrap_call_result,
+        CallResult, Snapshot, TestingEnv, SYSTEM_PRECISION,
     },
 };
 
@@ -37,6 +37,7 @@ pub fn sqrt(n: &U256) -> U256 {
 pub struct Pool {
     pub id: soroban_sdk::Address,
     pub client: pool::Client<'static>,
+    pub env: Env,
 }
 
 impl Pool {
@@ -44,7 +45,11 @@ impl Pool {
 
     pub fn new(env: &Env, id: Address) -> Pool {
         let client = pool::Client::new(env, &id);
-        Pool { id, client }
+        Pool {
+            id,
+            client,
+            env: env.clone(),
+        }
     }
 
     pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
@@ -87,17 +92,23 @@ impl Pool {
         (v * 10_000.0) as u128
     }
 
-    pub fn set_admin_fee_share(&self, admin_fee: f64) -> CallResult {
-        desoroban_result(
-            self.client
-                .try_set_admin_fee_share(&Pool::convert_to_bp(admin_fee)),
+    pub fn set_admin_fee_share(&self, admin_fee: f64) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(
+                self.client
+                    .try_set_admin_fee_share(&Pool::convert_to_bp(admin_fee)),
+            ),
         )
     }
 
-    pub fn set_fee_share(&self, fee_share: f64) -> CallResult {
-        desoroban_result(
-            self.client
-                .try_set_fee_share(&Pool::convert_to_bp(fee_share)),
+    pub fn set_fee_share(&self, fee_share: f64) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(
+                self.client
+                    .try_set_fee_share(&Pool::convert_to_bp(fee_share)),
+            ),
         )
     }
 
@@ -113,23 +124,8 @@ impl Pool {
         );
     }
 
-    pub fn user_lp_amount(&self, user: &User) -> u128 {
-        self.user_deposit(user).lp_amount
-    }
-
     pub fn user_lp_amount_f64(&self, user: &User) -> f64 {
         uint_to_float_sp(self.user_deposit(user).lp_amount)
-    }
-
-    pub fn withdraw_amounts(&self, user: &User) -> (f64, f64) {
-        let user_lp_amount = self.user_lp_amount(user);
-        let token_a_amount = self.token_a_balance() * user_lp_amount / self.total_lp_amount();
-        let token_b_amount = self.token_b_balance() * user_lp_amount / self.total_lp_amount();
-
-        (
-            uint_to_float_sp(token_a_amount),
-            uint_to_float_sp(token_b_amount),
-        )
     }
 
     pub fn token_a_balance(&self) -> u128 {
@@ -168,30 +164,69 @@ impl Pool {
         self.client.get_user_deposit(id)
     }
 
-    pub fn claim_rewards(&self, user: &User) -> CallResult {
-        desoroban_result(self.client.try_claim_rewards(&user.as_address()))
+    pub fn claim_rewards(&self, user: &User) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_claim_rewards(&user.as_address())),
+        )
     }
 
-    pub fn claim_admin_fee(&self) -> CallResult {
-        desoroban_result(self.client.try_claim_admin_fee())
+    pub fn claim_rewards_with_snapshots(
+        &self,
+        testing_env: &TestingEnv,
+        user: &User,
+    ) -> (Snapshot, Snapshot) {
+        let snapshot_before = Snapshot::take(testing_env);
+        self.claim_rewards(user);
+        let snapshot_after = Snapshot::take(testing_env);
+        snapshot_before.print_change_with(&snapshot_after, "Alice claim rewards");
+
+        (snapshot_before, snapshot_after)
     }
 
-    pub fn withdraw(&self, user: &User, withdraw_amount: f64) -> CallResult {
+    pub fn claim_admin_fee(&self) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_claim_admin_fee()),
+        )
+    }
+
+    pub fn claim_admin_fee_with_snapshots(&self, testing_env: &TestingEnv) -> (Snapshot, Snapshot) {
+        let snapshot_before = Snapshot::take(testing_env);
+        self.claim_admin_fee();
+        let snapshot_after = Snapshot::take(testing_env);
+        snapshot_before.print_change_with(&snapshot_after, "Alice claim rewards");
+
+        (snapshot_before, snapshot_after)
+    }
+
+    pub fn withdraw_checked(&self, user: &User, withdraw_amount: f64) -> CallResult {
         desoroban_result(
             self.client
                 .try_withdraw(&user.as_address(), &float_to_uint_sp(withdraw_amount)),
         )
     }
 
-    pub fn withdraw_raw(&self, user: &User, withdraw_amount: u128) -> CallResult {
-        desoroban_result(
-            self.client
-                .try_withdraw(&user.as_address(), &withdraw_amount),
-        )
+    pub fn withdraw(&self, user: &User, withdraw_amount: f64) {
+        unwrap_call_result(&self.env, self.withdraw_checked(user, withdraw_amount))
+    }
+
+    pub fn withdraw_with_snapshots(
+        &self,
+        testing_env: &TestingEnv,
+        user: &User,
+        withdraw_amount: f64,
+    ) -> (Snapshot, Snapshot) {
+        let snapshot_before = Snapshot::take(testing_env);
+        self.withdraw(user, withdraw_amount);
+        let snapshot_after = Snapshot::take(testing_env);
+        snapshot_before.print_change_with(&snapshot_after, "Alice claim rewards");
+
+        (snapshot_before, snapshot_after)
     }
 
     /// (yusd, yaro)
-    pub fn deposit_with_address(
+    pub fn deposit_with_address_checked(
         &self,
         user: &Address,
         deposit_amounts: (f64, f64),
@@ -208,16 +243,49 @@ impl Pool {
     }
 
     /// (yusd, yaro)
-    pub fn deposit(
+    pub fn deposit_with_address(
+        &self,
+        user: &Address,
+        deposit_amounts: (f64, f64),
+        min_lp_amount: f64,
+    ) {
+        unwrap_call_result(
+            &self.env,
+            self.deposit_with_address_checked(user, deposit_amounts, min_lp_amount),
+        )
+    }
+
+    /// (yusd, yaro)
+    pub fn deposit_checked(
         &self,
         user: &User,
         deposit_amounts: (f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
+        self.deposit_with_address_checked(&user.as_address(), deposit_amounts, min_lp_amount)
+    }
+
+    /// (yusd, yaro)
+    pub fn deposit(&self, user: &User, deposit_amounts: (f64, f64), min_lp_amount: f64) {
         self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount)
     }
 
-    pub fn swap(
+    /// (yusd, yaro)
+    pub fn deposit_with_snapshots(
+        &self,
+        testing_env: &TestingEnv,
+        user: &User,
+        deposit_amounts: (f64, f64),
+        min_lp_amount: f64,
+    ) -> (Snapshot, Snapshot) {
+        let snapshot_before = Snapshot::take(testing_env);
+        self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
+        let snapshot_after = Snapshot::take(testing_env);
+
+        (snapshot_before, snapshot_after)
+    }
+
+    pub fn swap_checked(
         &self,
         sender: &User,
         recipient: &User,
@@ -232,6 +300,20 @@ impl Pool {
             &float_to_uint(receive_amount_min, 7),
             &direction,
         ))
+    }
+
+    pub fn swap(
+        &self,
+        sender: &User,
+        recipient: &User,
+        amount: f64,
+        receive_amount_min: f64,
+        direction: Direction,
+    ) {
+        unwrap_call_result(
+            &self.env,
+            self.swap_checked(sender, recipient, amount, receive_amount_min, direction),
+        );
     }
 
     pub fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {

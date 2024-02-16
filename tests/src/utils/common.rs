@@ -2,21 +2,45 @@ use std::{
     any::type_name,
     cmp::Ordering,
     fmt::{Debug, Display},
+    ops::RangeInclusive,
 };
 
 use color_print::cformat;
 use soroban_sdk::{
-    testutils::Events, Address, BytesN, ConversionError, Env, Error as SorobanError, FromVal,
-    InvokeError, Symbol, TryFromVal, Val,
+    testutils::Events,
+    xdr::{ScError, ScVal},
+    Address, BytesN, ConversionError, Env, Error as SorobanError, FromVal, InvokeError, Symbol,
+    TryFromVal, Val,
 };
 
 use soroban_sdk::xdr::ScAddress;
 
 pub const SYSTEM_PRECISION: u32 = 3;
 
+pub fn error_code_to_error(v: u32) -> shared::Error {
+    // don't try this at home
+    unsafe { std::mem::transmute(v) }
+}
+
 pub type CallResult<T = ()> = Result<T, SorobanError>;
 pub type SorobanCallResult<T, E = ConversionError> =
     Result<Result<T, E>, Result<SorobanError, InvokeError>>;
+
+pub fn unwrap_call_result<T>(env: &Env, call_result: CallResult<T>) -> T {
+    let Err(error) = call_result else {
+        return call_result.unwrap();
+    };
+
+    let val = ScVal::from_val(env, error.as_val());
+    let sc_error = ScError::try_from(val).expect("Expect ScError");
+
+    match sc_error {
+        ScError::Contract(contract_error) => {
+            panic!("DexContract({:?})", error_code_to_error(contract_error))
+        }
+        _ => panic!("{:?}", sc_error),
+    }
+}
 
 pub fn desoroban_result<T, E: Debug>(soroban_result: SorobanCallResult<T, E>) -> CallResult<T> {
     soroban_result.map(Result::unwrap).map_err(Result::unwrap)
@@ -29,6 +53,13 @@ pub fn int_to_float(amount: i128, decimals: i32) -> f64 {
 pub fn float_to_uint(amount: f64, decimals: u32) -> u128 {
     assert!(amount >= 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
+}
+
+pub fn float_range_to_uint(range: RangeInclusive<f64>, decimals: u32) -> RangeInclusive<u128> {
+    let min = float_to_uint(*range.start(), decimals);
+    let max = float_to_uint(*range.end(), decimals);
+
+    min..=max
 }
 
 pub fn uint_to_float(amount: u128, decimals: u32) -> f64 {

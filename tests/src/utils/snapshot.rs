@@ -2,7 +2,7 @@ use std::{cmp::Ordering, ops::Index};
 
 use color_print::cformat;
 
-use super::{int_to_float, TestingEnvironment, User};
+use super::{int_to_float, TestingEnv, User};
 use crate::{
     contracts::pool::{Pool as PoolInfo, UserDeposit},
     utils::format_diff,
@@ -139,7 +139,7 @@ impl Snapshot {
         assert_eq!(self.admin_yaro_fee_rewards, other.admin_yaro_fee_rewards);
     }
 
-    pub fn take(testing_env: &TestingEnvironment) -> Snapshot {
+    pub fn take(testing_env: &TestingEnv) -> Snapshot {
         let alice_address = testing_env.alice.as_address();
         let bob_address = testing_env.bob.as_address();
 

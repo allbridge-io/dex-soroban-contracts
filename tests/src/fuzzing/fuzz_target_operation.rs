@@ -4,7 +4,7 @@ use rand_derive2::RandGen;
 use serde_derive::Serialize;
 
 use crate::contracts::pool::Direction;
-use crate::utils::{CallResult, TestingEnvironment, User};
+use crate::utils::{CallResult, TestingEnv, User};
 
 #[derive(Debug, Clone, Default)]
 pub struct Action {
@@ -54,7 +54,7 @@ pub enum UserID {
 }
 
 impl UserID {
-    pub fn get_user<'a>(&self, testing_env: &'a TestingEnvironment) -> &'a User {
+    pub fn get_user<'a>(&self, testing_env: &'a TestingEnv) -> &'a User {
         match self {
             UserID::Alice => &testing_env.alice,
             UserID::Bob => &testing_env.bob,
@@ -130,7 +130,7 @@ impl FuzzTargetOperation {
         (&mut rng).sample_iter(Standard).take(len).collect()
     }
 
-    pub fn execute(&self, testing_env: &TestingEnvironment) -> CallResult<()> {
+    pub fn execute(&self, testing_env: &TestingEnv) -> CallResult {
         match self {
             FuzzTargetOperation::Swap {
                 direction,
@@ -144,15 +144,16 @@ impl FuzzTargetOperation {
 
                 testing_env
                     .pool
-                    .swap(sender, recipient, amount.0, 0.0, direction)
-                    .map(|_| ())
+                    .swap_checked(sender, recipient, amount.0, 0.0, direction)?;
+
+                Ok(())
             }
 
             FuzzTargetOperation::Deposit {
                 yaro_amount,
                 yusd_amount,
                 user,
-            } => testing_env.pool.deposit(
+            } => testing_env.pool.deposit_checked(
                 user.get_user(testing_env),
                 (yusd_amount.0, yaro_amount.0),
                 0.0,
@@ -160,7 +161,7 @@ impl FuzzTargetOperation {
 
             FuzzTargetOperation::Withdraw { lp_amount, user } => testing_env
                 .pool
-                .withdraw(user.get_user(testing_env), lp_amount.0),
+                .withdraw_checked(user.get_user(testing_env), lp_amount.0),
         }
     }
 

@@ -2,12 +2,13 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::factory,
-    utils::{desoroban_result, CallResult},
+    utils::{desoroban_result, unwrap_call_result},
 };
 
 pub struct PoolFactory {
     pub id: soroban_sdk::Address,
     pub client: factory::Client<'static>,
+    pub env: Env,
 }
 
 impl PoolFactory {
@@ -17,7 +18,11 @@ impl PoolFactory {
 
         client.initialize(admin);
 
-        PoolFactory { id, client }
+        PoolFactory {
+            id,
+            client,
+            env: env.clone(),
+        }
     }
 
     pub fn create_pair(
@@ -28,19 +33,25 @@ impl PoolFactory {
         token_b: &Address,
         fee_share_bp: u128,
         admin_fee: u128,
-    ) -> CallResult<Address> {
-        desoroban_result(self.client.try_create_pair(
-            admin,
-            admin,
-            &a,
-            token_a,
-            token_b,
-            &fee_share_bp,
-            &admin_fee,
-        ))
+    ) -> Address {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_create_pair(
+                admin,
+                admin,
+                &a,
+                token_a,
+                token_b,
+                &fee_share_bp,
+                &admin_fee,
+            )),
+        )
     }
 
-    pub fn get_pool(&self, token_a: &Address, token_b: &Address) -> CallResult<Address> {
-        desoroban_result(self.client.try_pool(token_a, token_b))
+    pub fn pool(&self, token_a: &Address, token_b: &Address) -> Address {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_pool(token_a, token_b)),
+        )
     }
 }

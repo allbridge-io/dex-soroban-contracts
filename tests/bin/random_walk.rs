@@ -1,9 +1,8 @@
 use clap::Parser;
 use clap_derive::Parser;
 use csv::Writer;
-use soroban_sdk::Env;
 use tests::fuzzing::fuzz_target_operation::{ActionPoolChange, FuzzTargetOperation};
-use tests::utils::{TestingEnvConfig, TestingEnvironment};
+use tests::utils::{TestingEnv, TestingEnvConfig};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -57,11 +56,8 @@ fn main() {
 
     let operations = FuzzTargetOperation::generate_run(run_len);
 
-    let env = Env::default();
-    let testing_env = TestingEnvironment::create(
-        &env,
-        TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
-    );
+    let testing_env =
+        TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0));
 
     let mut run_result = RunResult::default();
 

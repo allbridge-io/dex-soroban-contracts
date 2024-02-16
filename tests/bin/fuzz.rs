@@ -6,10 +6,9 @@ use std::{
 use clap::Parser;
 use clap_derive::Parser;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use soroban_sdk::Env;
 
 use tests::fuzzing::fuzz_target_operation::FuzzTargetOperation;
-use tests::utils::{Snapshot, TestingEnvConfig, TestingEnvironment};
+use tests::utils::{Snapshot, TestingEnvConfig, TestingEnv};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -89,9 +88,7 @@ fn main() {
         .collect::<Vec<_>>();
 
     runs.par_iter().for_each(|operations| {
-        let env = Env::default();
-        let testing_env = TestingEnvironment::create(
-            &env,
+        let testing_env = TestingEnv::create(
             TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
         );
 

@@ -151,7 +151,7 @@ impl Pool {
         let d0 = self.total_lp_amount;
 
         if d0 == 0 {
-            require!(amounts.data.0 == amounts.data.1, Error::NotEnoughAmount);
+            require!(amounts.data.0 == amounts.data.1, Error::InvalidFirstDeposit);
         }
 
         let amounts_sp = DoubleU128::from((
