@@ -21,7 +21,6 @@ pub struct WithdrawAmount {
 pub struct DepositAmount {
     pub lp_amount: u128,
     pub new_token_balances: DoubleU128,
-    pub amounts_sp: DoubleU128,
 }
 
 impl Pool {
@@ -141,7 +140,6 @@ impl Pool {
         Ok(DepositAmount {
             lp_amount,
             new_token_balances,
-            amounts_sp,
         })
     }
 }
