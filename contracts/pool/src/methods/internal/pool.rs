@@ -31,73 +31,13 @@ impl Direction {
     }
 }
 
-pub struct ReceiveAmount {
-    pub token_from_new_balance: u128,
-    pub token_to_new_balance: u128,
-    pub output: u128,
-    pub fee: u128,
-}
-
 impl Pool {
     pub const BP: u128 = 10000;
 
-    const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
-    const SYSTEM_PRECISION: u32 = 3;
+    pub(crate) const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
+    pub(crate) const SYSTEM_PRECISION: u32 = 3;
 
     pub const P: u128 = 48;
-
-    pub fn get_receive_amount(
-        &self,
-        input: u128,
-        token_from: Token,
-    ) -> Result<ReceiveAmount, Error> {
-        let token_to = token_from.opposite();
-        let d0 = self.total_lp_amount;
-        let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
-        let mut output = 0;
-
-        let token_from_new_balance = self.token_balances[token_from] + input_sp;
-
-        let token_to_new_balance = self.get_y(token_from_new_balance, d0)?;
-        if self.token_balances[token_to] > token_to_new_balance {
-            output = self.amount_from_system_precision(
-                self.token_balances[token_to] - token_to_new_balance,
-                self.tokens_decimals[token_to],
-            );
-        }
-        let fee = output * self.fee_share_bp / Self::BP;
-
-        output -= fee;
-
-        Ok(ReceiveAmount {
-            token_from_new_balance,
-            token_to_new_balance,
-            output,
-            fee,
-        })
-    }
-
-    pub fn get_send_amount(&self, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
-        let token_from = token_to.opposite();
-        let d0 = self.total_lp_amount;
-        let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
-        let output_with_fee = output + fee;
-        let output_sp =
-            self.amount_to_system_precision(output_with_fee, self.tokens_decimals[token_to]);
-        let mut input = 0;
-
-        let token_to_new_balance = self.token_balances[token_to] - output_sp;
-
-        let token_from_new_amount = self.get_y(token_to_new_balance, d0)?;
-        if self.token_balances[token_from] < token_from_new_amount {
-            input = self.amount_from_system_precision(
-                token_from_new_amount - self.token_balances[token_from],
-                self.tokens_decimals[token_from],
-            );
-        }
-
-        Ok((input, fee))
-    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn swap(
@@ -148,18 +88,15 @@ impl Pool {
         min_lp_amount: u128,
     ) -> Result<(DoubleU128, u128), Error> {
         let current_contract = env.current_contract_address();
-        let d0 = self.total_lp_amount;
 
-        if d0 == 0 {
+        if self.total_lp_amount == 0 {
             require!(amounts.data.0 == amounts.data.1, Error::InvalidFirstDeposit);
         }
 
-        let amounts_sp = DoubleU128::from((
-            self.amount_to_system_precision(amounts[0], self.tokens_decimals[0]),
-            self.amount_to_system_precision(amounts[1], self.tokens_decimals[1]),
-        ));
-        let total_amount = amounts_sp.sum();
-        require!(total_amount > 0, Error::ZeroAmount);
+        let deposit_amount = self.get_deposit_amount(amounts.clone())?;
+        self.token_balances = deposit_amount.new_token_balances;
+
+        require!(deposit_amount.lp_amount >= min_lp_amount, Error::Slippage);
 
         for (index, amount) in amounts.to_array().into_iter().enumerate() {
             if amount == 0 {
@@ -171,23 +108,9 @@ impl Pool {
                 &current_contract,
                 &safe_cast(amount)?,
             );
-
-            self.token_balances[index] += amounts_sp[index];
         }
 
-        let d1 = self.get_current_d();
-
-        require!(d1 > d0, Error::Forbidden);
-
-        let lp_amount = d1 - d0;
-
-        require!(lp_amount >= min_lp_amount, Error::Slippage);
-        require!(
-            self.token_balances.sum() < Self::MAX_TOKEN_BALANCE,
-            Error::PoolOverflow
-        );
-
-        let rewards = self.deposit_lp(user_deposit, lp_amount)?;
+        let rewards = self.deposit_lp(user_deposit, deposit_amount.lp_amount)?;
 
         for (index, reward) in rewards.to_array().into_iter().enumerate() {
             if reward == 0 {
@@ -201,7 +124,7 @@ impl Pool {
             );
         }
 
-        Ok((rewards, lp_amount))
+        Ok((rewards, deposit_amount.lp_amount))
     }
 
     pub fn withdraw(
@@ -214,24 +137,14 @@ impl Pool {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
         let old_balances = self.token_balances.clone();
+        let withdraw_amount = self.get_withdraw_amount(lp_amount)?;
         let rewards_amounts = self.withdraw_lp(user_deposit, lp_amount)?;
-        let mut amounts = DoubleU128::default();
 
-        let d1 = d0 - lp_amount;
-        let (more, less) = if self.token_balances[0] > self.token_balances[1] {
-            (0, 1)
-        } else {
-            (1, 0)
-        };
-        let more_token_amount = self.token_balances[more] * lp_amount / d0;
-        let less_token_amount = self.token_balances[less]
-            - self.get_y(self.token_balances[more] - more_token_amount, d1)?;
-
-        for (index, token_amount) in [(more, more_token_amount), (less, less_token_amount)] {
-            amounts[index] = token_amount;
-            self.token_balances[index] -= token_amount;
-            let token_amount =
-                self.amount_from_system_precision(token_amount, self.tokens_decimals[index]);
+        for index in withdraw_amount.indexes {
+            let token_amount = self.amount_from_system_precision(
+                withdraw_amount.amounts[index],
+                self.tokens_decimals[index],
+            );
             let withdraw_amount = token_amount + rewards_amounts[index];
 
             self.get_token_by_index(env, index).transfer(
@@ -241,15 +154,17 @@ impl Pool {
             );
         }
 
-        let new_balances = self.token_balances.clone();
+        self.token_balances = withdraw_amount.new_token_balances;
         let d1 = self.total_lp_amount;
 
         require!(
-            new_balances[0] < old_balances[0] && new_balances[1] < old_balances[1] && d1 < d0,
+            self.token_balances[0] < old_balances[0]
+                && self.token_balances[1] < old_balances[1]
+                && d1 < d0,
             Error::ZeroChanges
         );
 
-        Ok((amounts, rewards_amounts))
+        Ok((withdraw_amount.amounts, rewards_amounts))
     }
 
     pub(crate) fn deposit_lp(

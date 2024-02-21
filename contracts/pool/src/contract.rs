@@ -9,7 +9,8 @@ use crate::{
             set_fee_share, swap, withdraw,
         },
         view::{
-            get_d, get_pool, get_receive_amount, get_send_amount, get_user_deposit, pending_reward,
+            get_d, get_deposit_amount, get_pool, get_receive_amount, get_send_amount,
+            get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
     storage::{
@@ -141,5 +142,13 @@ impl PoolContract {
 
     pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
         get_send_amount(env, output, token_to)
+    }
+
+    pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<(u128, u128), Error> {
+        get_withdraw_amount(env, lp_amount)
+    }
+
+    pub fn get_deposit_amount(env: Env, amounts: (u128, u128)) -> Result<u128, Error> {
+        get_deposit_amount(env, amounts)
     }
 }

@@ -33,3 +33,16 @@ pub fn get_receive_amount(env: Env, input: u128, token_from: Token) -> Result<(u
 pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
     Pool::get(&env)?.get_send_amount(output, token_to)
 }
+
+pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<(u128, u128), Error> {
+    let withdraw_amount = Pool::get(&env)?.get_withdraw_amount(lp_amount)?;
+    let amounts = (withdraw_amount.amounts[0], withdraw_amount.amounts[1]);
+
+    Ok(amounts)
+}
+
+pub fn get_deposit_amount(env: Env, amounts: (u128, u128)) -> Result<u128, Error> {
+    let deposit_amount = Pool::get(&env)?.get_deposit_amount(amounts.into())?;
+
+    Ok(deposit_amount.lp_amount)
+}
