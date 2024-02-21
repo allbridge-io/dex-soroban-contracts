@@ -31,3 +31,10 @@ name = "random_walk"
 path = "bin/random_walk.rs"
 test = false
 bench = false
+
+[lints.clippy]
+redundant_clone = "warn"
+unreadable_literal = "warn"
+semicolon_if_nothing_returned = "warn"
+or_fun_call = "warn"
+too_many_arguments = "allow"

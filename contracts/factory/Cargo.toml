@@ -15,3 +15,9 @@ storage = { workspace = true }
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+
+[lints.clippy]
+redundant_clone = "warn"
+unreadable_literal = "warn"
+semicolon_if_nothing_returned = "warn"
+or_fun_call = "warn"

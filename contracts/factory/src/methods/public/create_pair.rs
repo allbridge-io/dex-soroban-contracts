@@ -31,7 +31,7 @@ pub fn create_pair(
 
     let (token_a, token_b) = FactoryInfo::sort_tokens(token_a, token_b);
     let bytes = FactoryInfo::merge_addresses(&token_a, &token_b)?;
-    let salt = env.crypto().keccak256(&bytes.clone().into());
+    let salt = env.crypto().keccak256(&bytes.into());
 
     let deployed_pool = env
         .deployer()

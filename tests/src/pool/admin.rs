@@ -1,13 +1,23 @@
-use crate::utils::{Pool, TestingEnv};
+use crate::utils::{percentage_to_bp, TestingEnv};
 
 #[test]
 fn set_admin_fee_share() {
     let testing_env = TestingEnv::default();
-    let admin_fee_share = 0.01;
-    let expected_fee_share = Pool::convert_to_bp(admin_fee_share);
+    let admin_fee_share = 1.0;
+    let expected_fee_share = percentage_to_bp(admin_fee_share);
 
     testing_env.pool.set_admin_fee_share(admin_fee_share);
     assert_eq!(testing_env.pool.admin_fee_share_bp(), expected_fee_share);
+}
+
+#[test]
+fn set_fee_share() {
+    let testing_env = TestingEnv::default();
+    let fee_share = 0.01;
+    let expected_fee_share = percentage_to_bp(fee_share);
+
+    testing_env.pool.set_fee_share(fee_share);
+    assert_eq!(testing_env.pool.fee_share_bp(), expected_fee_share);
 }
 
 #[test]
@@ -20,18 +30,7 @@ fn set_admin_fee_share_invalid() {
 #[should_panic = "Context(InvalidAction)"]
 fn set_admin_fee_share_no_auth() {
     let testing_env = TestingEnv::default();
-    testing_env.clear_mock_auth();
-    testing_env.pool.set_admin_fee_share(0.01);
-}
-
-#[test]
-fn set_fee_share() {
-    let testing_env = TestingEnv::default();
-    let fee_share = 0.01;
-    let expected_fee_share = Pool::convert_to_bp(fee_share);
-
-    testing_env.pool.set_fee_share(fee_share);
-    assert_eq!(testing_env.pool.fee_share_bp(), expected_fee_share);
+    testing_env.clear_mock_auth().pool.set_admin_fee_share(1.0);
 }
 
 #[test]
@@ -44,6 +43,5 @@ fn set_fee_share_invalid() {
 #[should_panic = "Context(InvalidAction)"]
 fn set_fee_share_no_auth() {
     let testing_env = TestingEnv::default();
-    testing_env.clear_mock_auth();
-    testing_env.pool.set_fee_share(0.01);
+    testing_env.clear_mock_auth().pool.set_fee_share(1.0);
 }

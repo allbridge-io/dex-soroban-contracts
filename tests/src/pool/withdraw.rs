@@ -1,6 +1,6 @@
 use crate::{
     contracts::pool::Direction,
-    utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig},
+    utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, ZERO_REWARDS},
 };
 
 #[test]
@@ -12,8 +12,8 @@ fn withdraw_full_and_try_again() {
         ref alice,
         ..
     } = testing_env;
-    let deposit = (4_000.0, 5_000.0);
-    pool.deposit(alice, deposit, 8_999.0);
+
+    pool.deposit(alice, (4_000.0, 5_000.0), 8_999.0);
     pool.withdraw(alice, pool.user_lp_amount_f64(alice));
     pool.withdraw(alice, 0.001);
 }
@@ -40,19 +40,15 @@ fn withdraw() {
 
     pool.deposit(alice, deposit, 8_999.0);
 
-    let (snapshot_before, snapshot_after) =
-        pool.withdraw_with_snapshots(&testing_env, alice, pool.user_lp_amount_f64(alice));
-    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
-
-    assert_eq!(snapshot_after.alice_deposit.lp_amount, 0);
-    testing_env.assert_withdraw(
-        snapshot_before,
-        snapshot_after,
+    let (_, snapshot_after) = testing_env.do_withdraw(
         alice,
+        pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
-        (0.0, 0.0),
+        ZERO_REWARDS,
         expected_user_lp_diff,
     );
+
+    assert_eq!(snapshot_after.alice_deposit.lp_amount, 0);
 }
 
 #[test]
@@ -96,22 +92,17 @@ fn smallest_withdraw() {
     } = testing_env;
 
     // 0.001 => ZeroChanges
-    let withdraw_lp_amount = 0.002;
-    let withdraw_amounts = (0.001, 0.001);
+    let withdraw_amount = 0.002;
+    let expected_withdraw_amounts = (0.001, 0.001);
 
-    pool.deposit(alice, (15_000.0, 25_000.0), 0.0);
+    pool.deposit(alice, (15_000.0, 25_000.0), 39_950.0);
 
-    let (snapshot_before, snapshot_after) =
-        pool.withdraw_with_snapshots(&testing_env, alice, withdraw_lp_amount);
-    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
-
-    testing_env.assert_withdraw(
-        snapshot_before,
-        snapshot_after,
+    testing_env.do_withdraw(
         alice,
-        withdraw_amounts,
-        (0.0, 0.0),
-        withdraw_lp_amount,
+        withdraw_amount,
+        expected_withdraw_amounts,
+        ZERO_REWARDS,
+        withdraw_amount,
     );
 }
 
@@ -128,26 +119,20 @@ fn withdraw_disbalance() {
     let expected_user_lp_diff = 31_492_001.072;
     let expected_withdraw_amounts = (49_783_831.892, 104_337.372);
 
-    pool.deposit(alice, deposit, 0.0);
+    pool.deposit(alice, deposit, 31_250_000.0);
 
-    // withdraw all
-    let (snapshot_before, snapshot_after) =
-        pool.withdraw_with_snapshots(&testing_env, alice, pool.user_lp_amount_f64(alice));
-    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
-
-    testing_env.assert_withdraw(
-        snapshot_before,
-        snapshot_after,
+    testing_env.do_withdraw(
         alice,
+        pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
-        (0.0, 0.0),
+        ZERO_REWARDS,
         expected_user_lp_diff,
     );
 }
 
 #[test]
 fn withdraw_with_rewards() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.001));
+    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     let TestingEnv {
         ref pool,
         ref alice,
@@ -158,33 +143,28 @@ fn withdraw_with_rewards() {
     let deposits = (4_000.0, 5_000.0);
     let expected_user_lp_diff = 8_999.942;
     // Alice has around 5% of the liquidity pool, we swap 1000 USD with 0.1% fee, which is 5% of 1 USD fee total
-    let expected_rewards = (0.0430620, 0.0430619);
+    let expected_rewards = (0.0430_620, 0.0430_619);
     // Withdraw amounts sum is less than deposit amounts sum (8999.944)
     let expected_withdraw_amounts = (4_478.441, 4_521.503);
 
-    pool.deposit(alice, deposits, 0.0);
+    pool.deposit(alice, deposits, 8_950.0);
     pool.swap(bob, bob, 1_000.0, 995.5, Direction::A2B);
     pool.swap(bob, bob, 1_000.0, 999., Direction::B2A);
 
-    // withdraw all
-    let (snapshot_before, snapshot_after) =
-        pool.withdraw_with_snapshots(&testing_env, alice, pool.user_lp_amount_f64(alice));
-    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
-
-    testing_env.assert_claimed_reward_event(alice, expected_rewards);
-    testing_env.assert_withdraw(
-        snapshot_before,
-        snapshot_after,
+    testing_env.do_withdraw(
         alice,
+        pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
         expected_rewards,
         expected_user_lp_diff,
     );
 }
 
+// Alice large equal amounts (+100K each), pool is now 200K-200K, then swap by Bob 100K, then withdraw Alice all
+// Alice should withdraw more than she deposited
 #[test]
-fn withdraw_alice_profit() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.001));
+fn withdraw_alice_profit_and_bob_loss() {
+    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     let TestingEnv {
         ref pool,
         ref alice,
@@ -195,47 +175,81 @@ fn withdraw_alice_profit() {
     let deposit = (100_000.0, 100_000.0);
     let swap_amount = 100_000.;
     let expected_user_withdraw_lp_diff = 200_000.0;
-    let expected_rewards = (0.0, 49.2179974);
+    let expected_rewards = (0.0, 49.217_997_4);
     // Alice should withdraw more than she deposited (200_831.2209974)
     let expected_withdraw_amounts = (150_000.0, 50_782.003);
-    let expected_alice_profit = 831.2209974;
-    let expected_bob_losses = 1_662.4409950;
+    let expected_alice_profit = 831.220_997_4;
+    let expected_bob_losses = 1_662.440_995_0;
 
-    pool.deposit(alice, deposit, 8999.0);
+    pool.deposit(alice, deposit, 99_950.0);
 
     let snapshot_before_swap = Snapshot::take(&testing_env);
     pool.swap(bob, bob, swap_amount, 98336.0, Direction::A2B);
     let snapshot_after_swap = Snapshot::take(&testing_env);
 
-    let (snapshot_before, snapshot_after) =
-        pool.withdraw_with_snapshots(&testing_env, alice, pool.user_lp_amount_f64(alice));
-    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
+    let (snapshot_before, snapshot_after) = testing_env.do_withdraw(
+        alice,
+        pool.user_lp_amount_f64(alice),
+        expected_withdraw_amounts,
+        expected_rewards,
+        expected_user_withdraw_lp_diff,
+    );
 
     let bob_yaro_diff =
         snapshot_after_swap.bob_yaro_balance - snapshot_before_swap.bob_yaro_balance;
     let bob_loss = float_to_uint(swap_amount, 7) - bob_yaro_diff;
 
+    let alice_profit = snapshot_after.get_user_balances_sum(alice)
+        - snapshot_before.get_user_balances_sum(alice)
+        - float_to_uint(200_000.0, 7);
+
+    assert!(alice_profit < bob_loss);
     assert_eq!(float_to_uint(expected_bob_losses, 7), bob_loss);
-
-    let sum_before = snapshot_before.get_user_balances_sum(alice);
-    let sum_after = snapshot_after.get_user_balances_sum(alice);
-    let alice_profit = sum_after - sum_before - float_to_uint(200_000.0, 7);
-
     assert_eq!(float_to_uint(expected_alice_profit, 7), alice_profit);
-    assert!(
-        alice_profit < bob_loss,
-        "Alice's profit should be less than Bob's loss"
-    );
+}
 
-    testing_env.assert_withdraw(
-        snapshot_before,
-        snapshot_after,
+// Deposit Alice +200K in one token, pool is 300K to 100K, then Bob swap 100K to even out the pool (approx.), then Alice withdraw
+// Alice should get less, Bob profit, should be less than Alice loss
+#[test]
+fn withdraw_alice_loss_and_bob_profit() {
+    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
+    let TestingEnv {
+        ref pool,
+        ref alice,
+        ref bob,
+        ..
+    } = testing_env;
+
+    let deposit = (200_000.0, 0.0);
+    let swap_amount = 100_000.;
+    let expected_user_withdraw_lp_diff = 198_393.264;
+    let expected_rewards = (50.598_436_60, 0.0);
+    // Alice should withdraw less than she deposited (198_393.304)
+    let expected_withdraw_amounts = (98_796.609, 99_596.695);
+    let expected_alice_loss = 1_556.097_563_4;
+    let expected_bob_profit = 1_505.050_343;
+
+    let snapshot_before_deposit = Snapshot::take(&testing_env);
+    pool.deposit(alice, deposit, 198_000.0);
+
+    let snapshot_before_swap = Snapshot::take(&testing_env);
+    pool.swap(bob, bob, swap_amount, 100_000.0, Direction::B2A);
+    let snapshot_after_swap = Snapshot::take(&testing_env);
+
+    let (_, snapshot_after) = testing_env.do_withdraw(
         alice,
+        pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
         expected_rewards,
         expected_user_withdraw_lp_diff,
     );
-}
 
-// TODO: And the opposite, deposit Alice +200K in one token, pool is 300K to 100K, then Bob swap 100K to even out the pool (approx.), then Alice withdraw
-// Alice should get less (hardcode), Bob profit, should be less than Alice loss
+    let bob_profit = snapshot_after_swap.get_user_balances_sum(bob)
+        - snapshot_before_swap.get_user_balances_sum(bob);
+    let alice_loss = snapshot_before_deposit.get_user_balances_sum(alice)
+        - snapshot_after.get_user_balances_sum(alice);
+
+    assert!(bob_profit < alice_loss);
+    assert_rel_eq(float_to_uint(expected_bob_profit, 7), bob_profit, 1);
+    assert_rel_eq(float_to_uint(expected_alice_loss, 7), alice_loss, 1);
+}

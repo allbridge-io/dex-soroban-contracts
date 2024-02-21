@@ -13,3 +13,9 @@ soroban-env-common = { workspace = true }
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 hex = "0.4.3"
+
+[lints.clippy]
+redundant_clone = "warn"
+unreadable_literal = "warn"
+semicolon_if_nothing_returned = "warn"
+or_fun_call = "warn"

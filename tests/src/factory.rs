@@ -5,11 +5,10 @@ use crate::utils::TestingEnv;
 fn add_new_pair_no_auth() {
     let testing_env = TestingEnv::default();
     let (yellow_token, duck_token) =
-        TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
-    testing_env.clear_mock_auth();
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    testing_env.factory.create_pair(
-        &testing_env.admin,
+    testing_env.clear_mock_auth().factory.create_pair(
+        testing_env.admin.as_ref(),
         10,
         &yellow_token.id,
         &duck_token.id,
@@ -23,7 +22,7 @@ fn add_new_pair_no_auth() {
 fn identical_addresses() {
     let testing_env = TestingEnv::default();
     testing_env.factory.create_pair(
-        &testing_env.admin,
+        testing_env.admin.as_ref(),
         10,
         &testing_env.yaro_token.id,
         &testing_env.yaro_token.id,
@@ -36,11 +35,17 @@ fn identical_addresses() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_fee_share() {
     let testing_env = TestingEnv::default();
-    let (yellow, duck) = TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
+    let (yellow, duck) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    testing_env
-        .factory
-        .create_pair(&testing_env.admin, 10, &yellow.id, &duck.id, 10_000, 10);
+    testing_env.factory.create_pair(
+        testing_env.admin.as_ref(),
+        10,
+        &yellow.id,
+        &duck.id,
+        10_000,
+        10,
+    );
 }
 
 #[test]
@@ -48,10 +53,10 @@ fn invalid_fee_share() {
 fn invalid_admin_fee_share() {
     let testing_env = TestingEnv::default();
     let (yellow_token, duck_token) =
-        TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pair(
-        &testing_env.admin,
+        testing_env.admin.as_ref(),
         10,
         &yellow_token.id,
         &duck_token.id,
@@ -66,7 +71,7 @@ fn pair_exist() {
     let testing_env = TestingEnv::default();
 
     testing_env.factory.create_pair(
-        &testing_env.admin,
+        testing_env.admin.as_ref(),
         10,
         &testing_env.yaro_token.id,
         &testing_env.yusd_token.id,
@@ -80,7 +85,7 @@ fn pair_exist() {
 fn pair_exist_reverse() {
     let testing_env = TestingEnv::default();
     testing_env.factory.create_pair(
-        &testing_env.admin,
+        testing_env.admin.as_ref(),
         10,
         &testing_env.yusd_token.id,
         &testing_env.yaro_token.id,
@@ -93,10 +98,10 @@ fn pair_exist_reverse() {
 fn add_new_pair() {
     let testing_env = TestingEnv::default();
     let (yellow_token, duck_token) =
-        TestingEnv::generate_token_pair(&testing_env.env, &testing_env.admin);
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     let deployed_pool = testing_env.factory.create_pair(
-        &testing_env.admin,
+        testing_env.admin.as_ref(),
         10,
         &yellow_token.id,
         &duck_token.id,

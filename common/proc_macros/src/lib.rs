@@ -118,7 +118,7 @@ pub fn extend_ttl_info(args: TokenStream, input: TokenStream) -> TokenStream {
     let extend_ttl_amount_lit_int =
         syn::parse::<syn::LitInt>(extend_ttl_amount.clone()).map(ToTokens::into_token_stream);
     let extend_ttl_amount_ident =
-        syn::parse::<syn::Ident>(extend_ttl_amount.clone()).map(ToTokens::into_token_stream);
+        syn::parse::<syn::Ident>(extend_ttl_amount).map(ToTokens::into_token_stream);
     let extend_ttl_amount = extend_ttl_amount_ident
         .or(extend_ttl_amount_lit_int)
         .unwrap();
@@ -126,7 +126,7 @@ pub fn extend_ttl_info(args: TokenStream, input: TokenStream) -> TokenStream {
     let lifetime_threshold_lit_int =
         syn::parse::<syn::LitInt>(lifetime_threshold.clone()).map(ToTokens::into_token_stream);
     let lifetime_threshold_ident =
-        syn::parse::<syn::Ident>(lifetime_threshold.clone()).map(ToTokens::into_token_stream);
+        syn::parse::<syn::Ident>(lifetime_threshold).map(ToTokens::into_token_stream);
     let lifetime_threshold = lifetime_threshold_ident
         .or(lifetime_threshold_lit_int)
         .unwrap();

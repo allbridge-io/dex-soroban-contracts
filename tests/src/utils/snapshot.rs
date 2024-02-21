@@ -146,8 +146,12 @@ impl Snapshot {
         let alice_yaro_balance = testing_env.yaro_token.balance_of(&alice_address);
         let alice_yusd_balance = testing_env.yusd_token.balance_of(&alice_address);
 
-        let admin_yaro_balance = testing_env.yaro_token.balance_of(&testing_env.admin);
-        let admin_yusd_balance = testing_env.yusd_token.balance_of(&testing_env.admin);
+        let admin_yaro_balance = testing_env
+            .yaro_token
+            .balance_of(testing_env.admin.as_ref());
+        let admin_yusd_balance = testing_env
+            .yusd_token
+            .balance_of(testing_env.admin.as_ref());
 
         let bob_yaro_balance = testing_env.yaro_token.balance_of(&bob_address);
         let bob_yusd_balance = testing_env.yusd_token.balance_of(&bob_address);
@@ -189,7 +193,6 @@ impl Snapshot {
         }
     }
 
-    #[allow(dead_code)]
     pub fn print_change_with(&self, other: &Snapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 

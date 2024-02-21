@@ -343,19 +343,6 @@ impl Pool {
         ))
     }
 
-    // // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
-    // pub fn get_y(&self, native_x: u128, d: u128) -> u128 {
-    //     let a4 = self.a << 2;
-    //     let ddd = U256::new(d * d) * d;
-    //     // 4A(D - x) - D
-    //     let part1 = a4 as i128 * (d as i128 - native_x as i128) - d as i128;
-    //     // x * (4AD³ + x(part1²))
-    //     let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
-    //     // (sqrt(part2) + x(part1)) / 8Ax)
-    //     (sqrt(&part2).as_u128() as i128 + (native_x as i128 * part1)) as u128
-    //         / ((self.a << 3) * native_x)
-    // }
-
     // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
     pub fn get_y(&self, native_x: u128, d: u128) -> Result<u128, Error> {
         let a4 = self.a << 2;
@@ -417,6 +404,7 @@ impl Pool {
     }
 }
 
+#[allow(clippy::inconsistent_digit_grouping)]
 #[cfg(test)]
 mod tests {
     extern crate std;

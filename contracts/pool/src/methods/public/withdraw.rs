@@ -23,11 +23,13 @@ pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error>
     }
     .publish(&env);
 
-    RewardsClaimed {
-        user: sender.clone(),
-        rewards: rewards.data,
+    if !rewards.is_zero() {
+        RewardsClaimed {
+            user: sender,
+            rewards: rewards.data,
+        }
+        .publish(&env);
     }
-    .publish(&env);
 
     Ok(())
 }

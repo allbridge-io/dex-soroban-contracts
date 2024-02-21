@@ -37,7 +37,7 @@ pub fn deposit(
 
     if !rewards.is_zero() {
         RewardsClaimed {
-            user: sender.clone(),
+            user: sender,
             rewards: rewards.data,
         }
         .publish(&env);

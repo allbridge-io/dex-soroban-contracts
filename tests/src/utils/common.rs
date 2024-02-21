@@ -2,7 +2,6 @@ use std::{
     any::type_name,
     cmp::Ordering,
     fmt::{Debug, Display},
-    ops::RangeInclusive,
 };
 
 use color_print::cformat;
@@ -53,13 +52,6 @@ pub fn int_to_float(amount: i128, decimals: i32) -> f64 {
 pub fn float_to_uint(amount: f64, decimals: u32) -> u128 {
     assert!(amount >= 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
-}
-
-pub fn float_range_to_uint(range: RangeInclusive<f64>, decimals: u32) -> RangeInclusive<u128> {
-    let min = float_to_uint(*range.start(), decimals);
-    let max = float_to_uint(*range.end(), decimals);
-
-    min..=max
 }
 
 pub fn uint_to_float(amount: u128, decimals: u32) -> f64 {
@@ -126,4 +118,16 @@ pub fn contract_id(address: &Address) -> BytesN<32> {
     } else {
         panic!("address is not a contract {:?}", address);
     }
+}
+
+pub fn get_percentage(v: f64, percentage: f64) -> f64 {
+    assert!((0.0..=100.0).contains(&percentage));
+
+    v * (percentage / 100.0)
+}
+
+pub fn percentage_to_bp(percentage: f64) -> u128 {
+    assert!((0.0..=100.0).contains(&percentage));
+
+    (percentage * 100.0) as u128
 }

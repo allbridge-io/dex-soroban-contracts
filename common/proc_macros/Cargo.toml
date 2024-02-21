@@ -14,3 +14,9 @@ syn = { version = "2", features = ["extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
 shared = { workspace = true }
+
+[lints.clippy]
+redundant_clone = "warn"
+unreadable_literal = "warn"
+semicolon_if_nothing_returned = "warn"
+or_fun_call = "warn"
