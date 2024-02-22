@@ -26,6 +26,9 @@ POOL_ADDRESS=$(YARO_USDY_POOL)
 
 NETWORK=testnet
 
+update-soroban-cli:
+	cargo install soroban-cli --features opt
+
 clean-test: clean-target
 	make test
 
@@ -62,6 +65,12 @@ pool-generate-types:
 	--contract-id $(POOL_ADDRESS)
 
 #----------------FACTORY----------------------------
+
+install-pool:
+	soroban contract install \
+		--source $(ADMIN_ALIAS) \
+		--network testnet \
+		--wasm $(POOL_WASM_PATH_OP)
 
 factory-deploy:
 	soroban contract deploy \

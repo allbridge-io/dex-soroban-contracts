@@ -1,5 +1,5 @@
 use shared::{utils::extend_ttl_instance, Error};
-use soroban_sdk::{contract, contractimpl, Address, Env, Map};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map};
 
 use crate::methods::public::{create_pair, get_pool, get_pools, initialize};
 
@@ -8,8 +8,8 @@ pub struct FactoryContract;
 
 #[contractimpl]
 impl FactoryContract {
-    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
-        initialize(env, admin)
+    pub fn initialize(env: Env, wasm_hash: BytesN<32>, admin: Address) -> Result<(), Error> {
+        initialize(env, wasm_hash, admin)
     }
 
     #[allow(clippy::too_many_arguments)]

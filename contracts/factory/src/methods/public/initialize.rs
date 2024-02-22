@@ -1,16 +1,11 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, BytesN, Env};
 use storage::Admin;
 
-use crate::{
-    pool::{self},
-    storage::factory_info::FactoryInfo,
-};
+use crate::storage::factory_info::FactoryInfo;
 
-pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
+pub fn initialize(env: Env, wasm_hash: BytesN<32>, admin: Address) -> Result<(), Error> {
     require!(!FactoryInfo::has(&env), Error::Initialized);
-
-    let wasm_hash = env.deployer().upload_contract_wasm(pool::WASM);
 
     FactoryInfo::new(wasm_hash).save(&env);
     Admin(admin).save(&env);

@@ -1,8 +1,10 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{vec, Address, Env, IntoVal, Symbol};
 use storage::Admin;
 
-use crate::{pool, storage::factory_info::FactoryInfo};
+use crate::storage::factory_info::FactoryInfo;
+
+mod pool {}
 
 #[allow(clippy::too_many_arguments)]
 pub fn create_pair(
@@ -40,14 +42,16 @@ pub fn create_pair(
 
     factory_info.add_pair((token_a.clone(), token_b.clone()), &deployed_pool);
 
-    pool::Client::new(&env, &deployed_pool).initialize(
-        &pool_admin,
-        &a,
-        &token_a,
-        &token_b,
-        &fee_share_bp,
-        &admin_fee_share_bp,
-    );
+    let args = vec![
+        &env,
+        *pool_admin.as_val(),
+        a.into_val(&env),
+        *token_a.as_val(),
+        *token_b.as_val(),
+        fee_share_bp.into_val(&env),
+        admin_fee_share_bp.into_val(&env),
+    ];
+    env.invoke_contract::<()>(&deployed_pool, &Symbol::new(&env, "initialize"), args);
 
     factory_info.save(&env);
 
