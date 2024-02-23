@@ -1,4 +1,5 @@
 use shared::{require, Error};
+use soroban_sdk::contracttype;
 
 use crate::storage::{
     double_values::DoubleU128,
@@ -17,6 +18,24 @@ pub struct WithdrawAmount {
     pub amounts: DoubleU128,
     pub fees: DoubleU128,
     pub new_token_balances: DoubleU128,
+}
+
+#[contracttype]
+#[derive(Debug)]
+pub struct WithdrawAmountView {
+    /// system precision
+    pub amounts: (u128, u128),
+    /// token precision
+    pub fees: (u128, u128),
+}
+
+impl From<WithdrawAmount> for WithdrawAmountView {
+    fn from(value: WithdrawAmount) -> Self {
+        Self {
+            amounts: value.amounts.data,
+            fees: value.fees.data,
+        }
+    }
 }
 
 pub struct DepositAmount {

@@ -4,6 +4,8 @@ use soroban_sdk::{Address, Env};
 use crate::storage::pool::{Pool, Token};
 use crate::storage::user_deposit::UserDeposit;
 
+use super::internal::pool_view::WithdrawAmountView;
+
 pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
     let user = UserDeposit::get(&env, user);
     let pool = Pool::get(&env)?;
@@ -34,10 +36,8 @@ pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128,
     Pool::get(&env)?.get_send_amount(output, token_to)
 }
 
-pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<(u128, u128), Error> {
-    let withdraw_amount = Pool::get(&env)?.get_withdraw_amount(lp_amount)?;
-
-    Ok(withdraw_amount.amounts.data)
+pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
+    Ok(Pool::get(&env)?.get_withdraw_amount(lp_amount)?.into())
 }
 
 pub fn get_deposit_amount(env: Env, amounts: (u128, u128)) -> Result<u128, Error> {

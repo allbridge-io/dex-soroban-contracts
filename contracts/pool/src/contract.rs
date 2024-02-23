@@ -3,7 +3,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env};
 
 use crate::{
     methods::{
-        internal::pool::Direction,
+        internal::{pool::Direction, pool_view::WithdrawAmountView},
         public::{
             claim_admin_fee, claim_rewards, deposit, initialize, set_admin, set_admin_fee_share,
             set_fee_share, swap, withdraw,
@@ -144,7 +144,7 @@ impl PoolContract {
         get_send_amount(env, output, token_to)
     }
 
-    pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<(u128, u128), Error> {
+    pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
         get_withdraw_amount(env, lp_amount)
     }
 
