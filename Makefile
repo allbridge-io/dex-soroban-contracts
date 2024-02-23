@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-all: build-factory
+all: build-factory build-pool
 
 optimize-all: optimize-factory optimize-pool
 
@@ -12,19 +12,24 @@ FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/release/factory.optimized.w
 FACTORY_ADDRESS_PATH = soroban-deploy/factory
 FACTORY_ADDRESS=$$(cat $(FACTORY_ADDRESS_PATH))
 
+POOL_WASM_HASH_PATH=soroban-deploy/pool_wasm_hash
+POOL_WASM_HASH=$$(cat $(POOL_WASM_HASH_PATH))
+
 ALICE = $$(soroban config identity address alice)
 ADMIN_ALIAS = alice
 ADMIN = $$(soroban config identity address $(ADMIN_ALIAS))
 
-YARO_ADDRESS=CACOK7HB7D7SRPMH3LYYOW77T6D4D2F7TR7UEVKY2TVSUDSRDM6DZVLK #Testnet
-USDY_ADDRESS=CAOPX7DVI3PFLHE7637YSFU6TLG6Z27Z5O3M547ANAYXQOAYCYYV6NO6 #Testnet
+# YARO:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
+YARO_ADDRESS=CDFVZVTV4K5S66GQXER7YVK6RB23BMPMD3HQUA3TGEZUGDL3NM3R5GDW # Futurenet
+# USDY:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
+USDY_ADDRESS=CD7KQQY27G5WXQT2IUYJVHNQH6N2I6GEM5ND2BLZ2GHDAPB2V3KWCW7M # Futurenet
 
-YARO_USDY_POOL=CDUUO74BWN25FLOV4JF6EGQZPRPGLWSY7K7TVJZDJJFV4KCMSRTVYD52 # Testnet
+YARO_USDY_POOL=CDF2XUC5BTXFRA6SHRNS2TGHORHXOAS3V7WQJ2OKEBIOQEPCA762OLE4 # Futurenet 
 
-TOKEN_ADDRESS=$(USDY_ADDRESS)
+TOKEN_ADDRESS=$(YARO_ADDRESS)
 POOL_ADDRESS=$(YARO_USDY_POOL)
 
-NETWORK=testnet
+NETWORK=futurenet
 
 update-soroban-cli:
 	cargo install soroban-cli --features opt
@@ -42,20 +47,16 @@ test: all
 	cargo test
 
 build-pool: 
-	cargo build --target wasm32-unknown-unknown --release --package pool
+	soroban contract build --package pool
 
-build-factory: build-pool
-	cargo build --target wasm32-unknown-unknown --release --package factory
+build-factory:
+	soroban contract build --package factory
 
 optimize-pool: build-pool
 	soroban contract optimize --wasm $(POOL_WASM_PATH)
 
 optimize-factory: build-factory
 	soroban contract optimize --wasm $(FACTORY_WASM_PATH)
-
-optimize:
-	make optimize-pool
-	make optimize-factory
 
 pool-generate-types:
 	soroban contract bindings typescript \
@@ -66,13 +67,14 @@ pool-generate-types:
 
 #----------------FACTORY----------------------------
 
-install-pool:
+install-pool: optimize-pool
 	soroban contract install \
 		--source $(ADMIN_ALIAS) \
-		--network testnet \
+		--network $(NETWORK) \
 		--wasm $(POOL_WASM_PATH_OP)
+		> $(POOL_WASM_HASH_PATH) && echo $(POOL_WASM_HASH)
 
-factory-deploy:
+factory-deploy: optimize-factory
 	soroban contract deploy \
 		--wasm $(FACTORY_WASM_PATH_OP) \
 		--source $(ADMIN_ALIAS) \
@@ -86,7 +88,8 @@ factory-initialize:
 		--network $(NETWORK) 	\
 		-- \
 		initialize \
-		--admin $(ADMIN)
+		--admin $(ADMIN) \
+		--wasm-hash $(POOL_WASM_HASH)
 
 factory-create-pair:
 	soroban contract invoke \
