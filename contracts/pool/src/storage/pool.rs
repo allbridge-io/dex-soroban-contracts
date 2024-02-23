@@ -17,6 +17,16 @@ pub enum Token {
     B = 1,
 }
 
+impl From<usize> for Token {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Token::A,
+            1 => Token::B,
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl Token {
     pub fn opposite(&self) -> Token {
         match self {

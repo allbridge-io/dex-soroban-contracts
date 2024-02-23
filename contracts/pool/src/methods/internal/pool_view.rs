@@ -15,6 +15,7 @@ pub struct ReceiveAmount {
 pub struct WithdrawAmount {
     pub indexes: [usize; 2],
     pub amounts: DoubleU128,
+    pub fees: DoubleU128,
     pub new_token_balances: DoubleU128,
 }
 
@@ -79,7 +80,7 @@ impl Pool {
 
     pub fn get_withdraw_amount(&self, lp_amount: u128) -> Result<WithdrawAmount, Error> {
         let d0 = self.total_lp_amount;
-        let mut withdraw_amounts = DoubleU128::default();
+        let mut amounts = DoubleU128::default();
 
         let d1 = d0 - lp_amount;
         let (more, less) = if self.token_balances[0] > self.token_balances[1] {
@@ -93,15 +94,25 @@ impl Pool {
         let less_token_amount = self.token_balances[less] - y;
 
         let mut new_token_balances = self.token_balances.clone();
+        let mut fees = DoubleU128::default();
 
         for (index, token_amount) in [(more, more_token_amount), (less, less_token_amount)] {
-            withdraw_amounts[index] = token_amount;
+            let token_amount =
+                self.amount_from_system_precision(token_amount, self.tokens_decimals[index]);
+            let fee = token_amount * self.fee_share_bp / Self::BP;
+
+            let token_amount =
+                self.amount_to_system_precision(token_amount - fee, self.tokens_decimals[index]);
+
+            fees[index] = fee;
+            amounts[index] = token_amount;
             new_token_balances[index] -= token_amount;
         }
 
         Ok(WithdrawAmount {
             indexes: [more, less],
-            amounts: withdraw_amounts,
+            fees,
+            amounts,
             new_token_balances,
         })
     }

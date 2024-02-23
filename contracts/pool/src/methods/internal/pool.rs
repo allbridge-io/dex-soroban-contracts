@@ -145,12 +145,13 @@ impl Pool {
                 withdraw_amount.amounts[index],
                 self.tokens_decimals[index],
             );
-            let withdraw_amount = token_amount + rewards_amounts[index];
+            let token_amount = token_amount + rewards_amounts[index];
 
+            self.add_rewards(withdraw_amount.fees[index], index.into());
             self.get_token_by_index(env, index).transfer(
                 &current_contract,
                 &sender,
-                &safe_cast(withdraw_amount)?,
+                &safe_cast(token_amount)?,
             );
         }
 
