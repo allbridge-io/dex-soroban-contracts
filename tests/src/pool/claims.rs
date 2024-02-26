@@ -4,6 +4,20 @@ use crate::{
 };
 
 #[test]
+#[should_panic(expected = "Context(InvalidAction)")]
+fn claim_admin_fee_no_auth() {
+    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_admin_fee(1.0));
+    let TestingEnv {
+        ref pool, ref bob, ..
+    } = testing_env;
+
+    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A);
+    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B);
+
+    testing_env.clear_mock_auth().pool.claim_admin_fee();
+}
+
+#[test]
 fn claim_admin_fee() {
     let testing_env = TestingEnv::create(
         TestingEnvConfig::default()
@@ -25,20 +39,6 @@ fn claim_admin_fee() {
 
     testing_env.do_claim_admin_fee(expected_admin_fees);
     testing_env.do_claim_admin_fee(DOUBLE_ZERO);
-}
-
-#[test]
-#[should_panic(expected = "Context(InvalidAction)")]
-fn claim_admin_fee_no_auth() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_admin_fee(1.0));
-    let TestingEnv {
-        ref pool, ref bob, ..
-    } = testing_env;
-
-    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A);
-    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B);
-
-    testing_env.clear_mock_auth().pool.claim_admin_fee();
 }
 
 #[test]

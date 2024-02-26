@@ -19,6 +19,7 @@ clap_derive = "4"
 csv = "1"
 serde = "*"
 serde_derive = "*"
+test-case = "3.3.1"
 
 [[bin]]
 name = "fuzz"

@@ -1,3 +1,5 @@
+use test_case::test_case;
+
 use crate::{
     contracts::pool::Direction,
     utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
@@ -25,8 +27,22 @@ fn withdraw_zero_change() {
     testing_env.pool.withdraw(&testing_env.alice, 0.0);
 }
 
+pub struct DepositArgs {
+    deposit_amounts: (f64, f64),
+    min_lp_amount: f64,
+}
+
+pub struct DoWithdrawArgs {
+    withdraw_amount: f64,
+    expected_withdraw_amounts: (f64, f64),
+    expected_fee: (f64, f64),
+    expected_rewards: (f64, f64),
+    expected_user_lp_diff: f64,
+    expected_admin_fee: (f64, f64),
+}
+
 #[test]
-fn withdraw() {
+fn base_withdraw() {
     let testing_env = TestingEnv::default();
     let TestingEnv {
         ref pool,
@@ -87,113 +103,39 @@ fn withdraw_with_fee() {
     assert_eq!(snapshot_after.alice_deposit.lp_amount, 0);
 }
 
-#[test]
-fn withdraw_multiply_times() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
-    let deposit = (4_000.0, 5_000.0);
-    let n = 4usize;
-
-    pool.deposit(alice, deposit, 8_999.0);
-    let total_alice_lp_amount = pool.user_lp_amount_f64(alice);
-    let alice_lp_amount = total_alice_lp_amount / n as f64;
-    let snapshot_before = Snapshot::take(&testing_env);
-    let alice_balance_before = snapshot_before.get_user_balances_sum(alice);
-
-    for _ in 0..n {
-        pool.withdraw(alice, alice_lp_amount);
-    }
-
-    let snapshot_after = Snapshot::take(&testing_env);
-    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
-
-    let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
-
-    assert_rel_eq(pool.user_deposit(alice).lp_amount, 0, 2);
-    assert_eq!(alice_balance_after, alice_balance_before);
-}
-
-#[test]
-fn smallest_withdraw() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
-    // 0.001 => ZeroChanges
-    let withdraw_amount = 0.002;
-    let expected_withdraw_amounts = (0.001, 0.001);
-
-    pool.deposit(alice, (15_000.0, 25_000.0), 39_950.0);
-
-    testing_env.do_withdraw(
-        alice,
-        withdraw_amount,
-        expected_withdraw_amounts,
-        DOUBLE_ZERO,
-        DOUBLE_ZERO,
-        withdraw_amount,
-        DOUBLE_ZERO,
+#[test_case(
+    TestingEnvConfig::default(),
+    DepositArgs { deposit_amounts: (15_000.0, 25_000.0), min_lp_amount: 39_950.0 },
+    DoWithdrawArgs { withdraw_amount: 0.002, expected_withdraw_amounts: (0.001, 0.001), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.002, expected_admin_fee: DOUBLE_ZERO }
+    ; "smallest_withdraw"
+)]
+#[test_case(
+    TestingEnvConfig::default().with_pool_fee_share(0.1),
+    DepositArgs { deposit_amounts: (15_000.0, 25_000.0), min_lp_amount: 39_950.0 },
+    DoWithdrawArgs { withdraw_amount: 0.004, expected_withdraw_amounts: (0.001, 0.001), expected_fee: (0.000_003, 0.000_002), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: DOUBLE_ZERO }
+    ; "smallest_withdraw_with_fee"
+)]
+#[test_case(
+    TestingEnvConfig::default(),
+    DepositArgs { deposit_amounts: (50_000_000.0, 5_000.0), min_lp_amount: 31_250_000.0 },
+    DoWithdrawArgs { withdraw_amount: 31.072, expected_withdraw_amounts: (49_783_831.892, 104_337.372), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 31_492_001.072, expected_admin_fee: DOUBLE_ZERO }
+    ; "withdraw_disbalance"
+)]
+fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_args: DoWithdrawArgs) {
+    let testing_env = TestingEnv::create(config);
+    testing_env.pool.deposit(
+        &testing_env.alice,
+        deposit_args.deposit_amounts,
+        deposit_args.min_lp_amount,
     );
-}
-
-#[test]
-fn smallest_withdraw_with_fee() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
-    // 0.001 => ZeroChanges
-    let withdraw_amount = 0.004;
-    let expected_withdraw_amounts = (0.001, 0.001);
-    let expected_fee = (0.000_003, 0.000_002);
-
-    pool.deposit(alice, (15_000.0, 25_000.0), 39_950.0);
-
     testing_env.do_withdraw(
-        alice,
-        withdraw_amount,
-        expected_withdraw_amounts,
-        expected_fee,
-        DOUBLE_ZERO,
-        withdraw_amount,
-        DOUBLE_ZERO,
-    );
-}
-
-#[test]
-fn withdraw_disbalance() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
-        ref pool,
-        ref alice,
-        ..
-    } = testing_env;
-
-    let deposit = (50_000_000.0, 5_000.0);
-    let expected_user_lp_diff = 31_492_001.072;
-    let expected_withdraw_amounts = (49_783_831.892, 104_337.372);
-
-    pool.deposit(alice, deposit, 31_250_000.0);
-
-    testing_env.do_withdraw(
-        alice,
-        pool.user_lp_amount_f64(alice),
-        expected_withdraw_amounts,
-        DOUBLE_ZERO,
-        DOUBLE_ZERO,
-        expected_user_lp_diff,
-        DOUBLE_ZERO,
+        &testing_env.alice,
+        do_withdraw_args.withdraw_amount,
+        do_withdraw_args.expected_withdraw_amounts,
+        do_withdraw_args.expected_fee,
+        do_withdraw_args.expected_rewards,
+        do_withdraw_args.expected_user_lp_diff,
+        do_withdraw_args.expected_admin_fee,
     );
 }
 
@@ -228,6 +170,37 @@ fn withdraw_with_rewards() {
         expected_user_lp_diff,
         DOUBLE_ZERO,
     );
+}
+
+#[test]
+fn withdraw_multiply_times() {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposit = (4_000.0, 5_000.0);
+    let n = 4usize;
+
+    pool.deposit(alice, deposit, 8_999.0);
+    let total_alice_lp_amount = pool.user_lp_amount_f64(alice);
+    let alice_lp_amount = total_alice_lp_amount / n as f64;
+    let snapshot_before = Snapshot::take(&testing_env);
+    let alice_balance_before = snapshot_before.get_user_balances_sum(alice);
+
+    for _ in 0..n {
+        pool.withdraw(alice, alice_lp_amount);
+    }
+
+    let snapshot_after = Snapshot::take(&testing_env);
+    snapshot_before.print_change_with(&snapshot_after, "Withdraw");
+
+    let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
+
+    assert_rel_eq(pool.user_deposit(alice).lp_amount, 0, 2);
+    assert_eq!(alice_balance_after, alice_balance_before);
 }
 
 // Alice large equal amounts (+100K each), pool is now 200K-200K, then swap by Bob 100K, then withdraw Alice all

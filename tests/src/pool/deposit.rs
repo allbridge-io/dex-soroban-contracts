@@ -1,3 +1,5 @@
+use test_case::test_case;
+
 use crate::{
     contracts::pool::Direction,
     utils::{Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
@@ -48,81 +50,14 @@ fn deposit_invalid_first_deposit() {
         .deposit(&testing_env.alice, (100.0, 25.0), 0.0);
 }
 
-#[test]
-fn deposit() {
+#[test_case((100.0, 50.0), DOUBLE_ZERO, 150.0 ; "base")]
+#[test_case((50_000_000.0, 5_000.0), DOUBLE_ZERO, 31_492_001.07 ; "deposit_disbalance")]
+#[test_case((0.001, 0.001), DOUBLE_ZERO, 0.002 ; "smallest_deposit")]
+#[test_case((100.0, 0.0), DOUBLE_ZERO, 100.0 ; "deposit_only_yusd")]
+#[test_case((0.0, 100.0), DOUBLE_ZERO, 100.0 ; "deposit_only_yaro")]
+fn deposit(deposit: (f64, f64), expected_rewards: (f64, f64), expected_lp: f64) {
     let testing_env = TestingEnv::default();
-
-    testing_env.do_deposit(&testing_env.alice, (100.0, 50.0), DOUBLE_ZERO, 150.0);
-}
-
-#[test]
-fn deposit_disbalance() {
-    let testing_env = TestingEnv::default();
-
-    testing_env.do_deposit(
-        &testing_env.alice,
-        (50_000_000.0, 5_000.0),
-        DOUBLE_ZERO,
-        31_492_001.07,
-    );
-}
-
-// TODO: Deposit slightly less than MAX amount
-// Swap to big disbalance 1:100 and check for overflows
-#[test]
-fn deposit_() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
-        ref pool,
-        ref bob,
-        ref alice,
-        ref yusd_token,
-        ref yaro_token,
-        ..
-    } = testing_env;
-
-    yusd_token.airdrop(alice, 500_000_000.0 * 200.0);
-    yaro_token.airdrop(alice, 500_000_000.0 * 200.0);
-    yusd_token.airdrop(bob, 500_000_000.0 * 200.0);
-    yaro_token.airdrop(bob, 500_000_000.0 * 200.0);
-
-    let deposit = (500_000_000.0, 500_000_000.0);
-    pool.deposit(alice, deposit, 0.0);
-
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.swap(bob, bob, 500_000_000.0 * 100.0, 0.0, Direction::A2B);
-    let snapshot_after = Snapshot::take(&testing_env);
-
-    snapshot_before.print_change_with(&snapshot_after, "test");
-
-    // testing_env.assert_deposit_event(alice, expected_lp_amount, deposit);
-    // testing_env.assert_deposit(
-    //     snapshot_before,
-    //     snapshot_after,
-    //     alice,
-    //     deposit,
-    //     (0.0, 0.0),
-    //     expected_lp_amount,
-    // );
-}
-
-#[test]
-fn smallest_deposit() {
-    let testing_env = TestingEnv::default();
-    testing_env.do_deposit(&testing_env.alice, (0.001, 0.001), DOUBLE_ZERO, 0.002);
-}
-
-#[test]
-fn deposit_only_yusd() {
-    let testing_env = TestingEnv::default();
-
-    testing_env.do_deposit(&testing_env.alice, (100.0, 0.0), DOUBLE_ZERO, 100.0);
-}
-
-#[test]
-fn deposit_only_yaro() {
-    let testing_env = TestingEnv::default();
-    testing_env.do_deposit(&testing_env.alice, (0.0, 100.0), DOUBLE_ZERO, 100.0);
+    testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
 }
 
 #[test]
@@ -180,4 +115,43 @@ fn get_reward_after_second_deposit() {
         expected_rewards,
         expected_lp_amount,
     );
+}
+
+// TODO: Deposit slightly less than MAX amount
+// Swap to big disbalance 1:100 and check for overflows
+#[test]
+fn deposit_() {
+    let testing_env = TestingEnv::default();
+    let TestingEnv {
+        ref pool,
+        ref bob,
+        ref alice,
+        ref yusd_token,
+        ref yaro_token,
+        ..
+    } = testing_env;
+
+    yusd_token.airdrop(alice, 500_000_000.0 * 200.0);
+    yaro_token.airdrop(alice, 500_000_000.0 * 200.0);
+    yusd_token.airdrop(bob, 500_000_000.0 * 200.0);
+    yaro_token.airdrop(bob, 500_000_000.0 * 200.0);
+
+    let deposit = (500_000_000.0, 500_000_000.0);
+    pool.deposit(alice, deposit, 0.0);
+
+    let snapshot_before = Snapshot::take(&testing_env);
+    pool.swap(bob, bob, 500_000_000.0 * 100.0, 0.0, Direction::A2B);
+    let snapshot_after = Snapshot::take(&testing_env);
+
+    snapshot_before.print_change_with(&snapshot_after, "test");
+
+    // testing_env.assert_deposit_event(alice, expected_lp_amount, deposit);
+    // testing_env.assert_deposit(
+    //     snapshot_before,
+    //     snapshot_after,
+    //     alice,
+    //     deposit,
+    //     (0.0, 0.0),
+    //     expected_lp_amount,
+    // );
 }
