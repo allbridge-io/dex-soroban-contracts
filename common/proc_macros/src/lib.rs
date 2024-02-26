@@ -1,5 +1,6 @@
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
+use syn::parse::Parser as _;
 
 #[proc_macro_derive(Event)]
 pub fn derive_soroban_event(input: TokenStream) -> TokenStream {
@@ -103,33 +104,25 @@ pub fn extend_ttl_info(args: TokenStream, input: TokenStream) -> TokenStream {
     let input: syn::ItemStruct = syn::parse(input).unwrap();
     let ident = &input.ident;
 
-    let args = args.into_iter().collect::<Vec<_>>();
+    let parsed_args =
+        syn::punctuated::Punctuated::<syn::Ident, syn::Token![,]>::parse_terminated.parse(args);
 
-    if args.len() != 3 {
+    let parsed_args = parsed_args
+        .map_err(|err| -> TokenStream {
+            let err = err.to_compile_error();
+            quote!( compile_error!(#err); ).into()
+        })
+        .unwrap();
+
+    if parsed_args.len() != 2 {
         return quote!(
-            compile_error!("Received an unexpected number of arguments (3)");
+            compile_error!("Received an unexpected number of arguments (2)");
         )
         .into();
     }
 
-    let extend_ttl_amount = TokenStream::from_iter([args[0].clone()]);
-    let lifetime_threshold = TokenStream::from_iter([args[2].clone()]);
-
-    let extend_ttl_amount_lit_int =
-        syn::parse::<syn::LitInt>(extend_ttl_amount.clone()).map(ToTokens::into_token_stream);
-    let extend_ttl_amount_ident =
-        syn::parse::<syn::Ident>(extend_ttl_amount).map(ToTokens::into_token_stream);
-    let extend_ttl_amount = extend_ttl_amount_ident
-        .or(extend_ttl_amount_lit_int)
-        .unwrap();
-
-    let lifetime_threshold_lit_int =
-        syn::parse::<syn::LitInt>(lifetime_threshold.clone()).map(ToTokens::into_token_stream);
-    let lifetime_threshold_ident =
-        syn::parse::<syn::Ident>(lifetime_threshold).map(ToTokens::into_token_stream);
-    let lifetime_threshold = lifetime_threshold_ident
-        .or(lifetime_threshold_lit_int)
-        .unwrap();
+    let extend_ttl_amount = parsed_args.first().unwrap();
+    let lifetime_threshold = parsed_args.last().unwrap();
 
     quote!(
         #input
