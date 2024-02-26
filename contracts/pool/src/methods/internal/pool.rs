@@ -14,6 +14,8 @@ use crate::storage::{
     user_deposit::UserDeposit,
 };
 
+use super::pool_view::WithdrawAmount;
+
 #[contracttype]
 #[derive(Debug, Clone, Copy)]
 pub enum Direction {
@@ -133,7 +135,7 @@ impl Pool {
         sender: Address,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(DoubleU128, DoubleU128), Error> {
+    ) -> Result<(WithdrawAmount, DoubleU128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
         let old_balances = self.token_balances.clone();
@@ -155,7 +157,7 @@ impl Pool {
             );
         }
 
-        self.token_balances = withdraw_amount.new_token_balances;
+        self.token_balances = withdraw_amount.new_token_balances.clone();
         let d1 = self.total_lp_amount;
 
         require!(
@@ -165,7 +167,7 @@ impl Pool {
             Error::ZeroChanges
         );
 
-        Ok((withdraw_amount.amounts, rewards_amounts))
+        Ok((withdraw_amount, rewards_amounts))
     }
 
     pub(crate) fn deposit_lp(

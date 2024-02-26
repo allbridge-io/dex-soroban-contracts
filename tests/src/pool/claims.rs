@@ -1,6 +1,6 @@
 use crate::{
     contracts::pool::Direction,
-    utils::{TestingEnv, TestingEnvConfig, ZERO_REWARDS},
+    utils::{TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 
 #[test]
@@ -24,7 +24,7 @@ fn claim_admin_fee() {
     pool.swap(alice, bob, 100.0, 99.0, Direction::A2B);
 
     testing_env.do_claim_admin_fee(expected_admin_fees);
-    testing_env.do_claim_admin_fee(ZERO_REWARDS);
+    testing_env.do_claim_admin_fee(DOUBLE_ZERO);
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn claim_rewards() {
 
     // Expected 1% of 100 USD, which is around 1%
     testing_env.do_claim(alice, (1.001_219_9, 0.998_779_9));
-    testing_env.do_claim(alice, ZERO_REWARDS);
+    testing_env.do_claim(alice, DOUBLE_ZERO);
 }
 
 #[test]

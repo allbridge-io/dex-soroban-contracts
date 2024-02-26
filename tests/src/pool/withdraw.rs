@@ -1,6 +1,6 @@
 use crate::{
     contracts::pool::Direction,
-    utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, ZERO_REWARDS},
+    utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 
 #[test]
@@ -44,8 +44,44 @@ fn withdraw() {
         alice,
         pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
-        ZERO_REWARDS,
+        DOUBLE_ZERO,
+        DOUBLE_ZERO,
         expected_user_lp_diff,
+        DOUBLE_ZERO,
+    );
+
+    assert_eq!(snapshot_after.alice_deposit.lp_amount, 0);
+}
+
+#[test]
+fn withdraw_with_fee() {
+    let testing_env = TestingEnv::create(
+        TestingEnvConfig::default()
+            .with_pool_fee_share(0.1)
+            .with_pool_admin_fee(20.0),
+    );
+    let TestingEnv {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    let deposit = (4_000.0, 5_000.0);
+    let expected_user_lp_diff = 8_999.942;
+    let expected_withdraw_amounts = (4_473.963, 4_516.981);
+    let expected_fee = (4.478_442, 4.521_503);
+    let expected_admin_fee = (0.895_688_4, 0.904_300_6);
+
+    pool.deposit(alice, deposit, 8_999.0);
+
+    let (_, snapshot_after) = testing_env.do_withdraw(
+        alice,
+        pool.user_lp_amount_f64(alice),
+        expected_withdraw_amounts,
+        expected_fee,
+        DOUBLE_ZERO,
+        expected_user_lp_diff,
+        expected_admin_fee,
     );
 
     assert_eq!(snapshot_after.alice_deposit.lp_amount, 0);
@@ -101,8 +137,37 @@ fn smallest_withdraw() {
         alice,
         withdraw_amount,
         expected_withdraw_amounts,
-        ZERO_REWARDS,
+        DOUBLE_ZERO,
+        DOUBLE_ZERO,
         withdraw_amount,
+        DOUBLE_ZERO,
+    );
+}
+
+#[test]
+fn smallest_withdraw_with_fee() {
+    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
+    let TestingEnv {
+        ref pool,
+        ref alice,
+        ..
+    } = testing_env;
+
+    // 0.001 => ZeroChanges
+    let withdraw_amount = 0.004;
+    let expected_withdraw_amounts = (0.001, 0.001);
+    let expected_fee = (0.000_003, 0.000_002);
+
+    pool.deposit(alice, (15_000.0, 25_000.0), 39_950.0);
+
+    testing_env.do_withdraw(
+        alice,
+        withdraw_amount,
+        expected_withdraw_amounts,
+        expected_fee,
+        DOUBLE_ZERO,
+        withdraw_amount,
+        DOUBLE_ZERO,
     );
 }
 
@@ -125,8 +190,10 @@ fn withdraw_disbalance() {
         alice,
         pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
-        ZERO_REWARDS,
+        DOUBLE_ZERO,
+        DOUBLE_ZERO,
         expected_user_lp_diff,
+        DOUBLE_ZERO,
     );
 }
 
@@ -144,8 +211,9 @@ fn withdraw_with_rewards() {
     let expected_user_lp_diff = 8_999.942;
     // Alice has around 5% of the liquidity pool, we swap 1000 USD with 0.1% fee, which is 5% of 1 USD fee total
     let expected_rewards = (0.0430_620, 0.0430_619);
-    // Withdraw amounts sum is less than deposit amounts sum (8999.944)
-    let expected_withdraw_amounts = (4_478.441, 4_521.503);
+    // Withdraw amounts sum is less than deposit amounts sum
+    let expected_withdraw_amounts = (4_473.963, 4_516.981);
+    let expected_fee = (4.478_442, 4.521_503);
 
     pool.deposit(alice, deposits, 8_950.0);
     pool.swap(bob, bob, 1_000.0, 995.5, Direction::A2B);
@@ -155,8 +223,10 @@ fn withdraw_with_rewards() {
         alice,
         pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
+        expected_fee,
         expected_rewards,
         expected_user_lp_diff,
+        DOUBLE_ZERO,
     );
 }
 
@@ -176,10 +246,11 @@ fn withdraw_alice_profit_and_bob_loss() {
     let swap_amount = 100_000.;
     let expected_user_withdraw_lp_diff = 200_000.0;
     let expected_rewards = (0.0, 49.217_997_4);
-    // Alice should withdraw more than she deposited (200_831.2209974)
-    let expected_withdraw_amounts = (150_000.0, 50_782.003);
-    let expected_alice_profit = 831.220_997_4;
+    // Alice should withdraw more than she deposited
+    let expected_withdraw_amounts = (149_850.0, 50731.22);
+    let expected_alice_profit = 630.437_997_4;
     let expected_bob_losses = 1_662.440_995_0;
+    let expected_fee = (150.0, 50.782_003);
 
     pool.deposit(alice, deposit, 99_950.0);
 
@@ -191,8 +262,10 @@ fn withdraw_alice_profit_and_bob_loss() {
         alice,
         pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
+        expected_fee,
         expected_rewards,
         expected_user_withdraw_lp_diff,
+        DOUBLE_ZERO,
     );
 
     let bob_yaro_diff =
@@ -225,9 +298,10 @@ fn withdraw_alice_loss_and_bob_profit() {
     let expected_user_withdraw_lp_diff = 198_393.264;
     let expected_rewards = (50.598_436_60, 0.0);
     // Alice should withdraw less than she deposited (198_393.304)
-    let expected_withdraw_amounts = (98_796.609, 99_596.695);
-    let expected_alice_loss = 1_556.097_563_4;
+    let expected_withdraw_amounts = (98_697.812, 99_497.098);
+    let expected_alice_loss = 1_754.491_563_4;
     let expected_bob_profit = 1_505.050_343;
+    let expected_fee = (98.796_609, 99.596_695);
 
     let snapshot_before_deposit = Snapshot::take(&testing_env);
     pool.deposit(alice, deposit, 198_000.0);
@@ -240,8 +314,10 @@ fn withdraw_alice_loss_and_bob_profit() {
         alice,
         pool.user_lp_amount_f64(alice),
         expected_withdraw_amounts,
+        expected_fee,
         expected_rewards,
         expected_user_withdraw_lp_diff,
+        DOUBLE_ZERO,
     );
 
     let bob_profit = snapshot_after_swap.get_user_balances_sum(bob)
@@ -251,5 +327,5 @@ fn withdraw_alice_loss_and_bob_profit() {
 
     assert!(bob_profit < alice_loss);
     assert_rel_eq(float_to_uint(expected_bob_profit, 7), bob_profit, 1);
-    assert_rel_eq(float_to_uint(expected_alice_loss, 7), alice_loss, 1);
+    assert_rel_eq(float_to_uint(expected_alice_loss, 7), dbg!(alice_loss), 1);
 }

@@ -11,7 +11,8 @@ pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error>
     let mut pool = Pool::get(&env)?;
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
 
-    let (amounts, rewards) = pool.withdraw(&env, sender.clone(), &mut user_deposit, lp_amount)?;
+    let (withdraw_amount, rewards) =
+        pool.withdraw(&env, sender.clone(), &mut user_deposit, lp_amount)?;
 
     pool.save(&env);
     user_deposit.save(&env, sender.clone());
@@ -19,7 +20,8 @@ pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error>
     Withdraw {
         user: sender.clone(),
         lp_amount,
-        amounts: amounts.data,
+        amounts: withdraw_amount.amounts.data,
+        fees: withdraw_amount.fees.data,
     }
     .publish(&env);
 

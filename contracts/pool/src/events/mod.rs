@@ -28,6 +28,7 @@ pub struct Withdraw {
     pub user: Address,
     pub lp_amount: u128,
     pub amounts: (u128, u128),
+    pub fees: (u128, u128),
 }
 
 #[derive(Event)]

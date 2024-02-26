@@ -1,6 +1,6 @@
 use crate::{
     contracts::pool::Direction,
-    utils::{Snapshot, TestingEnv, TestingEnvConfig, ZERO_REWARDS},
+    utils::{Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 
 #[test]
@@ -52,7 +52,7 @@ fn deposit_invalid_first_deposit() {
 fn deposit() {
     let testing_env = TestingEnv::default();
 
-    testing_env.do_deposit(&testing_env.alice, (100.0, 50.0), ZERO_REWARDS, 150.0);
+    testing_env.do_deposit(&testing_env.alice, (100.0, 50.0), DOUBLE_ZERO, 150.0);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn deposit_disbalance() {
     testing_env.do_deposit(
         &testing_env.alice,
         (50_000_000.0, 5_000.0),
-        ZERO_REWARDS,
+        DOUBLE_ZERO,
         31_492_001.07,
     );
 }
@@ -109,20 +109,20 @@ fn deposit_() {
 #[test]
 fn smallest_deposit() {
     let testing_env = TestingEnv::default();
-    testing_env.do_deposit(&testing_env.alice, (0.001, 0.001), ZERO_REWARDS, 0.002);
+    testing_env.do_deposit(&testing_env.alice, (0.001, 0.001), DOUBLE_ZERO, 0.002);
 }
 
 #[test]
 fn deposit_only_yusd() {
     let testing_env = TestingEnv::default();
 
-    testing_env.do_deposit(&testing_env.alice, (100.0, 0.0), ZERO_REWARDS, 100.0);
+    testing_env.do_deposit(&testing_env.alice, (100.0, 0.0), DOUBLE_ZERO, 100.0);
 }
 
 #[test]
 fn deposit_only_yaro() {
     let testing_env = TestingEnv::default();
-    testing_env.do_deposit(&testing_env.alice, (0.0, 100.0), ZERO_REWARDS, 100.0);
+    testing_env.do_deposit(&testing_env.alice, (0.0, 100.0), DOUBLE_ZERO, 100.0);
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn deposit_twice_in_different_tokens() {
         snapshot_after,
         alice,
         (100.0, 100.0),
-        ZERO_REWARDS,
+        DOUBLE_ZERO,
         expected_lp_amount,
     );
 }
