@@ -3,7 +3,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env};
 
 use crate::{
     methods::{
-        internal::{pool::Direction, pool_view::WithdrawAmountView},
+        internal::pool_view::WithdrawAmountView,
         public::{
             claim_admin_fee, claim_rewards, deposit, initialize, set_admin, set_admin_fee_share,
             set_fee_share, swap, withdraw,
@@ -14,7 +14,8 @@ use crate::{
         },
     },
     storage::{
-        pool::{Pool, Token},
+        common::{Direction, Token},
+        pool::Pool,
         user_deposit::UserDeposit,
     },
 };

@@ -1,8 +1,8 @@
 use shared::{soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{Address, Env};
 
-use crate::storage::pool::{Pool, Token};
 use crate::storage::user_deposit::UserDeposit;
+use crate::storage::{common::Token, pool::Pool};
 
 use super::internal::pool_view::WithdrawAmountView;
 

@@ -1,8 +1,10 @@
 use shared::{soroban_data::SimpleSorobanData, Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::methods::internal::pool::Direction;
-use crate::{events::Swapped, storage::pool::Pool};
+use crate::{
+    events::Swapped,
+    storage::{common::Direction, pool::Pool},
+};
 
 pub fn swap(
     env: Env,

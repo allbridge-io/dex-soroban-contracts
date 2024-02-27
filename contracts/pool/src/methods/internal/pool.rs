@@ -6,32 +6,16 @@ use shared::{
     utils::{num::*, safe_cast},
     Error,
 };
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{Address, Env};
 
 use crate::storage::{
+    common::{Direction, Token},
     double_values::DoubleU128,
-    pool::{Pool, Token},
+    pool::Pool,
     user_deposit::UserDeposit,
 };
 
 use super::pool_view::WithdrawAmount;
-
-#[contracttype]
-#[derive(Debug, Clone, Copy)]
-pub enum Direction {
-    A2B,
-    B2A,
-}
-
-impl Direction {
-    #[inline]
-    pub fn get_tokens(&self) -> (Token, Token) {
-        match self {
-            Direction::A2B => (Token::A, Token::B),
-            Direction::B2A => (Token::B, Token::A),
-        }
-    }
-}
 
 impl Pool {
     pub const BP: u128 = 10000;
@@ -273,11 +257,11 @@ impl Pool {
         // 4A(D - x) - D
         let part1 = int_a4 * (int_d - int_native_x) - int_d;
         // x * (4AD³ + x(part1²))
-        let part2 = (ddd * a4 + (U256::new((part1 * part1) as u128) * native_x)) * native_x;
+        let part2 = (ddd * a4 + (U256::new(safe_cast(part1 * part1)?) * native_x)) * native_x;
         // (sqrt(part2) + x(part1))
         let sqrt_sum = safe_cast::<u128, i128>(sqrt(&part2).as_u128())? + (int_native_x * part1);
         // (sqrt(part2) + x(part1)) / 8Ax)
-        Ok(sqrt_sum as u128 / ((self.a << 3) * native_x))
+        Ok(safe_cast::<i128, u128>(sqrt_sum)? / ((self.a << 3) * native_x))
     }
 
     pub fn get_current_d(&self) -> u128 {

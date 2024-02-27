@@ -145,13 +145,5 @@ fn deposit_() {
 
     snapshot_before.print_change_with(&snapshot_after, "test");
 
-    // testing_env.assert_deposit_event(alice, expected_lp_amount, deposit);
-    // testing_env.assert_deposit(
-    //     snapshot_before,
-    //     snapshot_after,
-    //     alice,
-    //     deposit,
-    //     (0.0, 0.0),
-    //     expected_lp_amount,
-    // );
+    // pool.deposit(alice, (1.0, 1.0), 0.0);
 }

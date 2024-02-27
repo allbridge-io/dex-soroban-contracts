@@ -1,10 +1,7 @@
 use shared::{require, Error};
 use soroban_sdk::contracttype;
 
-use crate::storage::{
-    double_values::DoubleU128,
-    pool::{Pool, Token},
-};
+use crate::storage::{common::Token, double_values::DoubleU128, pool::Pool};
 
 pub struct ReceiveAmount {
     pub token_from_new_balance: u128,
@@ -183,10 +180,7 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::storage::{
-        double_values::DoubleU128,
-        pool::{Pool, Token},
-    };
+    use crate::storage::{common::Token, double_values::DoubleU128, pool::Pool};
 
     #[contract]
     pub struct TestPool;

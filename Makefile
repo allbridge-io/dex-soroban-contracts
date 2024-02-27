@@ -103,8 +103,8 @@ factory-create-pair:
 		--a 20 \
 		--token-a $(YARO_ADDRESS) \
 		--token-b $(USDY_ADDRESS) \
-		--fee_share_bp 10 \
-		--admin-fee-share-bp 10
+		--fee_share_bp 15 \
+		--admin-fee-share-bp 2000
 
 factory-get-pool:
 	soroban contract invoke \

@@ -5,7 +5,7 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use super::pool::Token;
+use super::common::Token;
 
 #[macro_export]
 macro_rules! double_value {
