@@ -1,12 +1,9 @@
-use proc_macros::{
-    data_storage_type, extend_ttl_info_instance, SorobanData, SorobanSimpleData, SymbolKey,
-};
+use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
 use shared::{soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{contracttype, Address, Env};
 
 #[contracttype]
-#[derive(SorobanData, SorobanSimpleData, SymbolKey)]
-#[data_storage_type(Instance)]
+#[derive(SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
 pub struct Admin(pub Address);
 

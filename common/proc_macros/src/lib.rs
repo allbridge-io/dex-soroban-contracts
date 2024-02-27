@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::parse::Parser as _;
+use syn::{parse::Parser as _, Ident};
 
 #[proc_macro_derive(Event)]
 pub fn derive_soroban_event(input: TokenStream) -> TokenStream {
@@ -37,6 +37,36 @@ pub fn derive_soroban_simple_data(input: TokenStream) -> TokenStream {
     .into()
 }
 
+fn impl_data_storage_type(ident: &Ident, s: &'static str) -> TokenStream {
+    let path = format!("shared::StorageType::{}", s);
+    let path: syn::Path = syn::parse_str(path.as_str()).unwrap();
+
+    quote!(
+        impl shared::soroban_data::DataStorageType for #ident {
+            const STORAGE_TYPE: shared::StorageType = #path;
+        }
+    )
+    .into()
+}
+
+#[proc_macro_derive(Temporary)]
+pub fn derive_data_storage_type_temporary(input: TokenStream) -> TokenStream {
+    let input: syn::ItemStruct = syn::parse(input).unwrap();
+    impl_data_storage_type(&input.ident, "Temporary")
+}
+
+#[proc_macro_derive(Instance)]
+pub fn derive_data_storage_type_instance(input: TokenStream) -> TokenStream {
+    let input: syn::ItemStruct = syn::parse(input).unwrap();
+    impl_data_storage_type(&input.ident, "Instance")
+}
+
+#[proc_macro_derive(Persistent)]
+pub fn derive_data_storage_type_persistent(input: TokenStream) -> TokenStream {
+    let input: syn::ItemStruct = syn::parse(input).unwrap();
+    impl_data_storage_type(&input.ident, "Persistent")
+}
+
 #[proc_macro_derive(SymbolKey)]
 pub fn derive_symbol_key(input: TokenStream) -> TokenStream {
     let syn::DeriveInput { ident, .. } = syn::parse_macro_input! {input};
@@ -56,30 +86,6 @@ pub fn derive_symbol_key(input: TokenStream) -> TokenStream {
             const STORAGE_KEY: &'static str = #key;
         }
     }
-    .into()
-}
-
-#[proc_macro_attribute]
-pub fn data_storage_type(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input: syn::ItemStruct = syn::parse(input).unwrap();
-    let ident = &input.ident;
-
-    let storage_type = args.to_string();
-    let path: syn::Path =
-        syn::parse_str(&format!("shared::StorageType::{}", storage_type)).unwrap();
-
-    (match storage_type.as_str() {
-        "Temporary" | "Persistent" | "Instance" => quote!(
-            #input
-
-            impl shared::soroban_data::DataStorageType for #ident {
-                const STORAGE_TYPE: shared::StorageType = #path;
-            }
-        ),
-        _ => {
-            quote!(  compile_error!("Unexpected StorageType, use Temporary/Persistent/Instance");  )
-        }
-    })
     .into()
 }
 

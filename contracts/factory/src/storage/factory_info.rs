@@ -1,6 +1,4 @@
-use proc_macros::{
-    data_storage_type, extend_ttl_info_instance, SorobanData, SorobanSimpleData, SymbolKey,
-};
+use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
 use shared::{
     utils::{bytes::address_to_bytes, merge_slices_by_half},
     Error,
@@ -8,8 +6,7 @@ use shared::{
 use soroban_sdk::{contracttype, Address, BytesN, Map};
 
 #[contracttype]
-#[derive(SorobanData, SorobanSimpleData, SymbolKey)]
-#[data_storage_type(Instance)]
+#[derive(SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
 pub struct FactoryInfo {
     pub wasm_hash: soroban_sdk::BytesN<32>,

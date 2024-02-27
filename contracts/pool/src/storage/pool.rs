@@ -1,6 +1,4 @@
-use proc_macros::{
-    data_storage_type, extend_ttl_info_instance, SorobanData, SorobanSimpleData, SymbolKey,
-};
+use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
 use soroban_sdk::{
     contracttype,
     token::{self, TokenClient},
@@ -37,8 +35,7 @@ impl Token {
 }
 
 #[contracttype]
-#[derive(Debug, Clone, SorobanData, SorobanSimpleData, SymbolKey)]
-#[data_storage_type(Instance)]
+#[derive(Debug, Clone, SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
 pub struct Pool {
     pub a: u128,
