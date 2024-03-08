@@ -9,30 +9,29 @@ POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
 
 FACTORY_WASM_PATH = target/wasm32-unknown-unknown/release/factory.wasm
 FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/release/factory.optimized.wasm
-FACTORY_ADDRESS_PATH = soroban-deploy/factory
-FACTORY_ADDRESS=$$(cat $(FACTORY_ADDRESS_PATH))
+FACTORY_ADDRESS=CACBPPNXJZZECUERFKHDPHWCLA6KEWE5N45ER3E3SPTXZ34JVVTTNV2N # Testnet
 
-POOL_WASM_HASH_PATH=soroban-deploy/pool_wasm_hash
-POOL_WASM_HASH=$$(cat $(POOL_WASM_HASH_PATH))
+POOL_WASM_HASH=5126675e4652dadd2724df5ea02f191a3cfbd0447ba47783c3a34bf302493a0d
 
 ALICE = $$(soroban config identity address alice)
 ADMIN_ALIAS = alice
 ADMIN = $$(soroban config identity address $(ADMIN_ALIAS))
+DEPLOYER=$(ADMIN)
 
 # YARO:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
-YARO_ADDRESS=CDFVZVTV4K5S66GQXER7YVK6RB23BMPMD3HQUA3TGEZUGDL3NM3R5GDW # Futurenet
+YARO_ADDRESS=CACOK7HB7D7SRPMH3LYYOW77T6D4D2F7TR7UEVKY2TVSUDSRDM6DZVLK # Testnet
 # USDY:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
-USDY_ADDRESS=CD7KQQY27G5WXQT2IUYJVHNQH6N2I6GEM5ND2BLZ2GHDAPB2V3KWCW7M # Futurenet
+USDY_ADDRESS=CAOPX7DVI3PFLHE7637YSFU6TLG6Z27Z5O3M547ANAYXQOAYCYYV6NO6 # Testnet
 # BOGD:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
-BOGD_ADDRESS=CBO3NHSU7ZL7LBZFA7IBVVW4IC2SBV7Z2QE37AC6GS5FTRPNRKQYNXGW # Futurenet
+BOGD_ADDRESS=CDBDW5BMDBFQGKI4UWUFZQEO7OKFTGNLU5BV2I3DKPJ33OWMKLERRMS6 # Testnet
 
-YARO_USDY_POOL=CDF2XUC5BTXFRA6SHRNS2TGHORHXOAS3V7WQJ2OKEBIOQEPCA762OLE4 # Futurenet 
-YARO_BOGD_POOL=CA6LEPLUIHMF5TYWQKUYEF3AMLIIJNYCMSUNG4SG47OCPPVBCNPVMRW7 # Futurenet
+YARO_BOGD_POOL=CDPIBT5DBMOXBE5AT6IVFWO36CMDOBNR6LWRECD3MNDCDHBLJLB7PEHN # Testnet 
+USDY_BOGD_POOL=CBZGPFLKGVMIDQD5N3N5HWZCHPIBIFACKQXWIPCOCUYGBDLW37FTSIWE # Testnet 
 
 TOKEN_ADDRESS=$(BOGD_ADDRESS)
-POOL_ADDRESS=$(YARO_BOGD_POOL)
+POOL_ADDRESS=$(USDY_BOGD_POOL)
 
-NETWORK=futurenet
+NETWORK=testnet
 
 update-soroban-cli:
 	cargo install soroban-cli --features opt
@@ -101,10 +100,10 @@ factory-create-pair:
 		--network $(NETWORK) 	\
 		-- \
 		create_pair \
-		--deployer $(ADMIN) \
+		--deployer $(DEPLOYER) \
 		--pool-admin $(ADMIN) \
 		--a 20 \
-		--token-a $(YARO_ADDRESS) \
+		--token-a $(USDY_ADDRESS) \
 		--token-b $(BOGD_ADDRESS) \
 		--fee_share_bp 15 \
 		--admin-fee-share-bp 2000
@@ -164,6 +163,7 @@ pool-get-pool-info:
 		--id $(POOL_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
+		--is-view \
 		-- \
 		get_pool
 
@@ -173,6 +173,7 @@ pool-pending-reward:
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
 		-- \
+		--is-view \
 		pending_reward \
 		--user $(ADMIN)
 
@@ -181,8 +182,29 @@ pool-get-d:
 		--id $(POOL_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
+		--is-view \
 		-- \
 		get_d
+
+pool-get-withdraw-amount:
+	soroban contract invoke \
+		--id $(POOL_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		--is-view \
+		-- \
+		get_withdraw_amount \
+		--lp_amount 100000
+
+pool-get-deposit-amount:
+	soroban contract invoke \
+		--id $(POOL_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		--is-view \
+		-- \
+		get_deposit_amount \
+		--amounts '["100000", "100000"]'
 
 #----------TOKEN--------------------------
 
@@ -212,6 +234,7 @@ token-get-balance:
 	soroban contract invoke \
 		--id $(TOKEN_ADDRESS) \
 		--network $(NETWORK) 	\
+		--is-view \
 		-- \
 		balance \
 		--id $(POOL_ADDRESS)
@@ -222,6 +245,7 @@ token-get-name:
 		--id $(TOKEN_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
+		--is-view \
 		-- \
 		name
 
