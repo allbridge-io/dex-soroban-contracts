@@ -51,7 +51,7 @@ fn deposit_invalid_first_deposit() {
 }
 
 #[test_case((100.0, 50.0), DOUBLE_ZERO, 150.0 ; "base")]
-#[test_case((50_000_000.0, 5_000.0), DOUBLE_ZERO, 31_492_001.07 ; "deposit_disbalance")]
+#[test_case((50_000_000.0, 5_000.0), DOUBLE_ZERO, 31_492_001.072 ; "deposit_disbalance")]
 #[test_case((0.001, 0.001), DOUBLE_ZERO, 0.002 ; "smallest_deposit")]
 #[test_case((100.0, 0.0), DOUBLE_ZERO, 100.0 ; "deposit_only_yusd")]
 #[test_case((0.0, 100.0), DOUBLE_ZERO, 100.0 ; "deposit_only_yaro")]

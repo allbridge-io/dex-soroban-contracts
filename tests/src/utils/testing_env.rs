@@ -315,6 +315,7 @@ impl TestingEnv {
             user_lp_diff
         );
         assert!(snapshot_before.d < snapshot_after.d);
+        assert!(user_lp_diff <= expected_lp_amount);
         assert_rel_eq(user_lp_diff, expected_lp_amount, 5);
 
         assert_eq!(user_yusd_diff, expected_yusd_reward);
