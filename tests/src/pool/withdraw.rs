@@ -32,7 +32,7 @@ fn withdraw_zero_change() {
 #[test_case(
     TestingEnvConfig::default(),
     DepositArgs { amounts: (4_000.0, 5_000.0), min_lp: 8_999.0 },
-    DoWithdrawArgs { amount: 8999.942, expected_amounts: (4_478.441, 4_521.503), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 8_999.942, expected_admin_fee: DOUBLE_ZERO }
+    DoWithdrawArgs { amount: 8999.942, expected_amounts: (4_478.442, 4_521.503), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 8_999.942, expected_admin_fee: DOUBLE_ZERO }
     ; "base_withdraw"
 )]
 #[test_case(
@@ -44,19 +44,19 @@ fn withdraw_zero_change() {
 #[test_case(
     TestingEnvConfig::default(),
     DepositArgs { amounts: (15_000.0, 25_000.0), min_lp: 39_950.0 },
-    DoWithdrawArgs { amount: 0.002, expected_amounts: (0.001, 0.001), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.002, expected_admin_fee: DOUBLE_ZERO }
+    DoWithdrawArgs { amount: 0.002, expected_amounts: (0.002, 0.001), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.002, expected_admin_fee: DOUBLE_ZERO }
     ; "smallest_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1),
     DepositArgs { amounts: (15_000.0, 25_000.0), min_lp: 39_950.0 },
-    DoWithdrawArgs { amount: 0.004, expected_amounts: (0.001, 0.001), expected_fee: (0.000_003, 0.000_002), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: DOUBLE_ZERO }
+    DoWithdrawArgs { amount: 0.004, expected_amounts: (0.002, 0.001), expected_fee: (0.000_003, 0.000_002), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: DOUBLE_ZERO }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
     DepositArgs { amounts: (50_000_000.0, 5_000.0), min_lp: 31_250_000.0 },
-    DoWithdrawArgs { amount: 31_492_001.072, expected_amounts: (49_783_831.892, 104_337.372), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 31_492_001.072, expected_admin_fee: DOUBLE_ZERO }
+    DoWithdrawArgs { amount: 31_492_001.072, expected_amounts: (49_783_831.892, 104_337.373), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 31_492_001.072, expected_admin_fee: DOUBLE_ZERO }
     ; "withdraw_disbalance"
 )]
 fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_args: DoWithdrawArgs) {

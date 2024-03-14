@@ -22,8 +22,8 @@ fn swap_insufficient_received_amount() {
 
 #[test_case(1_000.0, 995.5, Direction::A2B, 998.94006, 0.99994 ; "base")]
 #[test_case(1000.0, 995.5, Direction::B2A, 998.94006, 0.99994 ; "base b2a")]
-#[test_case(0.001, 0.0, Direction::A2B, 0.000_999, 0.0 ; "smallest_swap")]
-#[test_case(0.001, 0.0, Direction::B2A, 0.000_999, 0.0 ; "smallest_swap_b2a")]
+#[test_case(0.001, 0.000_999, Direction::A2B, 0.000_999, 0.000_001 ; "smallest_swap")]
+#[test_case(0.001, 0.0, Direction::B2A, 0.000_999, 0.000_001 ; "smallest_swap_b2a")]
 fn simple_swaps(
     amount: f64,
     receive_amount_min: f64,
@@ -48,7 +48,7 @@ fn simple_swaps(
     );
 }
 
-#[test_case(DepositArgs { amounts: (0.0, 250_000.0), min_lp: 249_000.0 }, 10_000.0, 10090.0, Direction::A2B, 10_091.038_86, 10.101_14 ; "swap_more_yaro")]
+#[test_case(DepositArgs { amounts: (0.0, 250_000.0), min_lp: 249_000.0 }, 10_000.0, 10090.0, Direction::A2B, 10_091.038_86, 10.101_140 ; "swap_more_yaro")]
 #[test_case(DepositArgs { amounts: (250_000.0, 0.0), min_lp: 249_000.0 }, 10_000.0, 995.0, Direction::A2B, 9_880.313_796, 9.890_204 ; "swap_more_yusd")]
 fn swap_disbalance(
     deposit_args: DepositArgs,

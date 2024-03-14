@@ -53,8 +53,8 @@ fn deposit_invalid_first_deposit() {
 #[test_case((100.0, 50.0), DOUBLE_ZERO, 150.0 ; "base")]
 #[test_case((50_000_000.0, 5_000.0), DOUBLE_ZERO, 31_492_001.072 ; "deposit_disbalance")]
 #[test_case((0.001, 0.001), DOUBLE_ZERO, 0.002 ; "smallest_deposit")]
-#[test_case((100.0, 0.0), DOUBLE_ZERO, 100.0 ; "deposit_only_yusd")]
-#[test_case((0.0, 100.0), DOUBLE_ZERO, 100.0 ; "deposit_only_yaro")]
+#[test_case((100.0, 0.0), DOUBLE_ZERO, 99.998 ; "deposit_only_yusd")]
+#[test_case((0.0, 100.0), DOUBLE_ZERO, 99.998 ; "deposit_only_yaro")]
 fn deposit(deposit: (f64, f64), expected_rewards: (f64, f64), expected_lp: f64) {
     let testing_env = TestingEnv::default();
     testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
@@ -115,35 +115,4 @@ fn get_reward_after_second_deposit() {
         expected_rewards,
         expected_lp_amount,
     );
-}
-
-// TODO: Deposit slightly less than MAX amount
-// Swap to big disbalance 1:100 and check for overflows
-#[test]
-fn deposit_() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
-        ref pool,
-        ref bob,
-        ref alice,
-        ref yusd_token,
-        ref yaro_token,
-        ..
-    } = testing_env;
-
-    yusd_token.airdrop(alice, 500_000_000.0 * 200.0);
-    yaro_token.airdrop(alice, 500_000_000.0 * 200.0);
-    yusd_token.airdrop(bob, 500_000_000.0 * 200.0);
-    yaro_token.airdrop(bob, 500_000_000.0 * 200.0);
-
-    let deposit = (500_000_000.0, 500_000_000.0);
-    pool.deposit(alice, deposit, 0.0);
-
-    let snapshot_before = Snapshot::take(&testing_env);
-    pool.swap(bob, bob, 500_000_000.0 * 100.0, 0.0, Direction::A2B);
-    let snapshot_after = Snapshot::take(&testing_env);
-
-    snapshot_before.print_change_with(&snapshot_after, "test");
-
-    // pool.deposit(alice, (1.0, 1.0), 0.0);
 }

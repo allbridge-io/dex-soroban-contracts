@@ -52,7 +52,6 @@ impl Default for TestingEnvConfig {
     }
 }
 
-#[allow(dead_code)]
 pub struct TestingEnv {
     pub env: Env,
     pub admin: User,
@@ -189,12 +188,12 @@ impl TestingEnv {
         assert_rel_eq(
             rewards_claimed.rewards.0,
             float_to_uint(expected_yusd_reward, 7),
-            10,
+            1,
         );
         assert_rel_eq(
             rewards_claimed.rewards.1,
             float_to_uint(expected_yaro_reward, 7),
-            10,
+            1,
         );
     }
 
@@ -219,7 +218,7 @@ impl TestingEnv {
 
         assert_eq!(swapped.from_amount, float_to_uint(from_amount, 7));
         assert_eq!(swapped.to_amount, float_to_uint(expected_to_amount, 7));
-        assert_rel_eq(swapped.fee, float_to_uint(expected_fee, 7), 10);
+        assert_rel_eq(swapped.fee, float_to_uint(expected_fee, 7), 1);
 
         assert_eq!(swapped.from_token, from_token);
         assert_eq!(swapped.to_token, to_token);
@@ -237,11 +236,11 @@ impl TestingEnv {
         assert_eq!(withdraw.user, expected_user.as_address());
         assert_eq!(withdraw.lp_amount, float_to_uint_sp(lp_amount));
 
-        assert_rel_eq(withdraw.amounts.0, float_to_uint_sp(yusd_amount), 2);
-        assert_rel_eq(withdraw.amounts.1, float_to_uint_sp(yaro_amount), 2);
+        assert_rel_eq(withdraw.amounts.0, float_to_uint_sp(yusd_amount), 1);
+        assert_rel_eq(withdraw.amounts.1, float_to_uint_sp(yaro_amount), 1);
 
-        assert_rel_eq(withdraw.fees.0, float_to_uint(yusd_fee, 7), 2);
-        assert_rel_eq(withdraw.fees.1, float_to_uint(yaro_fee, 7), 2);
+        assert_rel_eq(withdraw.fees.0, float_to_uint(yusd_fee, 7), 1);
+        assert_rel_eq(withdraw.fees.1, float_to_uint(yaro_fee, 7), 1);
     }
 
     pub fn assert_deposit_event(
@@ -255,7 +254,7 @@ impl TestingEnv {
         assert_eq!(deposit.user, expected_user.as_address());
         assert_eq!(deposit.amounts.0, float_to_uint(yusd_deposit, 7));
         assert_eq!(deposit.amounts.1, float_to_uint(yaro_deposit, 7));
-        assert_rel_eq(float_to_uint_sp(expected_lp_amount), deposit.lp_amount, 10);
+        assert_eq!(float_to_uint_sp(expected_lp_amount), deposit.lp_amount);
     }
 
     pub fn assert_deposit(
@@ -315,8 +314,7 @@ impl TestingEnv {
             user_lp_diff
         );
         assert!(snapshot_before.d < snapshot_after.d);
-        assert!(user_lp_diff <= expected_lp_amount);
-        assert_rel_eq(user_lp_diff, expected_lp_amount, 5);
+        assert_eq!(user_lp_diff, expected_lp_amount);
 
         assert_eq!(user_yusd_diff, expected_yusd_reward);
         assert_eq!(pool_yusd_diff, expected_yusd_reward);
@@ -368,8 +366,8 @@ impl TestingEnv {
         let admin_yaro_fee_diff =
             snapshot_after.admin_yaro_fee_rewards - snapshot_before.admin_yaro_fee_rewards;
 
-        assert_rel_eq(admin_yusd_fee_diff, expected_yusd_admin_fee, 10);
-        assert_rel_eq(admin_yaro_fee_diff, expected_yaro_admin_fee, 10);
+        assert_eq!(admin_yusd_fee_diff, expected_yusd_admin_fee);
+        assert_eq!(admin_yaro_fee_diff, expected_yaro_admin_fee);
 
         assert!(snapshot_before.total_lp_amount > snapshot_after.total_lp_amount);
         let pool_lp_amount_diff = snapshot_before.total_lp_amount - snapshot_after.total_lp_amount;
@@ -390,11 +388,10 @@ impl TestingEnv {
             );
         }
 
-        // 10000 with 7 precision => 0.001
-        assert_rel_eq(user_yusd_diff, expected_yusd_diff, 10000);
-        assert_rel_eq(user_yaro_diff, expected_yaro_diff, 10000);
-        assert_rel_eq(pool_yusd_diff, expected_yusd_diff, 10000);
-        assert_rel_eq(pool_yaro_diff, expected_yaro_diff, 10000);
+        assert_eq!(user_yusd_diff, expected_yusd_diff);
+        assert_eq!(user_yaro_diff, expected_yaro_diff);
+        assert_eq!(pool_yusd_diff, expected_yusd_diff);
+        assert_eq!(pool_yaro_diff, expected_yaro_diff);
     }
 
     pub fn assert_claim(
@@ -443,10 +440,10 @@ impl TestingEnv {
         let pool_yaro_diff = snapshot_before.pool_yaro_balance - snapshot_after.pool_yaro_balance;
         let pool_yusd_diff = snapshot_before.pool_yusd_balance - snapshot_after.pool_yusd_balance;
 
-        assert_rel_eq(admin_yaro_diff, yaro_reward, 5);
-        assert_rel_eq(admin_yusd_diff, yusd_reward, 5);
-        assert_rel_eq(pool_yaro_diff, yaro_reward, 5);
-        assert_rel_eq(pool_yusd_diff, yusd_reward, 5);
+        assert_rel_eq(admin_yaro_diff, yaro_reward, 1);
+        assert_rel_eq(admin_yusd_diff, yusd_reward, 1);
+        assert_rel_eq(pool_yaro_diff, yaro_reward, 1);
+        assert_rel_eq(pool_yusd_diff, yusd_reward, 1);
     }
 
     #[allow(clippy::too_many_arguments)]
