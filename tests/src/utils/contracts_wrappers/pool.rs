@@ -99,6 +99,13 @@ impl Pool {
         );
     }
 
+    pub fn set_admin(&self, admin: Address) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_set_admin(&admin)),
+        );
+    }
+
     pub fn set_fee_share(&self, fee_share: f64) {
         unwrap_call_result(
             &self.env,

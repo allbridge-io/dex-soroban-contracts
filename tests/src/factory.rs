@@ -1,3 +1,5 @@
+use soroban_sdk::{testutils::Address as _, testutils::BytesN as _, Address, BytesN};
+
 use crate::utils::TestingEnv;
 
 #[test]
@@ -15,6 +17,48 @@ fn add_new_pair_no_auth() {
         10,
         10,
     );
+}
+
+#[test]
+#[should_panic = "Context(InvalidAction)"]
+fn set_admin_no_auth() {
+    let testing_env = TestingEnv::default();
+
+    testing_env
+        .clear_mock_auth()
+        .factory
+        .set_admin(Address::generate(&testing_env.env));
+}
+
+#[test]
+fn set_admin() {
+    let testing_env = TestingEnv::default();
+    let new_admin = Address::generate(&testing_env.env);
+
+    testing_env.factory.set_admin(new_admin.clone());
+    assert_eq!(testing_env.factory.client.get_admin(), new_admin);
+}
+
+#[test]
+fn update_wasm_hash() {
+    let testing_env = TestingEnv::default();
+
+    let new_wasm_hash = BytesN::<32>::random(&testing_env.env);
+
+    testing_env.factory.update_wasm_hash(&new_wasm_hash);
+
+    assert_eq!(testing_env.factory.client.get_wasm_hash(), new_wasm_hash);
+}
+
+#[test]
+#[should_panic = "Context(InvalidAction)"]
+fn update_wasm_hash_no_auth() {
+    let testing_env = TestingEnv::default();
+
+    testing_env
+        .clear_mock_auth()
+        .factory
+        .update_wasm_hash(&BytesN::<32>::random(&testing_env.env));
 }
 
 #[test]

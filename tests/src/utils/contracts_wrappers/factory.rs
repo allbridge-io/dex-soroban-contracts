@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, BytesN, Env};
 
 use crate::{
     contracts::{factory, pool},
@@ -47,6 +47,20 @@ impl PoolFactory {
                 &admin_fee,
             )),
         )
+    }
+
+    pub fn update_wasm_hash(&self, new_wasm_hash: &BytesN<32>) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_update_wasm_hash(new_wasm_hash)),
+        );
+    }
+
+    pub fn set_admin(&self, admin: Address) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_set_admin(&admin)),
+        );
     }
 
     pub fn pool(&self, token_a: &Address, token_b: &Address) -> Address {

@@ -1,5 +1,6 @@
 use shared::{soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{Address, Env};
+use storage::Admin;
 
 use crate::storage::user_deposit::UserDeposit;
 use crate::storage::{common::Token, pool::Pool};
@@ -44,4 +45,8 @@ pub fn get_deposit_amount(env: Env, amounts: (u128, u128)) -> Result<u128, Error
     let deposit_amount = Pool::get(&env)?.get_deposit_amount(amounts.into())?;
 
     Ok(deposit_amount.lp_amount)
+}
+
+pub fn get_admin(env: Env) -> Result<Address, Error> {
+    Ok(Admin::get(&env)?.0)
 }

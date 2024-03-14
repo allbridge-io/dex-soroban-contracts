@@ -1,5 +1,6 @@
 use shared::{utils::extend_ttl_instance, Error};
-use soroban_sdk::{contract, contractimpl, Address, Env};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
+use storage::Admin;
 
 use crate::{
     methods::{
@@ -9,7 +10,7 @@ use crate::{
             set_fee_share, swap, withdraw,
         },
         view::{
-            get_d, get_deposit_amount, get_pool, get_receive_amount, get_send_amount,
+            get_admin, get_d, get_deposit_amount, get_pool, get_receive_amount, get_send_amount,
             get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
@@ -89,7 +90,7 @@ impl PoolContract {
         claim_rewards(env, sender)
     }
 
-    // -------- Admin --------
+    // ----------- Admin -----------
 
     pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
         extend_ttl_instance(&env);
@@ -115,7 +116,7 @@ impl PoolContract {
         set_fee_share(env, fee_share_bp)
     }
 
-    // -------- View --------
+    // ----------- View -----------
 
     pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
         pending_reward(env, user)
@@ -151,5 +152,18 @@ impl PoolContract {
 
     pub fn get_deposit_amount(env: Env, amounts: (u128, u128)) -> Result<u128, Error> {
         get_deposit_amount(env, amounts)
+    }
+
+    pub fn get_admin(env: Env) -> Result<Address, Error> {
+        get_admin(env)
+    }
+
+    // ----------- Upgrade -----------
+
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
+        Admin::require_exist_auth(&env)?;
+
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+        Ok(())
     }
 }
