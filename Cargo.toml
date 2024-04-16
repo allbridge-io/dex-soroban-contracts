@@ -3,9 +3,9 @@ resolver = "2"
 members = ["contracts/*", "common/*", "tests"]
 
 [workspace.dependencies]
-soroban-sdk = "20.4.0"
-soroban-env-common = "20.2.2"
-ethnum = "1.4.0"
+soroban-sdk = "20.5.0"
+soroban-env-common = "20.3.0"
+ethnum = "1.5"
 arrayref = "0.3.7"
 shared = { path = "./common/shared" }
 proc_macros = { path = "./common/proc_macros" }

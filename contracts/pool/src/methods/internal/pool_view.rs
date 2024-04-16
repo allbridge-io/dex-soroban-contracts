@@ -105,24 +105,25 @@ impl Pool {
             (1, 0)
         };
 
-        let more_token_amount = self.token_balances[more] * lp_amount / d0;
-        let y = self.get_y(self.token_balances[more] - more_token_amount, d1)?;
-        let less_token_amount = self.token_balances[less] - y;
+        let more_token_amount_sp = self.token_balances[more] * lp_amount / d0;
+        let y = self.get_y(self.token_balances[more] - more_token_amount_sp, d1)?;
+        let less_token_amount_sp = self.token_balances[less] - y;
 
         let mut new_token_balances = self.token_balances.clone();
         let mut fees = DoubleU128::default();
 
-        for (index, token_amount) in [(more, more_token_amount), (less, less_token_amount)] {
+        for (index, token_amount_sp) in [(more, more_token_amount_sp), (less, less_token_amount_sp)]
+        {
             let token_amount =
-                self.amount_from_system_precision(token_amount, self.tokens_decimals[index]);
+                self.amount_from_system_precision(token_amount_sp, self.tokens_decimals[index]);
             let fee = token_amount * self.fee_share_bp / Self::BP;
 
-            let token_amount =
+            let token_amount_sp =
                 self.amount_to_system_precision(token_amount - fee, self.tokens_decimals[index]);
 
             fees[index] = fee;
-            amounts[index] = token_amount;
-            new_token_balances[index] -= token_amount;
+            amounts[index] = token_amount_sp;
+            new_token_balances[index] -= token_amount_sp;
         }
 
         Ok(WithdrawAmount {
@@ -141,24 +142,24 @@ impl Pool {
             self.amount_to_system_precision(amounts[1], self.tokens_decimals[1]),
         ));
 
-        let total_amount = amounts_sp.sum();
-        require!(total_amount > 0, Error::ZeroAmount);
+        let total_amount_sp = amounts_sp.sum();
+        require!(total_amount_sp > 0, Error::ZeroAmount);
 
-        let mut new_token_balances = self.token_balances.clone();
+        let mut new_token_balances_sp = self.token_balances.clone();
 
         for (index, amount) in amounts.to_array().into_iter().enumerate() {
             if amount == 0 {
                 continue;
             }
 
-            new_token_balances[index] += amounts_sp[index];
+            new_token_balances_sp[index] += amounts_sp[index];
         }
 
-        let d1 = self.get_d(new_token_balances[0], new_token_balances[1]);
+        let d1 = self.get_d(new_token_balances_sp[0], new_token_balances_sp[1])?;
 
         require!(d1 > d0, Error::Forbidden);
         require!(
-            new_token_balances.sum() < Self::MAX_TOKEN_BALANCE,
+            new_token_balances_sp.sum() < Self::MAX_TOKEN_BALANCE,
             Error::PoolOverflow
         );
 
@@ -166,7 +167,7 @@ impl Pool {
 
         Ok(DepositAmount {
             lp_amount,
-            new_token_balances,
+            new_token_balances: new_token_balances_sp,
         })
     }
 }
@@ -196,7 +197,7 @@ mod tests {
         pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
             Pool::update(&env, |pool| {
                 pool.token_balances = DoubleU128::from(new_balances);
-                pool.total_lp_amount = pool.get_current_d();
+                pool.total_lp_amount = pool.get_current_d()?;
                 Ok(())
             })
         }

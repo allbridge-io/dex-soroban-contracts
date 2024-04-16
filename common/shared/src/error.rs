@@ -15,6 +15,7 @@ pub enum Error {
     Forbidden = 7,
     CastFailed = 9,
     TokenInsufficientBalance = 10,
+    U128Overflow = 11,
 
     // Pool
     ZeroAmount = 100,
@@ -28,4 +29,5 @@ pub enum Error {
     // Factory
     PairExist = 200,
     IdenticalAddresses = 201,
+    MaxPairsNumReached = 202,
 }

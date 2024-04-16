@@ -5,6 +5,8 @@ use shared::{
 };
 use soroban_sdk::{contracttype, Address, BytesN, Map};
 
+pub const MAX_PAIRS_NUM: u32 = 20;
+
 #[contracttype]
 #[derive(SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
