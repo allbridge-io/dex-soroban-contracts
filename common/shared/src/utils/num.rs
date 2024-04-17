@@ -1,5 +1,7 @@
 use ethnum::U256;
 
+use crate::Error;
+
 pub fn sqrt(n: &U256) -> U256 {
     if *n == U256::ZERO {
         return U256::ZERO;
@@ -21,18 +23,19 @@ pub fn sqrt(n: &U256) -> U256 {
     result
 }
 
-pub fn cbrt(n: &U256) -> u128 {
+pub fn cbrt(n: &U256) -> Result<u128, Error> {
     let leading_zeros = n.leading_zeros();
     if leading_zeros < 128 {
-        let lo = cbrt(&(n >> 3u8)) << 1;
+        let lo = cbrt(&(n >> 3u8))? << 1;
         let hi = lo + 1;
-        if U256::new(hi * hi) * U256::new(hi) <= *n {
-            hi
+
+        if cube(U256::new(hi))? <= *n {
+            Ok(hi)
         } else {
-            lo
+            Ok(lo)
         }
     } else {
-        cbrt128(n.as_u128())
+        Ok(cbrt128(n.as_u128()))
     }
 }
 
@@ -64,4 +67,16 @@ pub fn cbrt64(mut n: u64) -> u64 {
         shift -= 3;
     }
     x
+}
+
+#[inline]
+pub fn cube(v: U256) -> Result<U256, Error> {
+    v.checked_mul(v)
+        .and_then(|v2| v2.checked_mul(v))
+        .ok_or(Error::U256Overflow)
+}
+
+#[inline]
+pub fn square(v: U256) -> Result<U256, Error> {
+    v.checked_mul(v).ok_or(Error::U256Overflow)
 }

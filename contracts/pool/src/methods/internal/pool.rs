@@ -20,6 +20,7 @@ use super::pool_view::WithdrawAmount;
 impl Pool {
     pub const BP: u128 = 10000;
 
+    pub(crate) const MAX_A: u128 = 60;
     pub(crate) const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
     pub(crate) const SYSTEM_PRECISION: u32 = 3;
 
@@ -230,11 +231,11 @@ impl Pool {
             return DoubleU128::default();
         }
 
+        let rewards = self.get_reward_debts(user_deposit);
+
         DoubleU128::from((
-            ((user_deposit.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P)
-                - user_deposit.reward_debts[0],
-            ((user_deposit.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P)
-                - user_deposit.reward_debts[1],
+            rewards[0] - user_deposit.reward_debts[0],
+            rewards[1] - user_deposit.reward_debts[1],
         ))
     }
 
@@ -259,16 +260,16 @@ impl Pool {
         // x * (4AD³ + x(part1²))
         let part2 = (ddd * a4 + (U256::new(safe_cast(part1 * part1)?) * native_x)) * native_x;
         // (sqrt(part2) + x(part1))
-        let sqrt_sum = safe_cast::<u128, i128>(sqrt(&part2).as_u128())? + (int_native_x * part1);
+        let sqrt_sum = safe_cast::<_, i128>(sqrt(&part2).as_u128())? + (int_native_x * part1);
         // (sqrt(part2) + x(part1)) / 8Ax)
-        Ok(safe_cast::<i128, u128>(sqrt_sum)? / ((self.a << 3) * native_x))
+        Ok(safe_cast::<_, u128>(sqrt_sum)? / ((self.a << 3) * native_x))
     }
 
-    pub fn get_current_d(&self) -> u128 {
+    pub fn get_current_d(&self) -> Result<u128, Error> {
         self.get_d(self.token_balances[0], self.token_balances[1])
     }
 
-    pub fn get_d(&self, x: u128, y: u128) -> u128 {
+    pub fn get_d(&self, x: u128, y: u128) -> Result<u128, Error> {
         let xy: u128 = x * y;
         // Axy(x+y)
         let p1 = U256::new(self.a * (x + y) * xy);
@@ -277,16 +278,17 @@ impl Pool {
         let p2 = U256::new(xy * ((self.a << 2) - 1) / 3);
 
         // sqrt(p1² + p2³)
-        let p3 = sqrt(&((p1 * p1) + (p2 * p2 * p2)));
+        let p3 = sqrt(&(square(p1)? + cube(p2)?));
 
         // cbrt(p1 + p3) + cbrt(p1 - p3)
-        let mut d = cbrt(&(p1 + p3));
+        let mut d = cbrt(&(p1.checked_add(p3).ok_or(Error::U256Overflow)?))?;
         if p3.gt(&p1) {
-            d -= cbrt(&(p3 - p1));
+            d -= cbrt(&(p3 - p1))?;
         } else {
-            d += cbrt(&(p1 - p3));
+            d += cbrt(&(p1 - p3))?;
         }
-        d << 1
+
+        Ok(d << 1)
     }
 
     pub(crate) fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {

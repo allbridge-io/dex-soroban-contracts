@@ -2,9 +2,7 @@ use shared::{require, soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{vec, Address, Env, IntoVal, Symbol};
 use storage::Admin;
 
-use crate::storage::factory_info::FactoryInfo;
-
-mod pool {}
+use crate::storage::factory_info::{FactoryInfo, MAX_PAIRS_NUM};
 
 #[allow(clippy::too_many_arguments)]
 pub fn create_pair(
@@ -25,6 +23,10 @@ pub fn create_pair(
 
     let mut factory_info = FactoryInfo::get(&env)?;
 
+    require!(
+        factory_info.pairs.len() < MAX_PAIRS_NUM,
+        Error::MaxPairsNumReached
+    );
     require!(token_a != token_b, Error::IdenticalAddresses);
     require!(
         factory_info.get_pool(&token_a, &token_b).is_err(),

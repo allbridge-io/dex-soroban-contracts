@@ -94,6 +94,23 @@ fn invalid_fee_share() {
 
 #[test]
 #[should_panic = "DexContract(InvalidArg)"]
+fn invalid_a() {
+    let testing_env = TestingEnv::default();
+    let (yellow, duck) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
+
+    testing_env.factory.create_pair(
+        testing_env.admin.as_ref(),
+        65,
+        &yellow.id,
+        &duck.id,
+        100,
+        10,
+    );
+}
+
+#[test]
+#[should_panic = "DexContract(InvalidArg)"]
 fn invalid_admin_fee_share() {
     let testing_env = TestingEnv::default();
     let (yellow_token, duck_token) =
@@ -172,4 +189,36 @@ fn get_pool() {
 
     let pool = testing_env.factory.pool(&yusd_token.id, &yaro_token.id);
     assert_eq!(pool, testing_env.pool.id);
+}
+
+#[test]
+#[should_panic = "DexContract(MaxPairsNumReached)"]
+fn add_new_pairs() {
+    let testing_env = TestingEnv::default();
+
+    for _ in 0..20 {
+        let (first_token, second_token) =
+            TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
+
+        let _ = testing_env.factory.create_pair(
+            testing_env.admin.as_ref(),
+            10,
+            &first_token.id,
+            &second_token.id,
+            10,
+            10,
+        );
+    }
+
+    let (first_token, second_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
+
+    let _ = testing_env.factory.create_pair(
+        testing_env.admin.as_ref(),
+        10,
+        &first_token.id,
+        &second_token.id,
+        10,
+        10,
+    );
 }

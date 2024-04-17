@@ -9,9 +9,13 @@ POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
 
 FACTORY_WASM_PATH = target/wasm32-unknown-unknown/release/factory.wasm
 FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/release/factory.optimized.wasm
-FACTORY_ADDRESS=CACBPPNXJZZECUERFKHDPHWCLA6KEWE5N45ER3E3SPTXZ34JVVTTNV2N # Testnet
+# FACTORY_ADDRESS=CACBPPNXJZZECUERFKHDPHWCLA6KEWE5N45ER3E3SPTXZ34JVVTTNV2N # Testnet
+FACTORY_ADDRESS=CBBGMOA67G4Y3KE7TTU5TCUZFXEQWCFZVFZHN3W4EX3ESYBMFK6HSZHS
 
-POOL_WASM_HASH=5126675e4652dadd2724df5ea02f191a3cfbd0447ba47783c3a34bf302493a0d
+# POOL_WASM_HASH=5126675e4652dadd2724df5ea02f191a3cfbd0447ba47783c3a34bf302493a0d
+
+# POOL_WASM_HASH=f8287b3877f6a4a951d889a57557b8e2ce890e3917f63a1e938bf33c9069e25a
+POOL_WASM_HASH=52b565b63df831f0bcfda198f1be95981b85ca2cf9e4a4eb7c2ed21047a340d0
 
 ALICE = $$(soroban config identity address alice)
 ADMIN_ALIAS = alice
@@ -25,13 +29,20 @@ USDY_ADDRESS=CAOPX7DVI3PFLHE7637YSFU6TLG6Z27Z5O3M547ANAYXQOAYCYYV6NO6 # Testnet
 # BOGD:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
 BOGD_ADDRESS=CDBDW5BMDBFQGKI4UWUFZQEO7OKFTGNLU5BV2I3DKPJ33OWMKLERRMS6 # Testnet
 
+JUSD_ADDRESS=CCJ7EPBMUIWARLV3KMGZGBW2H7J4O2UOMJY6F74GHTHSKGPHULL62UPJ
+PUSD_ADDRESS=CD4ZZAWCIPZ4OWLJCMAMCDHD67GL37P6KSFDRKJEXS43UCGT6Y4BIER6
+
 YARO_BOGD_POOL=CDPIBT5DBMOXBE5AT6IVFWO36CMDOBNR6LWRECD3MNDCDHBLJLB7PEHN # Testnet 
 USDY_BOGD_POOL=CBZGPFLKGVMIDQD5N3N5HWZCHPIBIFACKQXWIPCOCUYGBDLW37FTSIWE # Testnet 
+YARO_JUSD_POOL=CB3PASPY75CM5IJQYWLFFQRLJSANG7IFYZUGKMQAID4A3ASSEW7HWAGY
 
 TOKEN_ADDRESS=$(BOGD_ADDRESS)
-POOL_ADDRESS=$(USDY_BOGD_POOL)
+POOL_ADDRESS=$(YARO_JUSD_POOL)
 
 NETWORK=testnet
+
+prepare: update-soroban-cli
+	rustup target add wasm32-unknown-unknown
 
 update-soroban-cli:
 	cargo install soroban-cli --features opt
@@ -74,14 +85,12 @@ install-pool: optimize-pool
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) \
 		--wasm $(POOL_WASM_PATH_OP)
-		> $(POOL_WASM_HASH_PATH) && echo $(POOL_WASM_HASH)
 
 factory-deploy: optimize-factory
 	soroban contract deploy \
 		--wasm $(FACTORY_WASM_PATH_OP) \
 		--source $(ADMIN_ALIAS) \
-		--network $(NETWORK) \
-		> $(FACTORY_ADDRESS_PATH) && echo $(FACTORY_ADDRESS)
+		--network $(NETWORK)
 
 factory-initialize:
 	soroban contract invoke \
@@ -103,16 +112,26 @@ factory-create-pair:
 		--deployer $(DEPLOYER) \
 		--pool-admin $(ADMIN) \
 		--a 20 \
-		--token-a $(USDY_ADDRESS) \
-		--token-b $(BOGD_ADDRESS) \
+		--token-a $(JUSD_ADDRESS) \
+		--token-b $(YARO_ADDRESS) \
 		--fee_share_bp 15 \
 		--admin-fee-share-bp 2000
+
+factory-update-wasm-hash:
+	soroban contract invoke \
+		--id $(FACTORY_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		-- \
+		update_wasm_hash \
+		--new_wasm_hash $(POOL_WASM_HASH) 
 
 factory-get-pool:
 	soroban contract invoke \
 		--id $(FACTORY_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
+		--is-view \
 		-- \
 		pool \
 		--token-a $(YARO_ADDRESS) \
@@ -123,6 +142,7 @@ factory-get-pools:
 		--id $(FACTORY_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
+		--is-view \
 		-- \
 		pools
 
