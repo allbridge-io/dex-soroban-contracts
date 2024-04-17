@@ -73,10 +73,10 @@ pub fn cbrt64(mut n: u64) -> u64 {
 pub fn cube(v: U256) -> Result<U256, Error> {
     v.checked_mul(v)
         .and_then(|v2| v2.checked_mul(v))
-        .ok_or(Error::U128Overflow)
+        .ok_or(Error::U256Overflow)
 }
 
 #[inline]
 pub fn square(v: U256) -> Result<U256, Error> {
-    v.checked_mul(v).ok_or(Error::U128Overflow)
+    v.checked_mul(v).ok_or(Error::U256Overflow)
 }

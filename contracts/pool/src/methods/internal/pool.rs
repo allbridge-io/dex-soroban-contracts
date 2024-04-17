@@ -281,7 +281,7 @@ impl Pool {
         let p3 = sqrt(&(square(p1)? + cube(p2)?));
 
         // cbrt(p1 + p3) + cbrt(p1 - p3)
-        let mut d = cbrt(&(p1.checked_add(p3).ok_or(Error::U128Overflow)?))?;
+        let mut d = cbrt(&(p1.checked_add(p3).ok_or(Error::U256Overflow)?))?;
         if p3.gt(&p1) {
             d -= cbrt(&(p3 - p1))?;
         } else {
