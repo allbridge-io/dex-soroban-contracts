@@ -196,7 +196,7 @@ fn get_pool() {
 fn add_new_pairs() {
     let testing_env = TestingEnv::default();
 
-    for _ in 0..19 {
+    for _ in 0..20 {
         let (first_token, second_token) =
             TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
