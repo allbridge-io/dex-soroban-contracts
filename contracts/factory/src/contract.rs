@@ -3,7 +3,7 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map};
 use storage::Admin;
 
 use crate::methods::public::{
-    create_pair, get_admin, get_pool, get_pools, get_wasm_hash, initialize, set_admin,
+    create_pool, get_admin, get_pool, get_pools, get_wasm_hash, initialize, set_admin,
     update_wasm_hash,
 };
 
@@ -17,25 +17,27 @@ impl FactoryContract {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn create_pair(
+    pub fn create_pool(
         env: Env,
         deployer: Address,
         pool_admin: Address,
         a: u128,
         token_a: Address,
         token_b: Address,
+        token_c: Address,
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        create_pair(
+        create_pool(
             env,
             deployer,
             pool_admin,
             a,
             token_a,
             token_b,
+            token_c,
             fee_share_bp,
             admin_fee_share_bp,
         )
@@ -51,13 +53,13 @@ impl FactoryContract {
 
     // ----------- View -----------
 
-    pub fn pool(env: Env, token_a: Address, token_b: Address) -> Result<Address, Error> {
+    pub fn pool(env: Env, token_a: Address, token_b: Address, token_c: Address) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        get_pool(env, &token_a, &token_b)
+        get_pool(env, &token_a, &token_b, &token_c)
     }
 
-    pub fn pools(env: Env) -> Result<Map<Address, (Address, Address)>, Error> {
+    pub fn pools(env: Env) -> Result<Map<Address, (Address, Address, Address)>, Error> {
         extend_ttl_instance(&env);
 
         get_pools(env)

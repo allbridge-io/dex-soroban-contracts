@@ -16,11 +16,12 @@ pub fn bytes_to_slice<const N: usize>(bytes: Bytes) -> [u8; N] {
     xdr_slice
 }
 
-pub fn merge_slices_by_half<const N: usize, const R: usize>(a: &[u8; N], b: &[u8; N]) -> [u8; R] {
+pub fn merge_slices_by_third<const N: usize, const R: usize>(a: &[u8; N], b: &[u8; N], c: &[u8; N]) -> [u8; R] {
     let mut slice = [0u8; R];
 
     slice[..N].copy_from_slice(a);
-    slice[N..].copy_from_slice(b);
+    slice[N..2*N].copy_from_slice(b);
+    slice[2*N..].copy_from_slice(c);
 
     slice
 }

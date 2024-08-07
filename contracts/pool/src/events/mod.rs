@@ -24,7 +24,7 @@ pub struct Deposit {
     // system precision
     pub lp_amount: u128,
     // token precision
-    pub amounts: (u128, u128),
+    pub amounts: (u128, u128, u128),
 }
 
 #[derive(Event)]
@@ -34,9 +34,9 @@ pub struct Withdraw {
     // system precision
     pub lp_amount: u128,
     // system precision
-    pub amounts: (u128, u128),
+    pub amounts: (u128, u128, u128),
     // token precision
-    pub fees: (u128, u128),
+    pub fees: (u128, u128, u128),
 }
 
 #[derive(Event)]
@@ -44,5 +44,5 @@ pub struct Withdraw {
 pub struct RewardsClaimed {
     pub user: Address,
     // token precision
-    pub rewards: (u128, u128),
+    pub rewards: (u128, u128, u128),
 }

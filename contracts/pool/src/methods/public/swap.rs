@@ -3,8 +3,9 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     events::Swapped,
-    storage::{common::Direction, pool::Pool},
+    storage::{pool::Pool},
 };
+use crate::storage::common::Token;
 
 pub fn swap(
     env: Env,
@@ -12,7 +13,8 @@ pub fn swap(
     recipient: Address,
     from_amount: u128,
     receive_amount_min: u128,
-    direction: Direction,
+    token_from: Token,
+    token_to: Token,
 ) -> Result<u128, Error> {
     sender.require_auth();
     let mut pool = Pool::get(&env)?;
@@ -23,12 +25,11 @@ pub fn swap(
         recipient.clone(),
         from_amount,
         receive_amount_min,
-        direction,
+        token_from,
+        token_to
     )?;
 
     pool.save(&env);
-
-    let (token_from, token_to) = direction.get_tokens();
 
     Swapped {
         from_token: pool.tokens[token_from].clone(),

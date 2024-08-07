@@ -7,7 +7,7 @@ use soroban_sdk::{
 
 use super::{
     common::Token,
-    double_values::{DoubleAddress, DoubleU128, DoubleU32},
+    triple_values::{TripleAddress, TripleU128, TripleU32},
 };
 
 #[contracttype]
@@ -20,11 +20,11 @@ pub struct Pool {
     pub admin_fee_share_bp: u128,
     pub total_lp_amount: u128,
 
-    pub tokens: DoubleAddress,
-    pub tokens_decimals: DoubleU32,
-    pub token_balances: DoubleU128,
-    pub acc_rewards_per_share_p: DoubleU128,
-    pub admin_fee_amount: DoubleU128,
+    pub tokens: TripleAddress,
+    pub tokens_decimals: TripleU32,
+    pub token_balances: TripleU128,
+    pub acc_rewards_per_share_p: TripleU128,
+    pub admin_fee_amount: TripleU128,
 }
 
 impl Pool {
@@ -32,7 +32,8 @@ impl Pool {
         a: u128,
         token_a: Address,
         token_b: Address,
-        decimals: (u32, u32),
+        token_c: Address,
+        decimals: (u32, u32, u32),
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Self {
@@ -43,11 +44,11 @@ impl Pool {
             admin_fee_share_bp,
             total_lp_amount: 0,
 
-            tokens: DoubleAddress::from((token_a, token_b)),
-            tokens_decimals: DoubleU32::from(decimals),
-            token_balances: DoubleU128::default(),
-            acc_rewards_per_share_p: DoubleU128::default(),
-            admin_fee_amount: DoubleU128::default(),
+            tokens: TripleAddress::from((token_a, token_b, token_c)),
+            tokens_decimals: TripleU32::from(decimals),
+            token_balances: TripleU128::default(),
+            acc_rewards_per_share_p: TripleU128::default(),
+            admin_fee_amount: TripleU128::default(),
         }
     }
 

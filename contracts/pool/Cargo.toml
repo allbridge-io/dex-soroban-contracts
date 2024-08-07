@@ -13,7 +13,7 @@ proc_macros = { workspace = true }
 ethnum = { workspace = true }
 storage = { workspace = true }
 
-[dev_dependencies]
+[dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 
 [lints.clippy]

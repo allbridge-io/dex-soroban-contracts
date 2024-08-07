@@ -2,27 +2,11 @@ use soroban_sdk::contracttype;
 
 #[contracttype]
 #[derive(Debug, Clone, Copy)]
-pub enum Direction {
-    A2B,
-    B2A,
-}
-
-impl Direction {
-    #[inline]
-    pub fn get_tokens(&self) -> (Token, Token) {
-        match self {
-            Direction::A2B => (Token::A, Token::B),
-            Direction::B2A => (Token::B, Token::A),
-        }
-    }
-}
-
-#[contracttype]
-#[derive(Debug, Clone, Copy)]
 #[repr(usize)]
 pub enum Token {
     A = 0,
     B = 1,
+    C = 2,
 }
 
 impl From<usize> for Token {
@@ -30,16 +14,22 @@ impl From<usize> for Token {
         match value {
             0 => Token::A,
             1 => Token::B,
+            2 => Token::C,
             _ => unreachable!(),
         }
     }
 }
 
 impl Token {
-    pub fn opposite(&self) -> Token {
-        match self {
-            Token::A => Token::B,
-            Token::B => Token::A,
+    pub fn third(&self, second: Token) -> Token {
+        match (self, second) {
+            (Token::A, Token::B) => Token::C,
+            (Token::A, Token::C) => Token::B,
+            (Token::B, Token::A) => Token::C,
+            (Token::B, Token::C) => Token::A,
+            (Token::C, Token::A) => Token::B,
+            (Token::C, Token::B) => Token::A,
+            _ => panic!("The same token"),
         }
     }
 }

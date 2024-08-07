@@ -3,19 +3,19 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     events::{Deposit, RewardsClaimed},
-    storage::{double_values::DoubleU128, pool::Pool, user_deposit::UserDeposit},
+    storage::{triple_values::TripleU128, pool::Pool, user_deposit::UserDeposit},
 };
 
 pub fn deposit(
     env: Env,
     sender: Address,
-    amounts: (u128, u128),
+    amounts: (u128, u128, u128),
     min_lp_amount: u128,
 ) -> Result<(), Error> {
     sender.require_auth();
     let mut pool = Pool::get(&env)?;
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
-    let amounts = DoubleU128::from(amounts);
+    let amounts = TripleU128::from(amounts);
 
     let (rewards, lp_amount) = pool.deposit(
         &env,
