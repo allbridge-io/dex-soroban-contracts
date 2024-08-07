@@ -2,12 +2,13 @@ use soroban_sdk::{Address, Env};
 
 use super::User;
 use crate::{
-    contracts::pool::{self, Direction, UserDeposit},
+    contracts::pool::{self, UserDeposit},
     utils::{
         desoroban_result, float_to_uint, float_to_uint_sp, percentage_to_bp, uint_to_float_sp,
         unwrap_call_result, CallResult,
     },
 };
+use crate::utils::Token;
 
 pub struct Pool {
     pub id: soroban_sdk::Address,
@@ -25,13 +26,11 @@ impl Pool {
         }
     }
 
-    pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
+    pub fn receive_amount(&self, amount: f64, token_from: &Token, token_to: &Token) -> (u128, u128) {
         self.client.get_receive_amount(
             &float_to_uint(amount, 7),
-            &(match directin {
-                Direction::A2B => pool::Token::A,
-                Direction::B2A => pool::Token::B,
-            }),
+            &token_from.pool_token,
+            &token_to.pool_token
         )
     }
 
@@ -60,9 +59,9 @@ impl Pool {
         assert_eq!(pool_info.admin_fee_share_bp, expected_admin_fee_share_bp);
 
         assert_eq!(pool_info.total_lp_amount, 0);
-        assert_eq!(pool_info.token_balances.data, (0, 0));
-        assert_eq!(pool_info.acc_rewards_per_share_p.data, (0, 0));
-        assert_eq!(pool_info.admin_fee_amount.data, (0, 0));
+        assert_eq!(pool_info.token_balances.data, (0, 0, 0));
+        assert_eq!(pool_info.acc_rewards_per_share_p.data, (0, 0, 0));
+        assert_eq!(pool_info.admin_fee_amount.data, (0, 0, 0));
     }
 
     pub fn total_lp(&self) -> u128 {
@@ -142,7 +141,7 @@ impl Pool {
     pub fn deposit_with_address_checked(
         &self,
         user: &Address,
-        deposit_amounts: (f64, f64),
+        deposit_amounts: (f64, f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
         desoroban_result(self.client.try_deposit(
@@ -150,6 +149,7 @@ impl Pool {
             &(
                 float_to_uint(deposit_amounts.0, 7),
                 float_to_uint(deposit_amounts.1, 7),
+                float_to_uint(deposit_amounts.2, 7),
             ),
             &float_to_uint_sp(min_lp_amount),
         ))
@@ -159,7 +159,7 @@ impl Pool {
     pub fn deposit_with_address(
         &self,
         user: &Address,
-        deposit_amounts: (f64, f64),
+        deposit_amounts: (f64, f64, f64),
         min_lp_amount: f64,
     ) {
         unwrap_call_result(
@@ -172,14 +172,14 @@ impl Pool {
     pub fn deposit_checked(
         &self,
         user: &User,
-        deposit_amounts: (f64, f64),
+        deposit_amounts: (f64, f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
         self.deposit_with_address_checked(&user.as_address(), deposit_amounts, min_lp_amount)
     }
 
     /// (yusd, yaro)
-    pub fn deposit(&self, user: &User, deposit_amounts: (f64, f64), min_lp_amount: f64) {
+    pub fn deposit(&self, user: &User, deposit_amounts: (f64, f64, f64), min_lp_amount: f64) {
         self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
     }
 
@@ -189,14 +189,16 @@ impl Pool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        direction: Direction,
+        token_from: &Token,
+        token_to: &Token,
     ) -> CallResult<u128> {
         desoroban_result(self.client.try_swap(
             &sender.as_address(),
             &recipient.as_address(),
             &float_to_uint(amount, 7),
             &float_to_uint(receive_amount_min, 7),
-            &direction,
+            &token_from.pool_token,
+            &token_to.pool_token,
         ))
     }
 
@@ -206,11 +208,12 @@ impl Pool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        direction: Direction,
+        token_from: &Token,
+        token_to: &Token,
     ) {
         unwrap_call_result(
             &self.env,
-            self.swap_checked(sender, recipient, amount, receive_amount_min, direction),
+            self.swap_checked(sender, recipient, amount, receive_amount_min, token_from, token_to),
         );
     }
 }
