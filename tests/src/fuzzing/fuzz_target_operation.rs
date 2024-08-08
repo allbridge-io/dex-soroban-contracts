@@ -43,7 +43,7 @@ pub enum SwapDirection {
 }
 
 impl SwapDirection {
-    pub fn get_toke_pair<'a>(&self, testing_env: &'a TestingEnv) -> (&'a Token, &'a Token) {
+    pub fn get_token_pair<'a>(&self, testing_env: &'a TestingEnv) -> (&'a Token, &'a Token) {
         match self {
             SwapDirection::A2B => (&testing_env.token_a, &testing_env.token_b),
             SwapDirection::A2C => (&testing_env.token_a, &testing_env.token_c),
@@ -151,7 +151,7 @@ impl FuzzTargetOperation {
             } => {
                 let sender = sender.get_user(testing_env);
                 let recipient = recipient.get_user(testing_env);
-                let (token_from, token_to) = direction.get_toke_pair(testing_env);
+                let (token_from, token_to) = direction.get_token_pair(testing_env);
                 testing_env
                     .pool
                     .swap_checked(sender, recipient, amount.0, 0.0, token_from,  token_to)?;

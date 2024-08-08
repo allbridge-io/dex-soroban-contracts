@@ -9,17 +9,13 @@ POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
 
 FACTORY_WASM_PATH = target/wasm32-unknown-unknown/release/factory.wasm
 FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/release/factory.optimized.wasm
-# FACTORY_ADDRESS=CACBPPNXJZZECUERFKHDPHWCLA6KEWE5N45ER3E3SPTXZ34JVVTTNV2N # Testnet
-FACTORY_ADDRESS=CBBGMOA67G4Y3KE7TTU5TCUZFXEQWCFZVFZHN3W4EX3ESYBMFK6HSZHS
+FACTORY_ADDRESS=CBGI5T52KUBHSOWUVIHNJRR3YIAMWX2VEOE6YOWJFCD4URGMMTWQITVY
 
-# POOL_WASM_HASH=5126675e4652dadd2724df5ea02f191a3cfbd0447ba47783c3a34bf302493a0d
+POOL_WASM_HASH=1d1b9cbee8887c7d7fd3756b2722109e08f155033fd61e9bc9085dc7ce965c81
 
-# POOL_WASM_HASH=f8287b3877f6a4a951d889a57557b8e2ce890e3917f63a1e938bf33c9069e25a
-POOL_WASM_HASH=52b565b63df831f0bcfda198f1be95981b85ca2cf9e4a4eb7c2ed21047a340d0
-
-ALICE = $$(soroban config identity address alice)
+ALICE = $$(soroban keys address alice)
 ADMIN_ALIAS = alice
-ADMIN = $$(soroban config identity address $(ADMIN_ALIAS))
+ADMIN = $$(soroban keys address $(ADMIN_ALIAS))
 DEPLOYER=$(ADMIN)
 
 # YARO:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
@@ -29,15 +25,10 @@ USDY_ADDRESS=CAOPX7DVI3PFLHE7637YSFU6TLG6Z27Z5O3M547ANAYXQOAYCYYV6NO6 # Testnet
 # BOGD:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
 BOGD_ADDRESS=CDBDW5BMDBFQGKI4UWUFZQEO7OKFTGNLU5BV2I3DKPJ33OWMKLERRMS6 # Testnet
 
-JUSD_ADDRESS=CCJ7EPBMUIWARLV3KMGZGBW2H7J4O2UOMJY6F74GHTHSKGPHULL62UPJ
-PUSD_ADDRESS=CD4ZZAWCIPZ4OWLJCMAMCDHD67GL37P6KSFDRKJEXS43UCGT6Y4BIER6
-
-YARO_BOGD_POOL=CDPIBT5DBMOXBE5AT6IVFWO36CMDOBNR6LWRECD3MNDCDHBLJLB7PEHN # Testnet 
-USDY_BOGD_POOL=CBZGPFLKGVMIDQD5N3N5HWZCHPIBIFACKQXWIPCOCUYGBDLW37FTSIWE # Testnet 
-YARO_JUSD_POOL=CB3PASPY75CM5IJQYWLFFQRLJSANG7IFYZUGKMQAID4A3ASSEW7HWAGY
+YUSDY_ARO_BOGD_POOL=CC4FSFU7C42GYZX4O5VGCRFSLJKIOGIVB34XE4I4MB6PRMF35BJXARO5 # Testnet
 
 TOKEN_ADDRESS=$(BOGD_ADDRESS)
-POOL_ADDRESS=$(YARO_JUSD_POOL)
+POOL_ADDRESS=$(YUSDY_ARO_BOGD_POOL)
 
 NETWORK=testnet
 
@@ -102,18 +93,19 @@ factory-initialize:
 		--admin $(ADMIN) \
 		--wasm-hash $(POOL_WASM_HASH)
 
-factory-create-pair:
+factory-create-pool:
 	soroban contract invoke \
 		--id $(FACTORY_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
 		-- \
-		create_pair \
+		create_pool \
 		--deployer $(DEPLOYER) \
 		--pool-admin $(ADMIN) \
 		--a 20 \
-		--token-a $(JUSD_ADDRESS) \
+		--token-a $(USDY_ADDRESS) \
 		--token-b $(YARO_ADDRESS) \
+		--token-c $(BOGD_ADDRESS) \
 		--fee_share_bp 15 \
 		--admin-fee-share-bp 2000
 
@@ -135,7 +127,8 @@ factory-get-pool:
 		-- \
 		pool \
 		--token-a $(YARO_ADDRESS) \
-		--token-b $(USDY_ADDRESS)
+		--token-b $(USDY_ADDRESS) \
+		--token-c $(BOGD_ADDRESS)
 
 factory-get-pools:
 	soroban contract invoke \
@@ -156,7 +149,7 @@ pool-deposit:
 		-- \
 		deposit \
 		--sender $(ADMIN) \
-		--amounts '["1000000000000", "1000000000000"]' \
+		--amounts '["1000000000000", "1000000000000", "1000000000000"]' \
 		--min-lp-amount 1000
 
 pool-withdraw:
@@ -192,8 +185,8 @@ pool-pending-reward:
 		--id $(POOL_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
-		-- \
 		--is-view \
+		-- \
 		pending_reward \
 		--user $(ADMIN)
 
@@ -224,7 +217,23 @@ pool-get-deposit-amount:
 		--is-view \
 		-- \
 		get_deposit_amount \
-		--amounts '["100000", "100000"]'
+		--amounts '["100000", "100000", "100000"]'
+
+pool-swap:
+	soroban contract invoke \
+		--id $(POOL_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		--is-view \
+		-- \
+		swap \
+		--sender $(ALICE) \
+		--token_from 0 \
+		--token_to 1 \
+		--amount_in 10000000 \
+		--recipient $(ALICE) \
+		--receive_amount_min 0
+
 
 #----------TOKEN--------------------------
 
@@ -254,6 +263,7 @@ token-get-balance:
 	soroban contract invoke \
 		--id $(TOKEN_ADDRESS) \
 		--network $(NETWORK) 	\
+		--source $(ADMIN_ALIAS) \
 		--is-view \
 		-- \
 		balance \
@@ -270,13 +280,15 @@ token-get-name:
 		name
 
 wrap-token:
-	soroban lab token wrap \
+	soroban contract asset deploy \
 		--network $(NETWORK) 	\
-		--asset USDY:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
+		--source  $(ADMIN_ALIAS) \
+		--asset BOGD:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
 
 native-token-address:
-	soroban lab token id \
- 		--network $(NETWORK) \
- 		--asset native
+	soroban contract asset id \
+		--network $(NETWORK) \
+		--source $(ADMIN_ALIAS) \
+		--asset native
 
 
