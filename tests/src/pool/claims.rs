@@ -57,7 +57,7 @@ fn claim_rewards() {
         ref token_b,
         ..
     } = testing_env;
-    pool.deposit(alice, (2_000.0, 2_000.0, 0.0), 0.0);  //TODO 3
+    pool.deposit(alice, (2_000.0, 2_000.0, 2_000.0), 0.0);  //TODO 3
 
     pool.swap(bob, bob, 100.0, 98.0, token_a, token_b);
     pool.swap(bob, bob, 100.0, 98.0, token_b, token_a);

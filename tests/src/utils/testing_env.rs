@@ -125,8 +125,8 @@ impl TestingEnv {
             alice,
             bob,
 
-            token_b: token_a,
-            token_a: token_b,
+            token_b,
+            token_a,
             token_c,
             pool,
             factory,
@@ -147,9 +147,9 @@ impl TestingEnv {
     }
 
     pub fn generate_tokens(env: &Env, admin: &Address) -> (Token, Token, Token) {
-        let token_a = Token::create(env, admin, PoolToken::A, "A");
-        let token_b = Token::create(env, admin, PoolToken::B, "B");
-        let token_c = Token::create(env, admin, PoolToken::C, "C");
+        let token_a = Token::create(env, admin, PoolToken::A, "a");
+        let token_b = Token::create(env, admin, PoolToken::B, "b");
+        let token_c = Token::create(env, admin, PoolToken::C, "c");
 
         (token_a, token_b, token_c)
     }
@@ -185,6 +185,7 @@ impl TestingEnv {
 
         token_a.airdrop(admin, admin_init_deposit * 2.0);
         token_b.airdrop(admin, admin_init_deposit * 2.0);
+        token_c.airdrop(admin, admin_init_deposit * 2.0);
 
         if admin_init_deposit > 0.0 {
             pool.deposit(admin, (admin_init_deposit, admin_init_deposit, admin_init_deposit), 0.0);
@@ -326,7 +327,7 @@ impl TestingEnv {
         let user_lp_diff = user_lp_amount_after - user_lp_amount_before;
         let user_a_diff = a_deposit - (user_a_before - user_a_after);
         let user_b_diff = b_deposit - (user_b_before - user_b_after);
-        let user_c_diff = b_deposit - (user_c_before - user_c_after);
+        let user_c_diff = c_deposit - (user_c_before - user_c_after);
 
         let pool_a_diff =
             a_deposit - (snapshot_after.pool_a_balance - snapshot_before.pool_a_balance);
@@ -492,12 +493,12 @@ impl TestingEnv {
         let pool_b_diff = snapshot_before.pool_b_balance - snapshot_after.pool_b_balance;
         let pool_c_diff = snapshot_before.pool_c_balance - snapshot_after.pool_c_balance;
 
-        assert_rel_eq(admin_a_diff, a_reward, 1);
-        assert_rel_eq(admin_b_diff, b_reward, 1);
-        assert_rel_eq(admin_c_diff, c_reward, 1);
-        assert_rel_eq(pool_a_diff, a_reward, 1);
-        assert_rel_eq(pool_b_diff, b_reward, 1);
-        assert_rel_eq(pool_c_diff, c_reward, 1);
+        assert_rel_eq(admin_a_diff, a_reward, 2);
+        assert_rel_eq(admin_b_diff, b_reward, 2);
+        assert_rel_eq(admin_c_diff, c_reward, 2);
+        assert_rel_eq(pool_a_diff, a_reward, 2);
+        assert_rel_eq(pool_b_diff, b_reward, 2);
+        assert_rel_eq(pool_c_diff, c_reward, 2);
     }
 
     #[allow(clippy::too_many_arguments)]

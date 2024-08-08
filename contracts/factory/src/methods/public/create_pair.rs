@@ -26,12 +26,12 @@ pub fn create_pool(
 
     require!(
         factory_info.pools.len() < MAX_PAIRS_NUM,
-        Error::MaxPairsNumReached
+        Error::MaxPoolsNumReached
     );
-    require!(token_a != token_b, Error::IdenticalAddresses);
+    require!(token_a != token_b && token_a != token_c && token_b != token_c, Error::IdenticalAddresses);
     require!(
         factory_info.get_pool(&token_a, &token_b, &token_c).is_err(),
-        Error::PairExist
+        Error::PoolExist
     );
 
     let (token_a, token_b, token_c) = FactoryInfo::sort_tokens(token_a, token_b, token_c);

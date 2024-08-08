@@ -58,23 +58,29 @@ impl Index<&str> for Snapshot {
         match string {
             "alice_b_balance" => &self.alice_b_balance,
             "alice_a_balance" => &self.alice_a_balance,
+            "alice_c_balance" => &self.alice_c_balance,
             "alice_deposit_lp" => &self.alice_deposit.lp_amount,
 
-            "bob_b_balance" => &self.bob_b_balance,
             "bob_a_balance" => &self.bob_a_balance,
+            "bob_b_balance" => &self.bob_b_balance,
+            "bob_c_balance" => &self.bob_c_balance,
             "bob_deposit_lp" => &self.bob_deposit.lp_amount,
 
-            "pool_b_balance" => &self.pool_b_balance,
             "pool_a_balance" => &self.pool_a_balance,
+            "pool_b_balance" => &self.pool_b_balance,
+            "pool_c_balance" => &self.pool_c_balance,
 
-            "admin_b_balance" => &self.admin_b_balance,
             "admin_a_balance" => &self.admin_a_balance,
+            "admin_b_balance" => &self.admin_b_balance,
+            "admin_c_balance" => &self.admin_c_balance,
 
             "acc_reward_a_per_share_p" => &self.acc_reward_a_per_share_p,
             "acc_reward_b_per_share_p" => &self.acc_reward_b_per_share_p,
+            "acc_reward_c_per_share_p" => &self.acc_reward_c_per_share_p,
 
             "admin_a_fee_rewards" => &self.admin_a_fee_rewards,
             "admin_b_fee_rewards" => &self.admin_b_fee_rewards,
+            "admin_c_fee_rewards" => &self.admin_c_fee_rewards,
 
             "total_lp_amount" => &self.total_lp_amount,
             "d" => &self.d,
@@ -236,6 +242,7 @@ impl Snapshot {
             ("Pool total lp amount", "total_lp_amount", Some(3)),
             ("Pool d", "d", Some(3)),
         ];
+
 
         for (title, value_key, use_float_diff) in balances {
             let (before, after) = (self[value_key], other[value_key]);

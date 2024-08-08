@@ -137,7 +137,6 @@ impl Pool {
         unwrap_call_result(&self.env, self.withdraw_checked(user, withdraw_amount));
     }
 
-    /// (yusd, yaro)
     pub fn deposit_with_address_checked(
         &self,
         user: &Address,
@@ -155,7 +154,6 @@ impl Pool {
         ))
     }
 
-    /// (yusd, yaro)
     pub fn deposit_with_address(
         &self,
         user: &Address,
@@ -168,7 +166,6 @@ impl Pool {
         );
     }
 
-    /// (yusd, yaro)
     pub fn deposit_checked(
         &self,
         user: &User,
@@ -178,7 +175,6 @@ impl Pool {
         self.deposit_with_address_checked(&user.as_address(), deposit_amounts, min_lp_amount)
     }
 
-    /// (yusd, yaro)
     pub fn deposit(&self, user: &User, deposit_amounts: (f64, f64, f64), min_lp_amount: f64) {
         self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
     }

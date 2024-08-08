@@ -133,7 +133,7 @@ fn invalid_admin_fee_share() {
 
 #[test]
 #[should_panic = "DexContract(PoolExist)"]
-fn pair_exist() {
+fn pool_exist() {
     let testing_env = TestingEnv::default();
 
     testing_env.factory.create_pool(
@@ -148,15 +148,15 @@ fn pair_exist() {
 }
 
 #[test]
-#[should_panic = "DexContract(PairExist)"]
+#[should_panic = "DexContract(PoolExist)"]
 fn pair_exist_reverse() {
     let testing_env = TestingEnv::default();
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &testing_env.token_a.id,
-        &testing_env.token_b.id,
         &testing_env.token_c.id,
+        &testing_env.token_b.id,
+        &testing_env.token_a.id,
         10,
         10,
     );

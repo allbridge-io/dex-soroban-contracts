@@ -27,7 +27,7 @@ pub enum Error {
     InvalidFirstDeposit = 106,
 
     // Factory
-    PairExist = 200,
+    PoolExist = 200,
     IdenticalAddresses = 201,
-    MaxPairsNumReached = 202,
+    MaxPoolsNumReached = 202,
 }

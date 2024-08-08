@@ -164,7 +164,7 @@ impl Pool {
             new_token_balances_sp[index] += amounts_sp[index];
         }
 
-        let d1 = self.get_d(new_token_balances_sp[0], new_token_balances_sp[1], new_token_balances_sp[1])?;
+        let d1 = self.get_d(new_token_balances_sp[0], new_token_balances_sp[1], new_token_balances_sp[2])?;
 
         require!(d1 > d0, Error::Forbidden);
         require!(
@@ -230,23 +230,6 @@ mod tests {
             token_to: Token,
         ) -> Result<(u128, u128), Error> {
             Pool::get(&env)?.get_send_amount(amount, token_from, token_to)
-        }
-
-        pub fn get_y(
-            env: Env,
-            x: u128,
-            z: u128,
-            d: u128,
-        ) -> Result<u128, Error> {
-            Pool::get(&env)?.get_y(x, z, d)
-        }
-        pub fn get_d(
-            env: Env,
-            x: u128,
-            y: u128,
-            z: u128,
-        ) -> Result<u128, Error> {
-            Pool::get(&env)?.get_d(x, y, z)
         }
     }
 

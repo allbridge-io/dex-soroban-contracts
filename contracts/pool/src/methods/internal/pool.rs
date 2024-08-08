@@ -77,7 +77,7 @@ impl Pool {
         let current_contract = env.current_contract_address();
 
         if self.total_lp_amount == 0 {
-            require!(amounts.data.0 == amounts.data.1, Error::InvalidFirstDeposit);
+            require!(amounts.data.0 == amounts.data.1 && amounts.data.0 == amounts.data.2 && amounts.data.1 == amounts.data.2, Error::InvalidFirstDeposit);
         }
 
         let deposit_amount = self.get_deposit_amount(amounts.clone())?;
