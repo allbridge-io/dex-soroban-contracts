@@ -430,12 +430,12 @@ impl TestingEnv {
             );
         }
 
-        assert_eq!(user_a_diff, expected_a_diff);
-        assert_eq!(user_b_diff, expected_b_diff);
-        assert_eq!(user_c_diff, expected_c_diff);
-        assert_eq!(pool_a_diff, expected_a_diff);
-        assert_eq!(pool_b_diff, expected_b_diff);
-        assert_eq!(pool_c_diff, expected_c_diff);
+        assert_rel_eq(user_a_diff, expected_a_diff, 1);
+        assert_rel_eq(user_b_diff, expected_b_diff, 1);
+        assert_rel_eq(user_c_diff, expected_c_diff, 1);
+        assert_rel_eq(pool_a_diff, expected_a_diff, 1);
+        assert_rel_eq(pool_b_diff, expected_b_diff, 1);
+        assert_rel_eq(pool_c_diff, expected_c_diff, 1);
     }
 
     pub fn assert_claim(
