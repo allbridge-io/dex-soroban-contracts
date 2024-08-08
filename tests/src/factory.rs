@@ -201,8 +201,8 @@ fn get_pool() {
 }
 
 #[test]
-#[should_panic = "DexContract(MaxPairsNumReached)"]
-fn add_new_pairs() {
+#[should_panic = "DexContract(MaxPoolsNumReached)"]
+fn add_new_pools() {
     let testing_env = TestingEnv::default();
 
     for _ in 0..20 {
