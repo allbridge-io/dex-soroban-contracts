@@ -260,7 +260,7 @@ impl Pool {
 
         let b: I256 = I256::new(int_native_x + int_native_z - int_d) + I256::new(int_d / int_a27);
         let c: I256 = I256::new(int_d).pow(4) / (27 * int_a27 * int_native_x * int_native_z) * -1;
-        return Ok(((-1 * b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128());
+        Ok(((-1 * b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
     }
 
     pub fn get_current_d(&self) -> Result<u128, Error> {
@@ -296,7 +296,7 @@ impl Pool {
             d = ((d as i128) - (f / df).as_i128()) as u128;
         }
 
-        return Ok(d);
+        Ok(d)
     }
 
     pub(crate) fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {

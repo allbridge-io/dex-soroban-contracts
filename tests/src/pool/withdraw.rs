@@ -184,9 +184,9 @@ fn withdraw_alice_profit_and_bob_loss() {
         TRIPLE_ZERO,
     );
 
-    let bob_yaro_diff =
+    let bob_b_diff =
         snapshot_after_swap.bob_b_balance - snapshot_before_swap.bob_b_balance;
-    let bob_loss = float_to_uint(swap_amount, 7) - bob_yaro_diff;
+    let bob_loss = float_to_uint(swap_amount, 7) - bob_b_diff;
 
     println!("{} {}", snapshot_after.get_user_balances_sum(alice), snapshot_before.get_user_balances_sum(alice));
 

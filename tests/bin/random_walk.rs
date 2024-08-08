@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use clap::Parser;
 use clap_derive::Parser;
 use csv::Writer;
@@ -31,9 +32,9 @@ impl RunResult {
     }
 }
 
-impl ToString for RunResult {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for RunResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = format!(
             "💸 Swaps {}/{} | 📤 Deposits {}/{} | 📥 Withdrawals {}/{}",
             self.swaps.successful,
             self.swaps.total,
@@ -41,7 +42,8 @@ impl ToString for RunResult {
             self.deposits.total,
             self.withdrawals.successful,
             self.withdrawals.total,
-        )
+        );
+        write!(f, "{}", str)
     }
 }
 
@@ -91,5 +93,5 @@ fn main() {
     }
 
     wtr.flush().unwrap();
-    println!("{}", run_result.to_string());
+    println!("{}", run_result);
 }

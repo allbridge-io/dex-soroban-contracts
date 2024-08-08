@@ -53,7 +53,7 @@ fn deposit_invalid_first_deposit(deposit: (f64, f64, f64)) {
 }
 
 #[test_case((100.0, 50.0, 75.0), TRIPLE_ZERO, 225.0 ; "base")]
-#[test_case((50_000_000.0, 5_000.0, 5.0), TRIPLE_ZERO, 213_58_206.68 ; "deposit_disbalance")]
+#[test_case((50_000_000.0, 5_000.0, 5.0), TRIPLE_ZERO, 21_358_206.68 ; "deposit_disbalance")]
 #[test_case((0.001, 0.001, 0.0), TRIPLE_ZERO, 0.002 ; "smallest_deposit")]
 #[test_case((100.0, 0.0, 0.0), TRIPLE_ZERO, 100.0 ; "deposit_only_a")]
 #[test_case((0.0, 100.0, 0.0), TRIPLE_ZERO, 100.0 ; "deposit_only_b")]

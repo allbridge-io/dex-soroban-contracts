@@ -21,12 +21,12 @@ fn swap_insufficient_received_amount() {
     );
 }
 
-#[test_case(1_000.0, 995.5, PoolToken::A, PoolToken::B, 998.986014, 0.999986; "base a2b")]
-#[test_case(1_000.0, 995.5, PoolToken::B, PoolToken::A, 998.986014, 0.999986; "base b2a")]
-#[test_case(1_000.0, 995.5, PoolToken::A, PoolToken::C, 998.986014, 0.999986; "base a2c")]
-#[test_case(1_000.0, 995.5, PoolToken::C, PoolToken::A, 998.986014, 0.999986; "base c2a")]
-#[test_case(1_000.0, 995.5, PoolToken::B, PoolToken::C, 998.986014, 0.999986; "base b2c")]
-#[test_case(1_000.0, 995.5, PoolToken::C, PoolToken::B, 998.986014, 0.999986; "base c2b")]
+#[test_case(1_000.0, 995.5, PoolToken::A, PoolToken::B, 998.986_014, 0.999_986; "base a2b")]
+#[test_case(1_000.0, 995.5, PoolToken::B, PoolToken::A, 998.986_014, 0.999_986; "base b2a")]
+#[test_case(1_000.0, 995.5, PoolToken::A, PoolToken::C, 998.986_014, 0.999_986; "base a2c")]
+#[test_case(1_000.0, 995.5, PoolToken::C, PoolToken::A, 998.986_014, 0.999_986; "base c2a")]
+#[test_case(1_000.0, 995.5, PoolToken::B, PoolToken::C, 998.986_014, 0.999_986; "base b2c")]
+#[test_case(1_000.0, 995.5, PoolToken::C, PoolToken::B, 998.986_014, 0.999_986; "base c2b")]
 #[test_case(0.001, 0.000_999, PoolToken::A, PoolToken::B, 0.000_999, 0.000_001; "smallest_swap")]
 #[test_case(0.001, 0.0, PoolToken::B, PoolToken::A, 0.000_999, 0.000_001; "smallest_swap_b2a")]
 fn simple_swaps(
