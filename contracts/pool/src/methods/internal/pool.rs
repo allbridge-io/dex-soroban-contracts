@@ -249,54 +249,39 @@ impl Pool {
     }
 
 
-    pub fn get_y(&self, native_x: u128, native_z: u128, d: u128) -> Result<u128, Error> {
-        let a27 = self.a * 27;
-        let int_a27: i128 = safe_cast(a27)?;
+    pub fn get_y(&self, x128: u128, z128: u128, d128: u128) -> Result<u128, Error> {
+        let x = I256::from(x128);
+        let z = I256::from(z128);
+        let d = I256::from(d128);
+        let a = I256::from(self.a);
+        let a27 = a * 27;
 
-        let int_d: i128 = safe_cast(d)?;
-        let int_native_x: i128 = safe_cast(native_x)?;
-        let int_native_z: i128 = safe_cast(native_z)?;
-
-
-        let b: I256 = I256::new(int_native_x + int_native_z - int_d) + I256::new(int_d / int_a27);
-        let c: I256 = I256::new(int_d).pow(4) / (27 * int_a27 * int_native_x * int_native_z) * -1;
-        Ok(((-1 * b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
+        let b= x + z - d + d / a27;
+        let c= d.pow(4) / (-27 * a27 * x * z);
+        Ok(((-b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
     }
 
     pub fn get_current_d(&self) -> Result<u128, Error> {
         self.get_d(self.token_balances[0], self.token_balances[1], self.token_balances[2])
     }
 
-    fn f(&self, x128: u128, y128: u128, z128: u128, d128: u128) -> I256 {
+    pub fn get_d(&self, x128: u128, y128: u128, z128: u128) -> Result<u128, Error> {
         let x = I256::from(x128);
         let y = I256::from(y128);
         let z = I256::from(z128);
-        let d = I256::from(d128);
         let a = I256::from(self.a);
-        27 * a * (x + y + z) - (27 * a * d - d) - d.pow(4) / (27 * x * y * z)
-    }
 
-    fn df(&self, x128: u128, y128: u128, z128: u128, d128: u128) -> I256 {
-        let x = I256::from(x128);
-        let y = I256::from(y128);
-        let z = I256::from(z128);
-        let d = I256::from(d128);
-        let a = I256::from(self.a);
-        -4 * d.pow(3) / (27 * x * y * z) - 27 * a + 1
-    }
-
-    pub fn get_d(&self, x: u128, y: u128, z: u128) -> Result<u128, Error> {
         let mut d = x + y + z;
         loop {
-            let f = self.f(x, y, z, d);
-            let df = self.df(x, y, z, d);
+            let f = 27 * a * (x + y + z) - (27 * a * d - d) - d.pow(4) / (27 * x * y * z);
+            let df = -4 * d.pow(3) / (27 * x * y * z) - 27 * a + 1;
             if f.abs() < df.abs() {
                 break;
             }
-            d = ((d as i128) - (f / df).as_i128()) as u128;
+            d -= f / df;
         }
 
-        Ok(d)
+        Ok(d.as_u128())
     }
 
     pub(crate) fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
@@ -321,7 +306,6 @@ impl Pool {
 #[cfg(test)]
 mod tests {
     extern crate std;
-    use std::println;
 
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
@@ -349,20 +333,10 @@ mod tests {
             })
         }
 
-        pub fn get_y(
-            env: Env,
-            x: u128,
-            z: u128,
-            d: u128,
-        ) -> Result<u128, Error> {
+        pub fn get_y(env: Env, x: u128, z: u128, d: u128) -> Result<u128, Error> {
             Pool::get(&env)?.get_y(x, z, d)
         }
-        pub fn get_d(
-            env: Env,
-            x: u128,
-            y: u128,
-            z: u128,
-        ) -> Result<u128, Error> {
+        pub fn get_d(env: Env, x: u128, y: u128, z: u128) -> Result<u128, Error> {
             Pool::get(&env)?.get_d(x, y, z)
         }
     }
@@ -374,12 +348,20 @@ mod tests {
         let test_pool_id = env.register_contract(None, TestPool);
         let pool = TestPoolClient::new(&env, &test_pool_id);
         pool.init();
-        let result = pool.get_y(&1_000_000, &1_000_000, &3_000_000);
 
-        println!("result: {}", result);
+        assert_eq!(pool.get_y(&1_000_000, &1_000_000, &3_000_000), 1_000_000);
 
-        assert_eq!(result, 1_000_000);
+        let n = 100_000_000_000_000_000;
+        let big_d = 157_831_140_060_220_325;
+        let mid_d = 6_084_878_857_843_302;
+        assert_eq!(pool.get_y(&n, &n, &(n * 3)), n);
+        assert_eq!( pool.get_y(&n, &(n / 1_000), &big_d), n - 1);
+        assert_eq!( pool.get_y(&n, &n, &big_d), n / 1_000 - 1);
+        assert_eq!( pool.get_y(&n, &(n / 1_000), &mid_d), n / 1_000_000 - 1);
+        assert_eq!( pool.get_y(&n, &(n / 1_000_000), &mid_d), n / 1_000 - 1);
+        assert_eq!( pool.get_y(&(n/ 1_000), &(n / 1_000_000), &mid_d), n - 14);
     }
+
     #[test]
     fn test_get_d() {
         let env = Env::default();
@@ -387,10 +369,14 @@ mod tests {
         let test_pool_id = env.register_contract(None, TestPool);
         let pool = TestPoolClient::new(&env, &test_pool_id);
         pool.init();
-        let result = pool.get_d(&2_000_000, &256_364, &5_000_000);
 
-        println!("result: {}", result);
+        assert_eq!(pool.get_d(&2_000_000, &256_364, &5_000_000), 7_197_881);
 
-        assert_eq!(result, 7_197_881);
+        let n = 100_000_000_000_000_000;
+        let big_d = 157_831_140_060_220_325;
+        assert_eq!(pool.get_d(&n, &n, &n), n * 3);
+        assert_eq!(pool.get_d(&n, &n, &(n / 1_000)), big_d);
+        assert_eq!(pool.get_d(&n, &(n / 1_000), &(n / 1_000_000)), 6_084_878_857_843_302);
+
     }
 }
