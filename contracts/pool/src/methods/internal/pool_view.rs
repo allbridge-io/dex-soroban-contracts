@@ -1,8 +1,7 @@
 use shared::{require, Error};
 use soroban_sdk::contracttype;
 
-use crate::storage::{common::Token, pool::Pool};
-use crate::storage::triple_values::TripleU128;
+use crate::storage::{common::Token, double_values::DoubleU128, pool::Pool};
 
 pub struct ReceiveAmount {
     pub token_from_new_balance: u128,
@@ -12,19 +11,19 @@ pub struct ReceiveAmount {
 }
 
 pub struct WithdrawAmount {
-    pub indexes: [usize; 3],
-    pub amounts: TripleU128,
-    pub fees: TripleU128,
-    pub new_token_balances: TripleU128,
+    pub indexes: [usize; 2],
+    pub amounts: DoubleU128,
+    pub fees: DoubleU128,
+    pub new_token_balances: DoubleU128,
 }
 
 #[contracttype]
 #[derive(Debug)]
 pub struct WithdrawAmountView {
     /// system precision
-    pub amounts: (u128, u128, u128),
+    pub amounts: (u128, u128),
     /// token precision
-    pub fees: (u128, u128, u128),
+    pub fees: (u128, u128),
 }
 
 impl From<WithdrawAmount> for WithdrawAmountView {
@@ -38,7 +37,7 @@ impl From<WithdrawAmount> for WithdrawAmountView {
 
 pub struct DepositAmount {
     pub lp_amount: u128,
-    pub new_token_balances: TripleU128,
+    pub new_token_balances: DoubleU128,
 }
 
 impl Pool {
@@ -46,16 +45,15 @@ impl Pool {
         &self,
         input: u128,
         token_from: Token,
-        token_to: Token,
     ) -> Result<ReceiveAmount, Error> {
+        let token_to = token_from.opposite();
         let d0 = self.total_lp_amount;
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals[token_from]);
         let mut output = 0;
 
         let token_from_new_balance = self.token_balances[token_from] + input_sp;
-        let token_third = token_from.third(token_to);
 
-        let token_to_new_balance = self.get_y(token_from_new_balance, self.token_balances[token_third], d0)?;
+        let token_to_new_balance = self.get_y(token_from_new_balance, d0)?;
         if self.token_balances[token_to] > token_to_new_balance {
             output = self.amount_from_system_precision(
                 self.token_balances[token_to] - token_to_new_balance,
@@ -74,7 +72,8 @@ impl Pool {
         })
     }
 
-    pub fn get_send_amount(&self, output: u128, token_from: Token, token_to: Token) -> Result<(u128, u128), Error> {
+    pub fn get_send_amount(&self, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
+        let token_from = token_to.opposite();
         let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
         let output_with_fee = output + fee;
@@ -83,9 +82,8 @@ impl Pool {
         let mut input = 0;
 
         let token_to_new_balance = self.token_balances[token_to] - output_sp;
-        let token_third = token_from.third(token_to);
 
-        let token_from_new_amount = self.get_y(token_to_new_balance, self.token_balances[token_third], d0)?;
+        let token_from_new_amount = self.get_y(token_to_new_balance, d0)?;
         if self.token_balances[token_from] < token_from_new_amount {
             input = self.amount_from_system_precision(
                 token_from_new_amount - self.token_balances[token_from],
@@ -98,29 +96,23 @@ impl Pool {
 
     pub fn get_withdraw_amount(&self, lp_amount: u128) -> Result<WithdrawAmount, Error> {
         let d0 = self.total_lp_amount;
-        let mut amounts = TripleU128::default();
+        let mut amounts = DoubleU128::default();
 
         let d1 = d0 - lp_amount;
-        let mut indices = [0, 1, 2];
-        // Bubble sort implementation for indices
-        for i in 0..indices.len() {
-            for j in 0..indices.len() - 1 - i {
-                if self.token_balances[indices[j]] < self.token_balances[indices[j + 1]] {
-                    indices.swap(j, j + 1);
-                }
-            }
-        }
-        let [more, less, mid] = indices;
+        let (more, less) = if self.token_balances[0] > self.token_balances[1] {
+            (0, 1)
+        } else {
+            (1, 0)
+        };
 
         let more_token_amount_sp = self.token_balances[more] * lp_amount / d0;
-        let mid_token_amount_sp = self.token_balances[mid] * lp_amount / d0;
-        let y = self.get_y(self.token_balances[more] - more_token_amount_sp, self.token_balances[mid] - mid_token_amount_sp, d1)?;
+        let y = self.get_y(self.token_balances[more] - more_token_amount_sp, d1)?;
         let less_token_amount_sp = self.token_balances[less] - y;
 
         let mut new_token_balances = self.token_balances.clone();
-        let mut fees = TripleU128::default();
+        let mut fees = DoubleU128::default();
 
-        for (index, token_amount_sp) in [(more, more_token_amount_sp), (mid, mid_token_amount_sp), (less, less_token_amount_sp)]
+        for (index, token_amount_sp) in [(more, more_token_amount_sp), (less, less_token_amount_sp)]
         {
             let token_amount =
                 self.amount_from_system_precision(token_amount_sp, self.tokens_decimals[index]);
@@ -135,20 +127,19 @@ impl Pool {
         }
 
         Ok(WithdrawAmount {
-            indexes: [more, mid, less],
+            indexes: [more, less],
             fees,
             amounts,
             new_token_balances,
         })
     }
 
-    pub fn get_deposit_amount(&self, amounts: TripleU128) -> Result<DepositAmount, Error> {
+    pub fn get_deposit_amount(&self, amounts: DoubleU128) -> Result<DepositAmount, Error> {
         let d0 = self.total_lp_amount;
 
-        let amounts_sp = TripleU128::from((
+        let amounts_sp = DoubleU128::from((
             self.amount_to_system_precision(amounts[0], self.tokens_decimals[0]),
             self.amount_to_system_precision(amounts[1], self.tokens_decimals[1]),
-            self.amount_to_system_precision(amounts[2], self.tokens_decimals[2]),
         ));
 
         let total_amount_sp = amounts_sp.sum();
@@ -164,7 +155,7 @@ impl Pool {
             new_token_balances_sp[index] += amounts_sp[index];
         }
 
-        let d1 = self.get_d(new_token_balances_sp[0], new_token_balances_sp[1], new_token_balances_sp[2])?;
+        let d1 = self.get_d(new_token_balances_sp[0], new_token_balances_sp[1])?;
 
         require!(d1 > d0, Error::Forbidden);
         require!(
@@ -190,8 +181,7 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::storage::{common::Token, pool::Pool};
-    use crate::storage::triple_values::TripleU128;
+    use crate::storage::{common::Token, double_values::DoubleU128, pool::Pool};
 
     #[contract]
     pub struct TestPool;
@@ -201,13 +191,12 @@ mod tests {
         pub fn init(env: Env) {
             let token_a = Address::generate(&env);
             let token_b = Address::generate(&env);
-            let token_c = Address::generate(&env);
-            Pool::from_init_params(20, token_a, token_b, token_c, (7, 7, 7), 100, 1).save(&env);
+            Pool::from_init_params(20, token_a, token_b, (7, 7), 100, 1).save(&env);
         }
 
-        pub fn set_balances(env: Env, new_balances: (u128, u128, u128)) -> Result<(), Error> {
+        pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
             Pool::update(&env, |pool| {
-                pool.token_balances = TripleU128::from(new_balances);
+                pool.token_balances = DoubleU128::from(new_balances);
                 pool.total_lp_amount = pool.get_current_d()?;
                 Ok(())
             })
@@ -217,19 +206,17 @@ mod tests {
             env: Env,
             amount: u128,
             token_from: Token,
-            token_to: Token,
         ) -> Result<(u128, u128), Error> {
-            let receive_amount = Pool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
+            let receive_amount = Pool::get(&env)?.get_receive_amount(amount, token_from)?;
             Ok((receive_amount.output, receive_amount.fee))
         }
 
         pub fn get_send_amount(
             env: Env,
             amount: u128,
-            token_from: Token,
             token_to: Token,
         ) -> Result<(u128, u128), Error> {
-            Pool::get(&env)?.get_send_amount(amount, token_from, token_to)
+            Pool::get(&env)?.get_send_amount(amount, token_to)
         }
     }
 
@@ -240,11 +227,11 @@ mod tests {
         let test_pool_id = env.register_contract(None, TestPool);
         let pool = TestPoolClient::new(&env, &test_pool_id);
         pool.init();
-        pool.set_balances(&(200_000_000, 200_000_000, 200_000_000));
+        pool.set_balances(&(200_000_000, 200_000_000));
 
         let input = 10_000_0000000_u128;
-        let (output, fee) = pool.get_receive_amount(&input, &Token::A, &Token::B);
-        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::A, &Token::B);
+        let (output, fee) = pool.get_receive_amount(&input, &Token::A);
+        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
 
         println!("input: {}", input);
         println!("output: {}, fee: {}", output, fee);
@@ -261,11 +248,11 @@ mod tests {
         let test_pool_id = env.register_contract(None, TestPool);
         let pool = TestPoolClient::new(&env, &test_pool_id);
         pool.init();
-        pool.set_balances(&(200_000_000, 500_000_000, 200_000_000));
+        pool.set_balances(&(200_000_000, 500_000_000));
 
         let input = 10_000_0000000_u128;
-        let (output, fee) = pool.get_receive_amount(&input, &Token::A, &Token::B);
-        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::A, &Token::B);
+        let (output, fee) = pool.get_receive_amount(&input, &Token::A);
+        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
 
         println!("input: {}", input);
         println!("output: {}, fee: {}", output, fee);

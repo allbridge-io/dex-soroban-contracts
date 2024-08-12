@@ -11,7 +11,6 @@ pub fn initialize(
     a: u128,
     token_a: Address,
     token_b: Address,
-    token_c: Address,
     fee_share_bp: u128,
     admin_fee_share_bp: u128,
 ) -> Result<(), Error> {
@@ -23,14 +22,12 @@ pub fn initialize(
 
     let decimals_a = token::Client::new(&env, &token_a).decimals();
     let decimals_b = token::Client::new(&env, &token_b).decimals();
-    let decimals_c = token::Client::new(&env, &token_c).decimals();
 
     Pool::from_init_params(
         a,
         token_a,
         token_b,
-        token_c,
-        (decimals_a, decimals_b, decimals_c),
+        (decimals_a, decimals_b),
         fee_share_bp,
         admin_fee_share_bp,
     )

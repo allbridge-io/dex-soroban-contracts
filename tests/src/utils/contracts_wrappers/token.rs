@@ -1,5 +1,5 @@
 use soroban_sdk::{token, Address, Env};
-use crate::{contracts::pool::Token as PoolToken};
+
 use crate::utils::float_to_uint;
 
 use super::User;
@@ -9,8 +9,6 @@ pub struct Token {
     pub client: token::Client<'static>,
     pub asset_client: token::StellarAssetClient<'static>,
     pub env: Env,
-    pub pool_token: PoolToken,
-    pub tag: String,
 }
 
 impl Token {
@@ -20,7 +18,7 @@ impl Token {
         self.id.clone()
     }
 
-    pub fn create(env: &Env, admin: &Address, pool_token: PoolToken, tag: &str) -> Token {
+    pub fn create(env: &Env, admin: &Address) -> Token {
         let id = env.register_stellar_asset_contract(admin.clone());
         let client = token::Client::new(env, &id);
         let asset_client = token::StellarAssetClient::new(env, &id);
@@ -30,8 +28,6 @@ impl Token {
             client,
             asset_client,
             env: env.clone(),
-            pool_token,
-            tag: tag.into()
         }
     }
 

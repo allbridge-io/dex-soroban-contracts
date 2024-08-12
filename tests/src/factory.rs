@@ -6,15 +6,14 @@ use crate::utils::TestingEnv;
 #[should_panic = "Context(InvalidAction)"]
 fn add_new_pool_no_auth() {
     let testing_env = TestingEnv::default();
-    let (token_a, token_b, token_c) =
-        TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+    let (yellow_token, duck_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.clear_mock_auth().factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &token_a.id,
-        &token_b.id,
-        &token_c.id,
+        &yellow_token.id,
+        &duck_token.id,
         10,
         10,
     );
@@ -69,9 +68,8 @@ fn identical_addresses() {
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &testing_env.token_b.id,
-        &testing_env.token_b.id,
-        &testing_env.token_c.id,
+        &testing_env.yaro_token.id,
+        &testing_env.yaro_token.id,
         10,
         10,
     );
@@ -81,15 +79,14 @@ fn identical_addresses() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_fee_share() {
     let testing_env = TestingEnv::default();
-    let (token_a, token_b, token_c) =
-        TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+    let (yellow, duck) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &token_a.id,
-        &token_b.id,
-        &token_c.id,
+        &yellow.id,
+        &duck.id,
         10_000,
         10,
     );
@@ -99,15 +96,14 @@ fn invalid_fee_share() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_a() {
     let testing_env = TestingEnv::default();
-    let (token_a, token_b, token_c) =
-        TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+    let (yellow, duck) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         65,
-        &token_a.id,
-        &token_b.id,
-        &token_c.id,
+        &yellow.id,
+        &duck.id,
         100,
         10,
     );
@@ -117,15 +113,14 @@ fn invalid_a() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_admin_fee_share() {
     let testing_env = TestingEnv::default();
-    let (token_a, token_b, token_c) =
-        TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+    let (yellow_token, duck_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &token_a.id,
-        &token_b.id,
-        &token_c.id,
+        &yellow_token.id,
+        &duck_token.id,
         10,
         10_000,
     );
@@ -133,15 +128,14 @@ fn invalid_admin_fee_share() {
 
 #[test]
 #[should_panic = "DexContract(PoolExist)"]
-fn pool_exist() {
+fn pair_exist() {
     let testing_env = TestingEnv::default();
 
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &testing_env.token_b.id,
-        &testing_env.token_a.id,
-        &testing_env.token_c.id,
+        &testing_env.yaro_token.id,
+        &testing_env.yusd_token.id,
         10,
         10,
     );
@@ -154,9 +148,8 @@ fn pair_exist_reverse() {
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &testing_env.token_c.id,
-        &testing_env.token_b.id,
-        &testing_env.token_a.id,
+        &testing_env.yusd_token.id,
+        &testing_env.yaro_token.id,
         10,
         10,
     );
@@ -165,20 +158,19 @@ fn pair_exist_reverse() {
 #[test]
 fn add_new_pair() {
     let testing_env = TestingEnv::default();
-    let (token_a, token_b, token_c) =
-        TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+    let (yellow_token, duck_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     let deployed_pool = testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &token_a.id,
-        &token_b.id,
-        &token_c.id,
+        &yellow_token.id,
+        &duck_token.id,
         10,
         10,
     );
 
-    let pool = testing_env.factory.pool(&token_a.id, &token_b.id, &token_c.id);
+    let pool = testing_env.factory.pool(&yellow_token.id, &duck_token.id);
 
     assert_eq!(deployed_pool, pool);
 }
@@ -187,48 +179,45 @@ fn add_new_pair() {
 fn get_pool() {
     let testing_env = TestingEnv::default();
     let TestingEnv {
-        ref token_b,
-        ref token_a,
-        ref token_c,
+        ref yaro_token,
+        ref yusd_token,
         ..
     } = testing_env;
 
-    let pool = testing_env.factory.pool(&token_b.id, &token_a.id, &token_c.id);
+    let pool = testing_env.factory.pool(&yaro_token.id, &yusd_token.id);
     assert_eq!(pool, testing_env.pool.id);
 
-    let pool = testing_env.factory.pool(&token_a.id, &token_c.id, &token_b.id);
+    let pool = testing_env.factory.pool(&yusd_token.id, &yaro_token.id);
     assert_eq!(pool, testing_env.pool.id);
 }
 
 #[test]
 #[should_panic = "DexContract(MaxPoolsNumReached)"]
-fn add_new_pools() {
+fn add_new_pairs() {
     let testing_env = TestingEnv::default();
 
     for _ in 0..20 {
-        let (token_a, token_b, token_c) =
-            TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+        let (first_token, second_token) =
+            TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
         let _ = testing_env.factory.create_pool(
             testing_env.admin.as_ref(),
             10,
-            &token_a.id,
-            &token_b.id,
-            &token_c.id,
+            &first_token.id,
+            &second_token.id,
             10,
             10,
         );
     }
 
-    let (token_a, token_b, token_c) =
-        TestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
+    let (first_token, second_token) =
+        TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
     let _ = testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        &token_a.id,
-        &token_b.id,
-        &token_c.id,
+        &first_token.id,
+        &second_token.id,
         10,
         10,
     );

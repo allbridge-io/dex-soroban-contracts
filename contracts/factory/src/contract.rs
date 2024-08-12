@@ -2,10 +2,7 @@ use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map};
 use storage::Admin;
 
-use crate::methods::public::{
-    create_pool, get_admin, get_pool, get_pools, get_wasm_hash, initialize, set_admin,
-    update_wasm_hash,
-};
+use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_three_pool, get_three_pools, get_two_pool, get_two_pools, get_wasm_hash, initialize, set_admin, update_wasm_hash};
 
 #[contract]
 pub struct FactoryContract;
@@ -17,7 +14,32 @@ impl FactoryContract {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn create_pool(
+    pub fn create_two_pool(
+        env: Env,
+        deployer: Address,
+        pool_admin: Address,
+        a: u128,
+        token_a: Address,
+        token_b: Address,
+        fee_share_bp: u128,
+        admin_fee_share_bp: u128,
+    ) -> Result<Address, Error> {
+        extend_ttl_instance(&env);
+
+        create_two_pool(
+            env,
+            deployer,
+            pool_admin,
+            a,
+            token_a,
+            token_b,
+            fee_share_bp,
+            admin_fee_share_bp,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_three_pool(
         env: Env,
         deployer: Address,
         pool_admin: Address,
@@ -30,7 +52,7 @@ impl FactoryContract {
     ) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        create_pool(
+        create_three_pool(
             env,
             deployer,
             pool_admin,
@@ -53,16 +75,28 @@ impl FactoryContract {
 
     // ----------- View -----------
 
-    pub fn pool(env: Env, token_a: Address, token_b: Address, token_c: Address) -> Result<Address, Error> {
+    pub fn two_pool(env: Env, token_a: Address, token_b: Address) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        get_pool(env, &token_a, &token_b, &token_c)
+        get_two_pool(env, &token_a, &token_b)
     }
 
-    pub fn pools(env: Env) -> Result<Map<Address, (Address, Address, Address)>, Error> {
+    pub fn three_pool(env: Env, token_a: Address, token_b: Address, token_c: Address) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        get_pools(env)
+        get_three_pool(env, &token_a, &token_b, &token_c)
+    }
+
+    pub fn two_pools(env: Env) -> Result<Map<Address, (Address, Address)>, Error> {
+        extend_ttl_instance(&env);
+
+        get_two_pools(env)
+    }
+
+    pub fn three_pools(env: Env) -> Result<Map<Address, (Address, Address, Address)>, Error> {
+        extend_ttl_instance(&env);
+
+        get_three_pools(env)
     }
 
     pub fn get_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {

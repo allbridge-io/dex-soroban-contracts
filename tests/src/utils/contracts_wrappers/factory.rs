@@ -32,19 +32,17 @@ impl PoolFactory {
         a: u128,
         token_a: &Address,
         token_b: &Address,
-        token_c: &Address,
         fee_share_bp: u128,
         admin_fee: u128,
     ) -> Address {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_create_pool(
+            desoroban_result(self.client.try_create_two_pool(
                 admin,
                 admin,
                 &a,
                 token_a,
                 token_b,
-                token_c,
                 &fee_share_bp,
                 &admin_fee,
             )),
@@ -65,10 +63,10 @@ impl PoolFactory {
         );
     }
 
-    pub fn pool(&self, token_a: &Address, token_b: &Address, token_c: &Address) -> Address {
+    pub fn pool(&self, token_a: &Address, token_b: &Address) -> Address {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_pool(token_a, token_b, token_c)),
+            desoroban_result(self.client.try_two_pool(token_a, token_b)),
         )
     }
 }

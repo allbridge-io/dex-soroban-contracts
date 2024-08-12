@@ -4,6 +4,7 @@ use shared::{
     Error,
 };
 use soroban_sdk::{contracttype, Address, BytesN, Map};
+use shared::utils::merge_slices_by_half;
 
 pub const MAX_PAIRS_NUM: u32 = 21;
 
@@ -13,18 +14,29 @@ pub const MAX_PAIRS_NUM: u32 = 21;
 pub struct FactoryInfo {
     pub wasm_hash: soroban_sdk::BytesN<32>,
     /// (token0, token1) => pool
-    pub pools: Map<(Address, Address, Address), Address>,
+    pub two_pools: Map<(Address, Address), Address>,
+    /// (token0, token1, token2) => pool
+    pub three_pools: Map<(Address, Address, Address), Address>,
 }
 
 impl FactoryInfo {
     pub fn new(wasm_hash: BytesN<32>) -> Self {
         FactoryInfo {
             wasm_hash: wasm_hash.clone(),
-            pools: Map::new(wasm_hash.env()),
+            two_pools: Map::new(wasm_hash.env()),
+            three_pools: Map::new(wasm_hash.env()),
         }
     }
 
-    pub fn sort_tokens(token_a: Address, token_b: Address, token_c: Address) -> (Address, Address, Address) {
+    pub fn sort_tokens(token_a: Address, token_b: Address) -> (Address, Address) {
+        if token_a < token_b {
+            (token_a, token_b)
+        } else {
+            (token_b, token_a)
+        }
+    }
+
+    pub fn sort_three_tokens(token_a: Address, token_b: Address, token_c: Address) -> (Address, Address, Address) {
         let mut arr = [token_a, token_b, token_c];
         for i in 0..arr.len() {
             for j in 0..arr.len() - 1 - i {
@@ -37,7 +49,19 @@ impl FactoryInfo {
         (arr[0].clone(), arr[1].clone(), arr[2].clone())
     }
 
-    pub fn merge_addresses(token_a: &Address, token_b: &Address, token_c: &Address) -> Result<BytesN<96>, Error> {
+    pub fn merge_two_addresses(token_a: &Address, token_b: &Address) -> Result<BytesN<64>, Error> {
+        let env = token_a.env();
+
+        Ok(BytesN::from_array(
+            env,
+            &merge_slices_by_half::<32, 64>(
+                &address_to_bytes(env, token_a)?.to_array(),
+                &address_to_bytes(env, token_b)?.to_array(),
+            ),
+        ))
+    }
+
+    pub fn merge_three_addresses(token_a: &Address, token_b: &Address, token_c: &Address) -> Result<BytesN<96>, Error> {
         let env = token_a.env();
 
         Ok(BytesN::from_array(
@@ -50,20 +74,40 @@ impl FactoryInfo {
         ))
     }
 
-    pub fn add_pool(&mut self, tokens: (Address, Address, Address), pool: &Address) {
-        self.pools.set(tokens, pool.clone());
+    pub fn add_three_pool(&mut self, tokens: (Address, Address, Address), pool: &Address) {
+        self.three_pools.set(tokens, pool.clone());
     }
 
-    pub fn get_pool(&self, token_a: &Address, token_b: &Address, token_c: &Address) -> Result<Address, Error> {
-        let (token_a, token_b, token_c) = FactoryInfo::sort_tokens(token_a.clone(), token_b.clone(), token_c.clone());
+    pub fn get_three_pool(&self, token_a: &Address, token_b: &Address, token_c: &Address) -> Result<Address, Error> {
+        let (token_a, token_b, token_c) = FactoryInfo::sort_three_tokens(token_a.clone(), token_b.clone(), token_c.clone());
 
-        self.pools.get((token_a, token_b, token_c)).ok_or(Error::NotFound)
+        self.three_pools.get((token_a, token_b, token_c)).ok_or(Error::NotFound)
     }
 
-    pub fn get_pools(&self) -> Result<Map<Address, (Address, Address, Address)>, Error> {
-        let mut map = Map::new(self.pools.env());
+    pub fn get_three_pools(&self) -> Result<Map<Address, (Address, Address, Address)>, Error> {
+        let mut map = Map::new(self.two_pools.env());
 
-        self.pools.iter().for_each(|(tokens, pool)| {
+        self.three_pools.iter().for_each(|(tokens, pool)| {
+            map.set(pool, tokens);
+        });
+
+        Ok(map)
+    }
+
+    pub fn add_two_pool(&mut self, tokens: (Address, Address), pool: &Address) {
+        self.two_pools.set(tokens, pool.clone());
+    }
+
+    pub fn get_two_pool(&self, token_a: &Address, token_b: &Address) -> Result<Address, Error> {
+        let (token_a, token_b) = FactoryInfo::sort_tokens(token_a.clone(), token_b.clone());
+
+        self.two_pools.get((token_a, token_b)).ok_or(Error::NotFound)
+    }
+
+    pub fn get_two_pools(&self) -> Result<Map<Address, (Address, Address)>, Error> {
+        let mut map = Map::new(self.two_pools.env());
+
+        self.two_pools.iter().for_each(|(tokens, pool)| {
             map.set(pool, tokens);
         });
 

@@ -15,7 +15,7 @@ use crate::{
         },
     },
     storage::{
-        common::{Token},
+        common::{Direction, Token},
         pool::Pool,
         user_deposit::UserDeposit,
     },
@@ -33,7 +33,6 @@ impl PoolContract {
         a: u128,
         token_a: Address,
         token_b: Address,
-        token_c: Address,
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Result<(), Error> {
@@ -43,7 +42,6 @@ impl PoolContract {
             a,
             token_a,
             token_b,
-            token_c,
             fee_share_bp,
             admin_fee_share_bp,
         )
@@ -52,7 +50,7 @@ impl PoolContract {
     pub fn deposit(
         env: Env,
         sender: Address,
-        amounts: (u128, u128, u128),
+        amounts: (u128, u128),
         min_lp_amount: u128,
     ) -> Result<(), Error> {
         extend_ttl_instance(&env);
@@ -72,8 +70,7 @@ impl PoolContract {
         recipient: Address,
         amount_in: u128,
         receive_amount_min: u128,
-        token_from: Token,
-        token_to: Token,
+        direction: Direction,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
@@ -83,8 +80,7 @@ impl PoolContract {
             recipient,
             amount_in,
             receive_amount_min,
-            token_from,
-            token_to,
+            direction,
         )
     }
 
@@ -142,20 +138,19 @@ impl PoolContract {
         env: Env,
         input: u128,
         token_from: Token,
-        token_to: Token,
     ) -> Result<(u128, u128), Error> {
-        get_receive_amount(env, input, token_from, token_to)
+        get_receive_amount(env, input, token_from)
     }
 
-    pub fn get_send_amount(env: Env, output: u128, token_from: Token, token_to: Token) -> Result<(u128, u128), Error> {
-        get_send_amount(env, output, token_from, token_to)
+    pub fn get_send_amount(env: Env, output: u128, token_to: Token) -> Result<(u128, u128), Error> {
+        get_send_amount(env, output, token_to)
     }
 
     pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
         get_withdraw_amount(env, lp_amount)
     }
 
-    pub fn get_deposit_amount(env: Env, amounts: (u128, u128, u128)) -> Result<u128, Error> {
+    pub fn get_deposit_amount(env: Env, amounts: (u128, u128)) -> Result<u128, Error> {
         get_deposit_amount(env, amounts)
     }
 

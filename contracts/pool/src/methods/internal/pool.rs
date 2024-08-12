@@ -1,6 +1,6 @@
 use core::cmp::Ordering;
 
-use ethnum::I256;
+use ethnum::U256;
 use shared::{
     require,
     utils::{num::*, safe_cast},
@@ -9,11 +9,11 @@ use shared::{
 use soroban_sdk::{Address, Env};
 
 use crate::storage::{
-    common::{Token},
+    common::{Direction, Token},
+    double_values::DoubleU128,
     pool::Pool,
     user_deposit::UserDeposit,
 };
-use crate::storage::triple_values::TripleU128;
 
 use super::pool_view::WithdrawAmount;
 
@@ -34,15 +34,15 @@ impl Pool {
         recipient: Address,
         amount: u128,
         receive_amount_min: u128,
-        token_from: Token,
-        token_to: Token,
+        direction: Direction,
     ) -> Result<(u128, u128), Error> {
         if amount == 0 {
             return Ok((0, 0));
         }
 
         let current_contract = env.current_contract_address();
-        let receive_amount = self.get_receive_amount(amount, token_from, token_to)?;
+        let (token_from, token_to) = direction.get_tokens();
+        let receive_amount = self.get_receive_amount(amount, token_from)?;
 
         self.get_token(env, token_from)
             .transfer(&sender, &current_contract, &safe_cast(amount)?);
@@ -69,15 +69,15 @@ impl Pool {
     pub fn deposit(
         &mut self,
         env: &Env,
-        amounts: TripleU128,
+        amounts: DoubleU128,
         sender: Address,
         user_deposit: &mut UserDeposit,
         min_lp_amount: u128,
-    ) -> Result<(TripleU128, u128), Error> {
+    ) -> Result<(DoubleU128, u128), Error> {
         let current_contract = env.current_contract_address();
 
         if self.total_lp_amount == 0 {
-            require!(amounts.data.0 == amounts.data.1 && amounts.data.0 == amounts.data.2 && amounts.data.1 == amounts.data.2, Error::InvalidFirstDeposit);
+            require!(amounts.data.0 == amounts.data.1, Error::InvalidFirstDeposit);
         }
 
         let deposit_amount = self.get_deposit_amount(amounts.clone())?;
@@ -120,7 +120,7 @@ impl Pool {
         sender: Address,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(WithdrawAmount, TripleU128), Error> {
+    ) -> Result<(WithdrawAmount, DoubleU128), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
         let old_balances = self.token_balances.clone();
@@ -159,7 +159,7 @@ impl Pool {
         &mut self,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<TripleU128, Error> {
+    ) -> Result<DoubleU128, Error> {
         let pending = self.get_pending(user_deposit);
 
         self.total_lp_amount += lp_amount;
@@ -173,7 +173,7 @@ impl Pool {
         &mut self,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<TripleU128, Error> {
+    ) -> Result<DoubleU128, Error> {
         require!(user_deposit.lp_amount >= lp_amount, Error::NotEnoughAmount);
 
         let pending = self.get_pending(user_deposit);
@@ -190,8 +190,8 @@ impl Pool {
         env: &Env,
         user: Address,
         user_deposit: &mut UserDeposit,
-    ) -> Result<TripleU128, Error> {
-        let mut pending = TripleU128::default();
+    ) -> Result<DoubleU128, Error> {
+        let mut pending = DoubleU128::default();
 
         if user_deposit.lp_amount == 0 {
             return Ok(pending);
@@ -226,62 +226,69 @@ impl Pool {
         }
     }
 
-    pub fn get_pending(&self, user_deposit: &UserDeposit) -> TripleU128 {
+    pub fn get_pending(&self, user_deposit: &UserDeposit) -> DoubleU128 {
         if user_deposit.lp_amount == 0 {
-            return TripleU128::default();
+            return DoubleU128::default();
         }
 
         let rewards = self.get_reward_debts(user_deposit);
 
-        TripleU128::from((
+        DoubleU128::from((
             rewards[0] - user_deposit.reward_debts[0],
             rewards[1] - user_deposit.reward_debts[1],
-            rewards[2] - user_deposit.reward_debts[2],
         ))
     }
 
-    pub fn get_reward_debts(&self, user_deposit: &UserDeposit) -> TripleU128 {
-        TripleU128::from((
+    pub fn get_reward_debts(&self, user_deposit: &UserDeposit) -> DoubleU128 {
+        DoubleU128::from((
             (user_deposit.lp_amount * self.acc_rewards_per_share_p[0]) >> Pool::P,
             (user_deposit.lp_amount * self.acc_rewards_per_share_p[1]) >> Pool::P,
-            (user_deposit.lp_amount * self.acc_rewards_per_share_p[2]) >> Pool::P,
         ))
     }
 
+    // y = (sqrt(x(4AD³ + x (4A(D - x) - D )²)) + x (4A(D - x) - D ))/8Ax
+    pub fn get_y(&self, native_x: u128, d: u128) -> Result<u128, Error> {
+        let a4 = self.a << 2;
 
-    pub fn get_y(&self, x128: u128, z128: u128, d128: u128) -> Result<u128, Error> {
-        let x = I256::from(x128);
-        let z = I256::from(z128);
-        let d = I256::from(d128);
-        let a = I256::from(self.a);
-        let a27 = a * 27;
+        let int_a4: i128 = safe_cast(a4)?;
+        let int_d: i128 = safe_cast(d)?;
+        let int_native_x: i128 = safe_cast(native_x)?;
 
-        let b= x + z - d + d / a27;
-        let c= d.pow(4) / (-27 * a27 * x * z);
-        Ok(((-b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
+        let ddd = U256::new(d * d) * d;
+        // 4A(D - x) - D
+        let part1 = int_a4 * (int_d - int_native_x) - int_d;
+        // x * (4AD³ + x(part1²))
+        let part2 = (ddd * a4 + (U256::new(safe_cast(part1 * part1)?) * native_x)) * native_x;
+        // (sqrt(part2) + x(part1))
+        let sqrt_sum = safe_cast::<_, i128>(sqrt(&part2).as_u128())? + (int_native_x * part1);
+        // (sqrt(part2) + x(part1)) / 8Ax)
+        Ok(safe_cast::<_, u128>(sqrt_sum)? / ((self.a << 3) * native_x))
     }
 
     pub fn get_current_d(&self) -> Result<u128, Error> {
-        self.get_d(self.token_balances[0], self.token_balances[1], self.token_balances[2])
+        self.get_d(self.token_balances[0], self.token_balances[1])
     }
 
-    pub fn get_d(&self, x128: u128, y128: u128, z128: u128) -> Result<u128, Error> {
-        let x = I256::from(x128);
-        let y = I256::from(y128);
-        let z = I256::from(z128);
-        let a = I256::from(self.a);
+    pub fn get_d(&self, x: u128, y: u128) -> Result<u128, Error> {
+        let xy: u128 = x * y;
+        // Axy(x+y)
+        let p1 = U256::new(self.a * (x + y) * xy);
 
-        let mut d = x + y + z;
-        loop {
-            let f = 27 * a * (x + y + z) - (27 * a * d - d) - d.pow(4) / (27 * x * y * z);
-            let df = -4 * d.pow(3) / (27 * x * y * z) - 27 * a + 1;
-            if f.abs() < df.abs() {
-                break;
-            }
-            d -= f / df;
+        // xy(4A - 1) / 3
+        let p2 = U256::new(xy * ((self.a << 2) - 1) / 3);
+
+        // sqrt(p1² + p2³)
+        let p3 = sqrt(&(square(p1)? + cube(p2)?));
+
+        // cbrt(p1 + p3) + cbrt(p1 - p3)
+        let mut d = cbrt(&(p1.checked_add(p3).ok_or(Error::U256Overflow)?))?;
+        if p3.gt(&p1) {
+            d -= cbrt(&(p3 - p1))?;
+        } else {
+            d += cbrt(&(p1 - p3))?;
         }
 
-        Ok(d.as_u128())
+        Ok(d << 1)
     }
 
     pub(crate) fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
@@ -298,85 +305,5 @@ impl Pool {
             Ordering::Less => amount / (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
             Ordering::Equal => amount,
         }
-    }
-}
-
-
-#[allow(clippy::inconsistent_digit_grouping)]
-#[cfg(test)]
-mod tests {
-    extern crate std;
-
-    use shared::{soroban_data::SimpleSorobanData, Error};
-    use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
-
-    use crate::storage::{pool::Pool};
-    use crate::storage::triple_values::TripleU128;
-
-    #[contract]
-    pub struct TestPool;
-
-    #[contractimpl]
-    impl TestPool {
-        pub fn init(env: Env) {
-            let token_a = Address::generate(&env);
-            let token_b = Address::generate(&env);
-            let token_c = Address::generate(&env);
-            Pool::from_init_params(20, token_a, token_b, token_c, (7, 7, 7), 100, 1).save(&env);
-        }
-
-        pub fn set_balances(env: Env, new_balances: (u128, u128, u128)) -> Result<(), Error> {
-            Pool::update(&env, |pool| {
-                pool.token_balances = TripleU128::from(new_balances);
-                pool.total_lp_amount = pool.get_current_d()?;
-                Ok(())
-            })
-        }
-
-        pub fn get_y(env: Env, x: u128, z: u128, d: u128) -> Result<u128, Error> {
-            Pool::get(&env)?.get_y(x, z, d)
-        }
-        pub fn get_d(env: Env, x: u128, y: u128, z: u128) -> Result<u128, Error> {
-            Pool::get(&env)?.get_d(x, y, z)
-        }
-    }
-
-    #[test]
-    fn test_get_y() {
-        let env = Env::default();
-
-        let test_pool_id = env.register_contract(None, TestPool);
-        let pool = TestPoolClient::new(&env, &test_pool_id);
-        pool.init();
-
-        assert_eq!(pool.get_y(&1_000_000, &1_000_000, &3_000_000), 1_000_000);
-
-        let n = 100_000_000_000_000_000;
-        let big_d = 157_831_140_060_220_325;
-        let mid_d = 6_084_878_857_843_302;
-        assert_eq!(pool.get_y(&n, &n, &(n * 3)), n);
-        assert_eq!( pool.get_y(&n, &(n / 1_000), &big_d), n - 1);
-        assert_eq!( pool.get_y(&n, &n, &big_d), n / 1_000 - 1);
-        assert_eq!( pool.get_y(&n, &(n / 1_000), &mid_d), n / 1_000_000 - 1);
-        assert_eq!( pool.get_y(&n, &(n / 1_000_000), &mid_d), n / 1_000 - 1);
-        assert_eq!( pool.get_y(&(n/ 1_000), &(n / 1_000_000), &mid_d), n - 14);
-    }
-
-    #[test]
-    fn test_get_d() {
-        let env = Env::default();
-
-        let test_pool_id = env.register_contract(None, TestPool);
-        let pool = TestPoolClient::new(&env, &test_pool_id);
-        pool.init();
-
-        assert_eq!(pool.get_d(&2_000_000, &256_364, &5_000_000), 7_197_881);
-
-        let n = 100_000_000_000_000_000;
-        let big_d = 157_831_140_060_220_325;
-        assert_eq!(pool.get_d(&n, &n, &n), n * 3);
-        assert_eq!(pool.get_d(&n, &n, &(n / 1_000)), big_d);
-        assert_eq!(pool.get_d(&n, &(n / 1_000), &(n / 1_000_000)), 6_084_878_857_843_302);
-
     }
 }

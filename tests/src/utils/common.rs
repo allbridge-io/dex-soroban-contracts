@@ -14,6 +14,8 @@ use soroban_sdk::{
 
 use soroban_sdk::xdr::ScAddress;
 
+use crate::contracts::pool::Direction;
+
 pub const SYSTEM_PRECISION: u32 = 3;
 
 pub fn error_code_to_error(v: u32) -> shared::Error {
@@ -130,4 +132,13 @@ pub fn percentage_to_bp(percentage: f64) -> u128 {
     assert!((0.0..=100.0).contains(&percentage));
 
     (percentage * 100.0) as u128
+}
+
+impl Direction {
+    pub fn reverse(&self) -> Self {
+        match self {
+            Direction::A2B => Direction::B2A,
+            Direction::B2A => Direction::A2B,
+        }
+    }
 }

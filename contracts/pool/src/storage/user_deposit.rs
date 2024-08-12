@@ -3,7 +3,7 @@ use shared::consts::DAY_IN_LEDGERS;
 use shared::soroban_data::SorobanData;
 use soroban_sdk::{contracttype, Address, Env};
 
-use super::triple_values::TripleU128;
+use super::double_values::DoubleU128;
 
 const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
 const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
@@ -13,7 +13,7 @@ const LIFETIME_THRESHOLD: u32 = BUMP_AMOUNT - DAY_IN_LEDGERS;
 #[extend_ttl_info(BUMP_AMOUNT, LIFETIME_THRESHOLD)]
 pub struct UserDeposit {
     pub lp_amount: u128,
-    pub reward_debts: TripleU128,
+    pub reward_debts: DoubleU128,
 }
 
 impl UserDeposit {

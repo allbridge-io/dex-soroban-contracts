@@ -1,10 +1,10 @@
-use std::fmt::Display;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use rand_derive2::RandGen;
 use serde_derive::Serialize;
 
-use crate::utils::{CallResult, TestingEnv, Token, User};
+use crate::contracts::pool::Direction;
+use crate::utils::{CallResult, TestingEnv, User};
 
 #[derive(Debug, Clone, Default)]
 pub struct Action {
@@ -34,23 +34,15 @@ impl From<Action> for ActionPoolChange {
 
 #[derive(Debug, Clone, Copy, RandGen)]
 pub enum SwapDirection {
-    A2B,
-    A2C,
-    B2A,
-    B2C,
-    C2A,
-    C2B
+    YusdToYaro,
+    YaroToYusd,
 }
 
-impl SwapDirection {
-    pub fn get_token_pair<'a>(&self, testing_env: &'a TestingEnv) -> (&'a Token, &'a Token) {
-        match self {
-            SwapDirection::A2B => (&testing_env.token_a, &testing_env.token_b),
-            SwapDirection::A2C => (&testing_env.token_a, &testing_env.token_c),
-            SwapDirection::B2A => (&testing_env.token_b, &testing_env.token_a),
-            SwapDirection::B2C => (&testing_env.token_b, &testing_env.token_c),
-            SwapDirection::C2A => (&testing_env.token_c, &testing_env.token_a),
-            SwapDirection::C2B => (&testing_env.token_c, &testing_env.token_b),
+impl From<SwapDirection> for Direction {
+    fn from(value: SwapDirection) -> Self {
+        match value {
+            SwapDirection::YusdToYaro => Direction::A2B,
+            SwapDirection::YaroToYusd => Direction::B2A,
         }
     }
 }
@@ -92,16 +84,15 @@ pub enum FuzzTargetOperation {
         user: UserID,
     },
     Deposit {
-        a_amount: Amount,
-        b_amount: Amount,
-        c_amount: Amount,
+        yusd_amount: Amount,
+        yaro_amount: Amount,
         user: UserID,
     },
 }
 
-impl Display for FuzzTargetOperation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self {
+impl ToString for FuzzTargetOperation {
+    fn to_string(&self) -> String {
+        match self {
             FuzzTargetOperation::Swap {
                 direction,
                 amount,
@@ -115,22 +106,20 @@ impl Display for FuzzTargetOperation {
             }
 
             FuzzTargetOperation::Deposit {
-                a_amount,
-                b_amount,
-                c_amount,
+                yaro_amount,
+                yusd_amount,
                 user,
             } => {
                 format!(
-                    "**[Deposit]** *{:?}*, amounts: {} A {} B {} C",
-                    user, a_amount.0, b_amount.0, c_amount.0
+                    "**[Deposit]** *{:?}*, amounts: {} Yaro {} Yusd",
+                    user, yaro_amount.0, yusd_amount.0,
                 )
             }
 
             FuzzTargetOperation::Withdraw { lp_amount, user } => {
                 format!("**[Withdraw]** *{:?}*, lp amount: {}", user, lp_amount.0)
             }
-        };
-        write!(f, "{}", str)
+        }
     }
 }
 
@@ -151,22 +140,22 @@ impl FuzzTargetOperation {
             } => {
                 let sender = sender.get_user(testing_env);
                 let recipient = recipient.get_user(testing_env);
-                let (token_from, token_to) = direction.get_token_pair(testing_env);
+                let direction: Direction = (*direction).into();
+
                 testing_env
                     .pool
-                    .swap_checked(sender, recipient, amount.0, 0.0, token_from,  token_to)?;
+                    .swap_checked(sender, recipient, amount.0, 0.0, direction)?;
 
                 Ok(())
             }
 
             FuzzTargetOperation::Deposit {
-                b_amount,
-                a_amount,
-                c_amount,
+                yaro_amount,
+                yusd_amount,
                 user,
             } => testing_env.pool.deposit_checked(
                 user.get_user(testing_env),
-                (a_amount.0, b_amount.0, c_amount.0),
+                (yusd_amount.0, yaro_amount.0),
                 0.0,
             ),
 
