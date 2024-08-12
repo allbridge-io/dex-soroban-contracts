@@ -1,5 +1,5 @@
 use shared::{utils::extend_ttl_instance, Error};
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Vec};
 use storage::Admin;
 
 use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_three_pool, get_three_pool_wasm_hash, get_three_pools, get_two_pool, get_two_pool_wasm_hash, get_two_pools, initialize, set_admin, update_three_pool_wasm_hash, update_two_pool_wasm_hash};
@@ -14,57 +14,42 @@ impl FactoryContract {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn create_two_pool(
+    pub fn create_pool(
         env: Env,
         deployer: Address,
         pool_admin: Address,
         a: u128,
-        token_a: Address,
-        token_b: Address,
+        tokens: Vec<Address>,
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        create_two_pool(
-            env,
-            deployer,
-            pool_admin,
-            a,
-            token_a,
-            token_b,
-            fee_share_bp,
-            admin_fee_share_bp,
-        )
+        match tokens.len() {
+            2 => create_two_pool(
+                env,
+                deployer,
+                pool_admin,
+                a,
+                tokens.get_unchecked(0),
+                tokens.get_unchecked(1),
+                fee_share_bp,
+                admin_fee_share_bp,
+            ),
+            3 => create_three_pool(
+                env,
+                deployer,
+                pool_admin,
+                a,
+                tokens.get_unchecked(0),
+                tokens.get_unchecked(1),
+                tokens.get_unchecked(2),
+                fee_share_bp,
+                admin_fee_share_bp,
+            ),
+            _ => Err(Error::MaxPoolsNumReached)
+        }
     }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn create_three_pool(
-        env: Env,
-        deployer: Address,
-        pool_admin: Address,
-        a: u128,
-        token_a: Address,
-        token_b: Address,
-        token_c: Address,
-        fee_share_bp: u128,
-        admin_fee_share_bp: u128,
-    ) -> Result<Address, Error> {
-        extend_ttl_instance(&env);
-
-        create_three_pool(
-            env,
-            deployer,
-            pool_admin,
-            a,
-            token_a,
-            token_b,
-            token_c,
-            fee_share_bp,
-            admin_fee_share_bp,
-        )
-    }
-
     // ----------- Admin -----------
 
     pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
@@ -75,16 +60,14 @@ impl FactoryContract {
 
     // ----------- View -----------
 
-    pub fn two_pool(env: Env, token_a: Address, token_b: Address) -> Result<Address, Error> {
+    pub fn pool(env: Env, tokens: Vec<Address>) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        get_two_pool(env, &token_a, &token_b)
-    }
-
-    pub fn three_pool(env: Env, token_a: Address, token_b: Address, token_c: Address) -> Result<Address, Error> {
-        extend_ttl_instance(&env);
-
-        get_three_pool(env, &token_a, &token_b, &token_c)
+        match tokens.len() {
+            2 => get_two_pool(env, &tokens.get_unchecked(0), &tokens.get_unchecked(1)),
+            3 => get_three_pool(env, &tokens.get_unchecked(0), &tokens.get_unchecked(1), &tokens.get_unchecked(2)),
+            _ => Err(Error::MaxPoolsNumReached)
+        }
     }
 
     pub fn two_pools(env: Env) -> Result<Map<Address, (Address, Address)>, Error> {

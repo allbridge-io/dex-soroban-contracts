@@ -30,4 +30,5 @@ pub enum Error {
     PoolExist = 200,
     IdenticalAddresses = 201,
     MaxPoolsNumReached = 202,
+    InvalidNumberOfTokens = 203,
 }

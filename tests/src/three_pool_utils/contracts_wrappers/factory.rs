@@ -1,7 +1,7 @@
-use soroban_sdk::{Address, BytesN, Env};
+use soroban_sdk::{Address, BytesN, Env, vec};
 
 use crate::{
-    contracts::{factory, three_pool},
+    contracts::{factory, three_pool, pool},
     utils::{desoroban_result, unwrap_call_result},
 };
 
@@ -13,11 +13,12 @@ pub struct PoolFactory {
 
 impl PoolFactory {
     pub fn create(env: &Env, admin: &Address) -> PoolFactory {
-        let wasm_hash = env.deployer().upload_contract_wasm(three_pool::WASM);
+        let three_pool_wasm_hash = env.deployer().upload_contract_wasm(three_pool::WASM);
+        let two_pool_wasm_hash = env.deployer().upload_contract_wasm(pool::WASM);
         let id = env.register_contract_wasm(None, factory::WASM);
         let client = factory::Client::new(env, &id);
 
-        client.initialize(&wasm_hash, admin);
+        client.initialize(&two_pool_wasm_hash, &three_pool_wasm_hash, admin);
 
         PoolFactory {
             id,
@@ -38,13 +39,11 @@ impl PoolFactory {
     ) -> Address {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_create_three_pool(
+            desoroban_result(self.client.try_create_pool(
                 admin,
                 admin,
                 &a,
-                token_a,
-                token_b,
-                token_c,
+                &vec![&self.env, token_a.clone(), token_b.clone(), token_c.clone()],
                 &fee_share_bp,
                 &admin_fee,
             )),
@@ -54,7 +53,7 @@ impl PoolFactory {
     pub fn update_wasm_hash(&self, new_wasm_hash: &BytesN<32>) {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_update_wasm_hash(new_wasm_hash)),
+            desoroban_result(self.client.try_update_three_pool_wasm_hash(new_wasm_hash)),
         );
     }
 
@@ -69,7 +68,7 @@ impl PoolFactory {
     pub fn pool(&self, token_a: &Address, token_b: &Address, token_c: &Address) -> Address {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_three_pool(token_a, token_b, token_c)),
+            desoroban_result(self.client.try_pool(&vec![&self.env, token_a.clone(), token_b.clone(), token_c.clone()])),
         )
     }
 }

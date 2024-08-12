@@ -41,14 +41,14 @@ fn set_admin() {
 }
 
 #[test]
-fn update_wasm_hash() {
+fn update_two_pool_wasm_hash() {
     let testing_env = TestingEnv::default();
 
     let new_wasm_hash = BytesN::<32>::random(&testing_env.env);
 
     testing_env.factory.update_wasm_hash(&new_wasm_hash);
 
-    assert_eq!(testing_env.factory.client.get_wasm_hash(), new_wasm_hash);
+    assert_eq!(testing_env.factory.client.get_three_pool_wasm_hash(), new_wasm_hash);
 }
 
 #[test]
