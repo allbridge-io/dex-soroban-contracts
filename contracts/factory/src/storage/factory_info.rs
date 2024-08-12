@@ -12,7 +12,8 @@ pub const MAX_PAIRS_NUM: u32 = 21;
 #[derive(SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
 pub struct FactoryInfo {
-    pub wasm_hash: soroban_sdk::BytesN<32>,
+    pub two_pool_wasm_hash: soroban_sdk::BytesN<32>,
+    pub three_pool_wasm_hash: soroban_sdk::BytesN<32>,
     /// (token0, token1) => pool
     pub two_pools: Map<(Address, Address), Address>,
     /// (token0, token1, token2) => pool
@@ -20,11 +21,12 @@ pub struct FactoryInfo {
 }
 
 impl FactoryInfo {
-    pub fn new(wasm_hash: BytesN<32>) -> Self {
+    pub fn new(two_pool_wasm_hash: BytesN<32>, three_pool_wasm_hash: BytesN<32>) -> Self {
         FactoryInfo {
-            wasm_hash: wasm_hash.clone(),
-            two_pools: Map::new(wasm_hash.env()),
-            three_pools: Map::new(wasm_hash.env()),
+            two_pool_wasm_hash: two_pool_wasm_hash.clone(),
+            three_pool_wasm_hash: three_pool_wasm_hash.clone(),
+            two_pools: Map::new(two_pool_wasm_hash.env()),
+            three_pools: Map::new(three_pool_wasm_hash.env()),
         }
     }
 

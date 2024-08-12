@@ -2,15 +2,15 @@ use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map};
 use storage::Admin;
 
-use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_three_pool, get_three_pools, get_two_pool, get_two_pools, get_wasm_hash, initialize, set_admin, update_wasm_hash};
+use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_three_pool, get_three_pool_wasm_hash, get_three_pools, get_two_pool, get_two_pool_wasm_hash, get_two_pools, initialize, set_admin, update_three_pool_wasm_hash, update_two_pool_wasm_hash};
 
 #[contract]
 pub struct FactoryContract;
 
 #[contractimpl]
 impl FactoryContract {
-    pub fn initialize(env: Env, wasm_hash: BytesN<32>, admin: Address) -> Result<(), Error> {
-        initialize(env, wasm_hash, admin)
+    pub fn initialize(env: Env, two_pool_wasm_hash: BytesN<32>, three_pool_wasm_hash: BytesN<32>, admin: Address) -> Result<(), Error> {
+        initialize(env, two_pool_wasm_hash, three_pool_wasm_hash, admin)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -99,8 +99,11 @@ impl FactoryContract {
         get_three_pools(env)
     }
 
-    pub fn get_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
-        get_wasm_hash(env)
+    pub fn get_two_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
+        get_two_pool_wasm_hash(env)
+    }
+    pub fn get_three_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
+        get_three_pool_wasm_hash(env)
     }
 
     pub fn get_admin(env: Env) -> Result<Address, Error> {
@@ -109,10 +112,16 @@ impl FactoryContract {
 
     // ----------- Upgrade -----------
 
-    pub fn update_wasm_hash(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
+    pub fn update_two_pool_wasm_hash(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        update_wasm_hash(env, new_wasm_hash)
+        update_two_pool_wasm_hash(env, new_wasm_hash)
+    }
+
+    pub fn update_three_pool_wasm_hash(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
+        extend_ttl_instance(&env);
+
+        update_three_pool_wasm_hash(env, new_wasm_hash)
     }
 
     pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {

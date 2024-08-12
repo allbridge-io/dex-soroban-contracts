@@ -40,7 +40,7 @@ pub fn create_two_pool(
     let deployed_pool = env
         .deployer()
         .with_address(deployer, salt)
-        .deploy(factory_info.wasm_hash.clone());
+        .deploy(factory_info.two_pool_wasm_hash.clone());
 
     factory_info.add_two_pool((token_a.clone(), token_b.clone()), &deployed_pool);
 

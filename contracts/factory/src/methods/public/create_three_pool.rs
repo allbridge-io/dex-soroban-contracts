@@ -41,7 +41,7 @@ pub fn create_three_pool(
     let deployed_pool = env
         .deployer()
         .with_address(deployer, salt)
-        .deploy(factory_info.wasm_hash.clone());
+        .deploy(factory_info.three_pool_wasm_hash.clone());
 
     factory_info.add_three_pool((token_a.clone(), token_b.clone(), token_c.clone()), &deployed_pool);
 
