@@ -33,8 +33,8 @@ pub fn create_two_pool(
         Error::PoolExist
     );
 
-    let (token_a, token_b) = FactoryInfo::sort_tokens(token_a, token_b);
-    let bytes = FactoryInfo::merge_two_addresses(&token_a, &token_b)?;
+    let [token_a, token_b] = FactoryInfo::sort_tokens([token_a, token_b]);
+    let bytes = FactoryInfo::merge_addresses(vec![&env, env.current_contract_address(), token_a.clone(), token_b.clone()])?;
     let salt = env.crypto().keccak256(&bytes.into());
 
     let deployed_pool = env

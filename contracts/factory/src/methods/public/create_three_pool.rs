@@ -34,9 +34,9 @@ pub fn create_three_pool(
         Error::PoolExist
     );
 
-    let (token_a, token_b, token_c) = FactoryInfo::sort_three_tokens(token_a, token_b, token_c);
-    let bytes = FactoryInfo::merge_three_addresses(&token_a, &token_b, &token_c)?;
-    let salt = env.crypto().keccak256(&bytes.into());
+    let [token_a, token_b, token_c] = FactoryInfo::sort_tokens([token_a, token_b, token_c]);
+    let bytes = FactoryInfo::merge_addresses(vec![&env, env.current_contract_address(), token_a.clone(), token_b.clone(), token_c.clone()])?;
+    let salt = env.crypto().keccak256(&bytes);
 
     let deployed_pool = env
         .deployer()

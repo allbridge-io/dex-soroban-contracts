@@ -1,10 +1,9 @@
 use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
 use shared::{
-    utils::{bytes::address_to_bytes, merge_slices_by_third},
+    utils::{bytes::address_to_bytes},
     Error,
 };
-use soroban_sdk::{contracttype, Address, BytesN, Map};
-use shared::utils::merge_slices_by_half;
+use soroban_sdk::{contracttype, vec, Address, Bytes, BytesN, Map, Vec};
 
 pub const MAX_PAIRS_NUM: u32 = 21;
 
@@ -30,16 +29,7 @@ impl FactoryInfo {
         }
     }
 
-    pub fn sort_tokens(token_a: Address, token_b: Address) -> (Address, Address) {
-        if token_a < token_b {
-            (token_a, token_b)
-        } else {
-            (token_b, token_a)
-        }
-    }
-
-    pub fn sort_three_tokens(token_a: Address, token_b: Address, token_c: Address) -> (Address, Address, Address) {
-        let mut arr = [token_a, token_b, token_c];
+    pub fn sort_tokens<const N: usize>(mut arr: [Address; N]) -> [Address; N] {
         for i in 0..arr.len() {
             for j in 0..arr.len() - 1 - i {
                 if arr[j] > arr[j + 1] {
@@ -48,32 +38,19 @@ impl FactoryInfo {
             }
         }
 
-        (arr[0].clone(), arr[1].clone(), arr[2].clone())
+        arr
     }
 
-    pub fn merge_two_addresses(token_a: &Address, token_b: &Address) -> Result<BytesN<64>, Error> {
-        let env = token_a.env();
+    pub fn merge_addresses(tokens: Vec<Address>) -> Result<Bytes, Error> {
+        let env = tokens.env();
+        let mut result = Bytes::new(env);
 
-        Ok(BytesN::from_array(
-            env,
-            &merge_slices_by_half::<32, 64>(
-                &address_to_bytes(env, token_a)?.to_array(),
-                &address_to_bytes(env, token_b)?.to_array(),
-            ),
-        ))
-    }
+        for token in tokens.iter() {
+            let address_bytes = address_to_bytes(env, &token)?;
+            result.extend_from_array(&address_bytes.to_array());
+        }
 
-    pub fn merge_three_addresses(token_a: &Address, token_b: &Address, token_c: &Address) -> Result<BytesN<96>, Error> {
-        let env = token_a.env();
-
-        Ok(BytesN::from_array(
-            env,
-            &merge_slices_by_third::<32, 96>(
-                &address_to_bytes(env, token_a)?.to_array(),
-                &address_to_bytes(env, token_b)?.to_array(),
-                &address_to_bytes(env, token_c)?.to_array(),
-            ),
-        ))
+        Ok(result)
     }
 
     pub fn add_three_pool(&mut self, tokens: (Address, Address, Address), pool: &Address) {
@@ -81,16 +58,16 @@ impl FactoryInfo {
     }
 
     pub fn get_three_pool(&self, token_a: &Address, token_b: &Address, token_c: &Address) -> Result<Address, Error> {
-        let (token_a, token_b, token_c) = FactoryInfo::sort_three_tokens(token_a.clone(), token_b.clone(), token_c.clone());
+        let [token_a, token_b, token_c] = FactoryInfo::sort_tokens([token_a.clone(), token_b.clone(), token_c.clone()]);
 
         self.three_pools.get((token_a, token_b, token_c)).ok_or(Error::NotFound)
     }
 
-    pub fn get_three_pools(&self) -> Result<Map<Address, (Address, Address, Address)>, Error> {
+    pub fn get_three_pools(&self) -> Result<Map<Address, Vec<Address>>, Error> {
         let mut map = Map::new(self.two_pools.env());
 
         self.three_pools.iter().for_each(|(tokens, pool)| {
-            map.set(pool, tokens);
+            map.set(pool, vec![&self.two_pools.env(), tokens.0, tokens.1, tokens.2]);
         });
 
         Ok(map)
@@ -101,16 +78,16 @@ impl FactoryInfo {
     }
 
     pub fn get_two_pool(&self, token_a: &Address, token_b: &Address) -> Result<Address, Error> {
-        let (token_a, token_b) = FactoryInfo::sort_tokens(token_a.clone(), token_b.clone());
+        let [token_a, token_b] = FactoryInfo::sort_tokens([token_a.clone(), token_b.clone()]);
 
         self.two_pools.get((token_a, token_b)).ok_or(Error::NotFound)
     }
 
-    pub fn get_two_pools(&self) -> Result<Map<Address, (Address, Address)>, Error> {
+    pub fn get_two_pools(&self) -> Result<Map<Address, Vec<Address>>, Error> {
         let mut map = Map::new(self.two_pools.env());
 
         self.two_pools.iter().for_each(|(tokens, pool)| {
-            map.set(pool, tokens);
+            map.set(pool, vec![&self.two_pools.env(), tokens.0, tokens.1]);
         });
 
         Ok(map)

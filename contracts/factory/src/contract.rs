@@ -70,16 +70,26 @@ impl FactoryContract {
         }
     }
 
-    pub fn two_pools(env: Env) -> Result<Map<Address, (Address, Address)>, Error> {
+    pub fn pools(env: Env) -> Result<Map<Address, Vec<Address>>, Error> {
         extend_ttl_instance(&env);
 
-        get_two_pools(env)
+        let mut pools = get_two_pools(&env)?;
+        for (key, value) in get_three_pools(&env)?.iter() {
+            pools.set(key, value);
+        }
+        Ok(pools)
     }
 
-    pub fn three_pools(env: Env) -> Result<Map<Address, (Address, Address, Address)>, Error> {
+    pub fn two_pools(env: Env) -> Result<Map<Address, Vec<Address>>, Error> {
         extend_ttl_instance(&env);
 
-        get_three_pools(env)
+        get_two_pools(&env)
+    }
+
+    pub fn three_pools(env: Env) -> Result<Map<Address, Vec<Address>>, Error> {
+        extend_ttl_instance(&env);
+
+        get_three_pools(&env)
     }
 
     pub fn get_two_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
