@@ -153,25 +153,6 @@ factory-get-pool:
 		pool \
 		--tokens '["$(YARO_ADDRESS)", "$(USDY_ADDRESS)", "$(BOGD_ADDRESS)"]'
 
-
-factory-get-two-pools:
-	soroban contract invoke \
-		--id $(FACTORY_ADDRESS) \
-		--source $(ADMIN_ALIAS) \
-		--network $(NETWORK) 	\
-		--is-view \
-		-- \
-		two_pools
-
-factory-get-three-pools:
-	soroban contract invoke \
-		--id $(FACTORY_ADDRESS) \
-		--source $(ADMIN_ALIAS) \
-		--network $(NETWORK) 	\
-		--is-view \
-		-- \
-		three_pools
-
 factory-get-pools:
 	soroban contract invoke \
 		--id $(FACTORY_ADDRESS) \

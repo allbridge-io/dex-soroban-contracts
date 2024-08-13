@@ -2,7 +2,7 @@ use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Vec};
 use storage::Admin;
 
-use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_three_pool, get_three_pool_wasm_hash, get_three_pools, get_two_pool, get_two_pool_wasm_hash, get_two_pools, initialize, set_admin, update_three_pool_wasm_hash, update_two_pool_wasm_hash};
+use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_pool, get_pools, get_three_pool_wasm_hash, get_two_pool_wasm_hash, initialize, set_admin, update_three_pool_wasm_hash, update_two_pool_wasm_hash};
 
 #[contract]
 pub struct FactoryContract;
@@ -31,8 +31,7 @@ impl FactoryContract {
                 deployer,
                 pool_admin,
                 a,
-                tokens.get_unchecked(0),
-                tokens.get_unchecked(1),
+                tokens,
                 fee_share_bp,
                 admin_fee_share_bp,
             ),
@@ -41,13 +40,11 @@ impl FactoryContract {
                 deployer,
                 pool_admin,
                 a,
-                tokens.get_unchecked(0),
-                tokens.get_unchecked(1),
-                tokens.get_unchecked(2),
+                tokens,
                 fee_share_bp,
                 admin_fee_share_bp,
             ),
-            _ => Err(Error::MaxPoolsNumReached)
+            _ => Err(Error::InvalidNumberOfTokens)
         }
     }
     // ----------- Admin -----------
@@ -62,34 +59,13 @@ impl FactoryContract {
 
     pub fn pool(env: Env, tokens: Vec<Address>) -> Result<Address, Error> {
         extend_ttl_instance(&env);
-
-        match tokens.len() {
-            2 => get_two_pool(env, &tokens.get_unchecked(0), &tokens.get_unchecked(1)),
-            3 => get_three_pool(env, &tokens.get_unchecked(0), &tokens.get_unchecked(1), &tokens.get_unchecked(2)),
-            _ => Err(Error::MaxPoolsNumReached)
-        }
+        get_pool(env, tokens)
     }
 
     pub fn pools(env: Env) -> Result<Map<Address, Vec<Address>>, Error> {
         extend_ttl_instance(&env);
 
-        let mut pools = get_two_pools(&env)?;
-        for (key, value) in get_three_pools(&env)?.iter() {
-            pools.set(key, value);
-        }
-        Ok(pools)
-    }
-
-    pub fn two_pools(env: Env) -> Result<Map<Address, Vec<Address>>, Error> {
-        extend_ttl_instance(&env);
-
-        get_two_pools(&env)
-    }
-
-    pub fn three_pools(env: Env) -> Result<Map<Address, Vec<Address>>, Error> {
-        extend_ttl_instance(&env);
-
-        get_three_pools(&env)
+        get_pools(&env)
     }
 
     pub fn get_two_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {

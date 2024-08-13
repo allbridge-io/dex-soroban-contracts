@@ -1,5 +1,5 @@
 use shared::{require, soroban_data::SimpleSorobanData, Error};
-use soroban_sdk::{vec, Address, Env, IntoVal, Symbol};
+use soroban_sdk::{vec, Address, Env, IntoVal, Symbol, Vec};
 use storage::Admin;
 
 use crate::storage::factory_info::{FactoryInfo, MAX_PAIRS_NUM};
@@ -10,9 +10,7 @@ pub fn create_three_pool(
     deployer: Address,
     pool_admin: Address,
     a: u128,
-    token_a: Address,
-    token_b: Address,
-    token_c: Address,
+    tokens: Vec<Address>,
     fee_share_bp: u128,
     admin_fee_share_bp: u128,
 ) -> Result<Address, Error> {
@@ -25,17 +23,24 @@ pub fn create_three_pool(
     let mut factory_info = FactoryInfo::get(&env)?;
 
     require!(
-        factory_info.three_pools.len() < MAX_PAIRS_NUM,
+        factory_info.pools.len() < MAX_PAIRS_NUM,
         Error::MaxPoolsNumReached
     );
+    require!(tokens.len() == 3,Error::InvalidNumberOfTokens);
+
+    let token_a = tokens.get_unchecked(0);
+    let token_b = tokens.get_unchecked(1);
+    let token_c = tokens.get_unchecked(2);
     require!(token_a != token_b && token_a != token_c && token_b != token_c, Error::IdenticalAddresses);
     require!(
-        factory_info.get_three_pool(&token_a, &token_b, &token_c).is_err(),
+        factory_info.get_pool(tokens.clone()).is_err(),
         Error::PoolExist
     );
 
-    let [token_a, token_b, token_c] = FactoryInfo::sort_tokens([token_a, token_b, token_c]);
-    let bytes = FactoryInfo::merge_addresses(vec![&env, env.current_contract_address(), token_a.clone(), token_b.clone(), token_c.clone()])?;
+    let sorted_tokens = FactoryInfo::sort_tokens(tokens.clone());
+    let mut tokens_with_address =  tokens;
+    tokens_with_address.push_front(env.current_contract_address());
+    let bytes = FactoryInfo::merge_addresses(tokens_with_address)?;
     let salt = env.crypto().keccak256(&bytes);
 
     let deployed_pool = env
@@ -43,15 +48,15 @@ pub fn create_three_pool(
         .with_address(deployer, salt)
         .deploy(factory_info.three_pool_wasm_hash.clone());
 
-    factory_info.add_three_pool((token_a.clone(), token_b.clone(), token_c.clone()), &deployed_pool);
+    factory_info.add_pool(sorted_tokens.clone(), &deployed_pool);
 
     let args = vec![
         &env,
         *pool_admin.as_val(),
         a.into_val(&env),
-        *token_a.as_val(),
-        *token_b.as_val(),
-        *token_c.as_val(),
+        *sorted_tokens.get_unchecked(0).as_val(),
+        *sorted_tokens.get_unchecked(1).as_val(),
+        *sorted_tokens.get_unchecked(2).as_val(),
         fee_share_bp.into_val(&env),
         admin_fee_share_bp.into_val(&env),
     ];
