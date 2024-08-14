@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use rand_derive2::RandGen;
@@ -90,9 +91,9 @@ pub enum FuzzTargetOperation {
     },
 }
 
-impl ToString for FuzzTargetOperation {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for FuzzTargetOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
             FuzzTargetOperation::Swap {
                 direction,
                 amount,
@@ -119,7 +120,8 @@ impl ToString for FuzzTargetOperation {
             FuzzTargetOperation::Withdraw { lp_amount, user } => {
                 format!("**[Withdraw]** *{:?}*, lp amount: {}", user, lp_amount.0)
             }
-        }
+        };
+        write!(f, "{}", str)
     }
 }
 

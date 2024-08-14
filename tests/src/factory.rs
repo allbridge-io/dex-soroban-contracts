@@ -4,12 +4,12 @@ use crate::utils::TestingEnv;
 
 #[test]
 #[should_panic = "Context(InvalidAction)"]
-fn add_new_pair_no_auth() {
+fn add_new_pool_no_auth() {
     let testing_env = TestingEnv::default();
     let (yellow_token, duck_token) =
         TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    testing_env.clear_mock_auth().factory.create_pair(
+    testing_env.clear_mock_auth().factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &yellow_token.id,
@@ -47,7 +47,7 @@ fn update_wasm_hash() {
 
     testing_env.factory.update_wasm_hash(&new_wasm_hash);
 
-    assert_eq!(testing_env.factory.client.get_wasm_hash(), new_wasm_hash);
+    assert_eq!(testing_env.factory.client.get_two_pool_wasm_hash(), new_wasm_hash);
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn update_wasm_hash_no_auth() {
 #[should_panic = "DexContract(IdenticalAddresses)"]
 fn identical_addresses() {
     let testing_env = TestingEnv::default();
-    testing_env.factory.create_pair(
+    testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &testing_env.yaro_token.id,
@@ -82,7 +82,7 @@ fn invalid_fee_share() {
     let (yellow, duck) =
         TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    testing_env.factory.create_pair(
+    testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &yellow.id,
@@ -99,7 +99,7 @@ fn invalid_a() {
     let (yellow, duck) =
         TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    testing_env.factory.create_pair(
+    testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         65,
         &yellow.id,
@@ -116,7 +116,7 @@ fn invalid_admin_fee_share() {
     let (yellow_token, duck_token) =
         TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    testing_env.factory.create_pair(
+    testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &yellow_token.id,
@@ -127,11 +127,11 @@ fn invalid_admin_fee_share() {
 }
 
 #[test]
-#[should_panic = "DexContract(PairExist)"]
+#[should_panic = "DexContract(PoolExist)"]
 fn pair_exist() {
     let testing_env = TestingEnv::default();
 
-    testing_env.factory.create_pair(
+    testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &testing_env.yaro_token.id,
@@ -142,10 +142,10 @@ fn pair_exist() {
 }
 
 #[test]
-#[should_panic = "DexContract(PairExist)"]
+#[should_panic = "DexContract(PoolExist)"]
 fn pair_exist_reverse() {
     let testing_env = TestingEnv::default();
-    testing_env.factory.create_pair(
+    testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &testing_env.yusd_token.id,
@@ -161,7 +161,7 @@ fn add_new_pair() {
     let (yellow_token, duck_token) =
         TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    let deployed_pool = testing_env.factory.create_pair(
+    let deployed_pool = testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &yellow_token.id,
@@ -192,7 +192,7 @@ fn get_pool() {
 }
 
 #[test]
-#[should_panic = "DexContract(MaxPairsNumReached)"]
+#[should_panic = "DexContract(MaxPoolsNumReached)"]
 fn add_new_pairs() {
     let testing_env = TestingEnv::default();
 
@@ -200,7 +200,7 @@ fn add_new_pairs() {
         let (first_token, second_token) =
             TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-        let _ = testing_env.factory.create_pair(
+        let _ = testing_env.factory.create_pool(
             testing_env.admin.as_ref(),
             10,
             &first_token.id,
@@ -213,7 +213,7 @@ fn add_new_pairs() {
     let (first_token, second_token) =
         TestingEnv::generate_token_pair(&testing_env.env, testing_env.admin.as_ref());
 
-    let _ = testing_env.factory.create_pair(
+    let _ = testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
         &first_token.id,

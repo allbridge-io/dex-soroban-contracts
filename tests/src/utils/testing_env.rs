@@ -153,7 +153,7 @@ impl TestingEnv {
         let fee_share_bp = percentage_to_bp(fee_share_percentage);
         let admin_fee_bp = percentage_to_bp(admin_fee_percentage);
         let a = 20;
-        let pool = factory.create_pair(
+        let pool = factory.create_pool(
             admin.as_ref(),
             a,
             &token_a.id,

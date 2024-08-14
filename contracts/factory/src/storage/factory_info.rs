@@ -1,9 +1,9 @@
 use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
 use shared::{
-    utils::{bytes::address_to_bytes, merge_slices_by_half},
+    utils::{bytes::address_to_bytes},
     Error,
 };
-use soroban_sdk::{contracttype, Address, BytesN, Map};
+use soroban_sdk::{contracttype, Address, Bytes, BytesN, Env, Map, Vec};
 
 pub const MAX_PAIRS_NUM: u32 = 21;
 
@@ -11,56 +11,107 @@ pub const MAX_PAIRS_NUM: u32 = 21;
 #[derive(SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
 pub struct FactoryInfo {
-    pub wasm_hash: soroban_sdk::BytesN<32>,
-    /// (token0, token1) => pool
-    pub pairs: Map<(Address, Address), Address>,
+    pub two_pool_wasm_hash: soroban_sdk::BytesN<32>,
+    pub three_pool_wasm_hash: soroban_sdk::BytesN<32>,
+    pub pools: Map<Vec<Address>, Address>,
 }
 
 impl FactoryInfo {
-    pub fn new(wasm_hash: BytesN<32>) -> Self {
+    pub fn new(env: &Env, two_pool_wasm_hash: BytesN<32>, three_pool_wasm_hash: BytesN<32>) -> Self {
         FactoryInfo {
-            wasm_hash: wasm_hash.clone(),
-            pairs: Map::new(wasm_hash.env()),
+            two_pool_wasm_hash,
+            three_pool_wasm_hash,
+            pools: Map::new(env),
         }
     }
 
-    pub fn sort_tokens(token_a: Address, token_b: Address) -> (Address, Address) {
-        if token_a < token_b {
-            (token_a, token_b)
-        } else {
-            (token_b, token_a)
+
+    pub fn sort_tokens(mut v: Vec<Address>) -> Vec<Address> {
+        for i in 0..v.len() {
+            for j in 0..v.len() - 1 - i {
+                let a = v.get_unchecked(j);
+                let b = v.get_unchecked(j + 1);
+                if a > b {
+                    v.set(j, b);
+                    v.set(j + 1, a);
+                }
+            }
         }
+
+        v
     }
 
-    pub fn merge_addresses(token_a: &Address, token_b: &Address) -> Result<BytesN<64>, Error> {
-        let env = token_a.env();
+    pub fn merge_addresses(tokens: Vec<Address>) -> Result<Bytes, Error> {
+        let env = tokens.env();
+        let mut result = Bytes::new(env);
 
-        Ok(BytesN::from_array(
-            env,
-            &merge_slices_by_half::<32, 64>(
-                &address_to_bytes(env, token_a)?.to_array(),
-                &address_to_bytes(env, token_b)?.to_array(),
-            ),
-        ))
+        for token in tokens.iter() {
+            let address_bytes = address_to_bytes(env, &token)?;
+            result.extend_from_array(&address_bytes.to_array());
+        }
+
+        Ok(result)
     }
 
-    pub fn add_pair(&mut self, tokens: (Address, Address), pool: &Address) {
-        self.pairs.set(tokens, pool.clone());
+    pub fn add_pool(&mut self, tokens: Vec<Address>, pool: &Address) {
+        self.pools.set(tokens, pool.clone());
     }
 
-    pub fn get_pool(&self, token_a: &Address, token_b: &Address) -> Result<Address, Error> {
-        let (token_a, token_b) = FactoryInfo::sort_tokens(token_a.clone(), token_b.clone());
+    pub fn get_pools(&self) -> Result<Map<Address, Vec<Address>>, Error> {
+        let mut map = Map::new(self.pools.env());
 
-        self.pairs.get((token_a, token_b)).ok_or(Error::NotFound)
-    }
-
-    pub fn get_pools(&self) -> Result<Map<Address, (Address, Address)>, Error> {
-        let mut map = Map::new(self.pairs.env());
-
-        self.pairs.iter().for_each(|(tokens, pool)| {
+        self.pools.iter().for_each(|(tokens, pool)| {
             map.set(pool, tokens);
         });
 
         Ok(map)
+    }
+
+    pub fn get_pool(&self, mut tokens: Vec<Address>) -> Result<Address, Error> {
+        tokens = FactoryInfo::sort_tokens(tokens);
+
+        self.pools.get(tokens).ok_or(Error::NotFound)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use soroban_sdk::{vec, Address, Bytes, Env, String};
+    use crate::storage::factory_info::FactoryInfo;
+
+    #[test]
+    fn test_merge_addresses() {
+        let env = Env::default();
+
+        let address_a = Address::from_string(&String::from_str(&env, "GAE73XQO7ONPTIJAF2S5RBCWSG2G7HWSREOP4UDXLHWBZEDBUIIQZ3Y7"));
+        let address_b = Address::from_string(&String::from_str(&env, "GCBJR4SJIVIRMVAOWFMSGAOCLDU6TVEIITJOO4NVAZ6RI3FC32E5RWP2"));
+        let address_c = Address::from_string(&String::from_str(&env, "GACWN434MDHQPLIUW6SPRDWTQ7BER5BTQWJGL2GDQ54IZYJHJQHODRTZ"));
+
+        let result = FactoryInfo::merge_addresses(vec![&env, address_a, address_b, address_c]).unwrap();
+        let expected = Bytes::from_slice(&env, &[9, 253, 222, 14, 251, 154, 249, 161, 32, 46, 165, 216, 132, 86, 145, 180, 111, 158, 210, 137, 28, 254, 80, 119, 89, 236, 28, 144, 97, 162, 17, 12,
+                                                              130, 152, 242, 73, 69, 81, 22, 84, 14, 177, 89, 35, 1, 194, 88, 233, 233, 212, 136, 68, 210, 231, 113, 181, 6, 125, 20, 108, 162, 222, 137, 216,
+                                                              5, 102, 243, 124, 96, 207, 7, 173, 20, 183, 164, 248, 142, 211, 135, 194, 72, 244, 51, 133, 146, 101, 232, 195, 135, 120, 140, 225, 39, 76, 14, 225]);
+
+        assert_eq!(result, expected);
+
+    }
+
+    #[test]
+    fn test_sort_tokens() {
+        let env = Env::default();
+
+        let address_a = Address::from_string(&String::from_str(&env, "GAE73XQO7ONPTIJAF2S5RBCWSG2G7HWSREOP4UDXLHWBZEDBUIIQZ3Y7"));
+        let address_b = Address::from_string(&String::from_str(&env, "GCBJR4SJIVIRMVAOWFMSGAOCLDU6TVEIITJOO4NVAZ6RI3FC32E5RWP2"));
+        let address_c = Address::from_string(&String::from_str(&env, "GACWN434MDHQPLIUW6SPRDWTQ7BER5BTQWJGL2GDQ54IZYJHJQHODRTZ"));
+
+        let expected = vec![&env, address_c.clone(), address_a.clone(), address_b.clone()];
+
+        assert_eq!(FactoryInfo::sort_tokens(vec![&env, address_a.clone(), address_b.clone(), address_c.clone()]), expected);
+        assert_eq!(FactoryInfo::sort_tokens(vec![&env, address_a.clone(), address_c.clone(), address_b.clone()]), expected);
+        assert_eq!(FactoryInfo::sort_tokens(vec![&env, address_b.clone(), address_a.clone(), address_c.clone()]), expected);
+        assert_eq!(FactoryInfo::sort_tokens(vec![&env, address_b.clone(), address_c.clone(), address_a.clone()]), expected);
+        assert_eq!(FactoryInfo::sort_tokens(vec![&env, address_c.clone(), address_a.clone(), address_b.clone()]), expected);
+        assert_eq!(FactoryInfo::sort_tokens(vec![&env, address_c, address_b, address_a]), expected);
+
     }
 }

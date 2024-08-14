@@ -1,43 +1,39 @@
 .DEFAULT_GOAL := all
 
-all: build-factory build-pool
+all: build-two-pool build-three-pool build-factory
 
-optimize-all: optimize-factory optimize-pool
+optimize-all: optimize-factory optimize-two-pool optimize-three-pool
 
-POOL_WASM_PATH = target/wasm32-unknown-unknown/release/pool.wasm
-POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
+TWO_POOL_WASM_PATH = target/wasm32-unknown-unknown/release/pool.wasm
+TWO_POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/pool.optimized.wasm
+
+THREE_POOL_WASM_PATH = target/wasm32-unknown-unknown/release/three_pool.wasm
+THREE_POOL_WASM_PATH_OP = target/wasm32-unknown-unknown/release/three_pool.optimized.wasm
 
 FACTORY_WASM_PATH = target/wasm32-unknown-unknown/release/factory.wasm
 FACTORY_WASM_PATH_OP = target/wasm32-unknown-unknown/release/factory.optimized.wasm
-# FACTORY_ADDRESS=CACBPPNXJZZECUERFKHDPHWCLA6KEWE5N45ER3E3SPTXZ34JVVTTNV2N # Testnet
-FACTORY_ADDRESS=CBBGMOA67G4Y3KE7TTU5TCUZFXEQWCFZVFZHN3W4EX3ESYBMFK6HSZHS
+FACTORY_ADDRESS=CCB7MOTLIZH32HOZP5NIKYUH6UHDKZAW3YLFAGXXTMHU75Z2A2AVWNHV
 
-# POOL_WASM_HASH=5126675e4652dadd2724df5ea02f191a3cfbd0447ba47783c3a34bf302493a0d
+TWO_POOL_WASM_HASH=b0adafcf2b3f0f66b9f56f0b441c0d6cd19e9cd9550e294a6e7fed868f17f34d
+THREE_POOL_WASM_HASH=ca57c911473636d76059a8ef826a1f2305d72a3c6df609aab9042486d1d38467
 
-# POOL_WASM_HASH=f8287b3877f6a4a951d889a57557b8e2ce890e3917f63a1e938bf33c9069e25a
-POOL_WASM_HASH=52b565b63df831f0bcfda198f1be95981b85ca2cf9e4a4eb7c2ed21047a340d0
-
-ALICE = $$(soroban config identity address alice)
+ALICE = $$(soroban keys address alice)
 ADMIN_ALIAS = alice
-ADMIN = $$(soroban config identity address $(ADMIN_ALIAS))
+ADMIN = $$(soroban keys address $(ADMIN_ALIAS))
 DEPLOYER=$(ADMIN)
 
 # YARO:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
-YARO_ADDRESS=CACOK7HB7D7SRPMH3LYYOW77T6D4D2F7TR7UEVKY2TVSUDSRDM6DZVLK # Testnet
+YARO_ADDRESS=CACOK7HB7D7SRPMH3LYYOW77T6D4D2F7TR7UEVKY2TVSUDSRDM6DZVLK# Testnet
 # USDY:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
-USDY_ADDRESS=CAOPX7DVI3PFLHE7637YSFU6TLG6Z27Z5O3M547ANAYXQOAYCYYV6NO6 # Testnet
+USDY_ADDRESS=CAOPX7DVI3PFLHE7637YSFU6TLG6Z27Z5O3M547ANAYXQOAYCYYV6NO6# Testnet
 # BOGD:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
-BOGD_ADDRESS=CDBDW5BMDBFQGKI4UWUFZQEO7OKFTGNLU5BV2I3DKPJ33OWMKLERRMS6 # Testnet
+BOGD_ADDRESS=CDBDW5BMDBFQGKI4UWUFZQEO7OKFTGNLU5BV2I3DKPJ33OWMKLERRMS6# Testnet
 
-JUSD_ADDRESS=CCJ7EPBMUIWARLV3KMGZGBW2H7J4O2UOMJY6F74GHTHSKGPHULL62UPJ
-PUSD_ADDRESS=CD4ZZAWCIPZ4OWLJCMAMCDHD67GL37P6KSFDRKJEXS43UCGT6Y4BIER6
-
-YARO_BOGD_POOL=CDPIBT5DBMOXBE5AT6IVFWO36CMDOBNR6LWRECD3MNDCDHBLJLB7PEHN # Testnet 
-USDY_BOGD_POOL=CBZGPFLKGVMIDQD5N3N5HWZCHPIBIFACKQXWIPCOCUYGBDLW37FTSIWE # Testnet 
-YARO_JUSD_POOL=CB3PASPY75CM5IJQYWLFFQRLJSANG7IFYZUGKMQAID4A3ASSEW7HWAGY
+YUSD_YARO_BOGD_POOL=CCIFAKJVJGROBM5V57HOPWJC2O5RTYMLZBMPBJLOLMYRPGVPD3OUEIKP # Testnet
+YUSD_YARO_POOL=CDS3O7QRJ6646LKP3LTU7NU4BVODCPZNHVQTYPMKTJ5DZXJBJKZJMRGE # Testnet
 
 TOKEN_ADDRESS=$(BOGD_ADDRESS)
-POOL_ADDRESS=$(YARO_JUSD_POOL)
+POOL_ADDRESS=$(YUSD_YARO_BOGD_POOL)
 
 NETWORK=testnet
 
@@ -59,14 +55,20 @@ lint:
 test: all
 	cargo test
 
-build-pool: 
+build-two-pool:
 	soroban contract build --package pool
+
+build-three-pool:
+	soroban contract build --package three_pool
 
 build-factory:
 	soroban contract build --package factory
 
-optimize-pool: build-pool
-	soroban contract optimize --wasm $(POOL_WASM_PATH)
+optimize-two-pool: build-two-pool
+	soroban contract optimize --wasm $(TWO_POOL_WASM_PATH)
+
+optimize-three-pool: build-three-pool
+	soroban contract optimize --wasm $(THREE_POOL_WASM_PATH)
 
 optimize-factory: build-factory
 	soroban contract optimize --wasm $(FACTORY_WASM_PATH)
@@ -80,11 +82,17 @@ pool-generate-types:
 
 #----------------FACTORY----------------------------
 
-install-pool: optimize-pool
+install-two-pool: optimize-two-pool
 	soroban contract install \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) \
-		--wasm $(POOL_WASM_PATH_OP)
+		--wasm $(TWO_POOL_WASM_PATH_OP)
+
+install-three-pool: optimize-three-pool
+	soroban contract install \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) \
+		--wasm $(THREE_POOL_WASM_PATH_OP)
 
 factory-deploy: optimize-factory
 	soroban contract deploy \
@@ -100,31 +108,40 @@ factory-initialize:
 		-- \
 		initialize \
 		--admin $(ADMIN) \
-		--wasm-hash $(POOL_WASM_HASH)
+		--two-pool-wasm-hash $(TWO_POOL_WASM_HASH) \
+		--three-pool-wasm-hash $(THREE_POOL_WASM_HASH)
 
-factory-create-pair:
+factory-create-pool:
 	soroban contract invoke \
 		--id $(FACTORY_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
 		-- \
-		create_pair \
+		create_pool \
 		--deployer $(DEPLOYER) \
 		--pool-admin $(ADMIN) \
 		--a 20 \
-		--token-a $(JUSD_ADDRESS) \
-		--token-b $(YARO_ADDRESS) \
+		--tokens '["$(USDY_ADDRESS)", "$(YARO_ADDRESS)"]' \
 		--fee_share_bp 15 \
 		--admin-fee-share-bp 2000
 
-factory-update-wasm-hash:
+factory-update-two-pool-wasm-hash:
 	soroban contract invoke \
 		--id $(FACTORY_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
 		-- \
-		update_wasm_hash \
-		--new_wasm_hash $(POOL_WASM_HASH) 
+		update_two_pool_wasm_hash \
+		--new_wasm_hash $(TWO_POOL_WASM_HASH)
+
+factory-update-three-pool-wasm-hash:
+	soroban contract invoke \
+		--id $(FACTORY_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		-- \
+		update_three_pool_wasm_hash \
+		--new_wasm_hash $(THREE_POOL_WASM_HASH)
 
 factory-get-pool:
 	soroban contract invoke \
@@ -134,8 +151,7 @@ factory-get-pool:
 		--is-view \
 		-- \
 		pool \
-		--token-a $(YARO_ADDRESS) \
-		--token-b $(USDY_ADDRESS)
+		--tokens '["$(YARO_ADDRESS)", "$(USDY_ADDRESS)", "$(BOGD_ADDRESS)"]'
 
 factory-get-pools:
 	soroban contract invoke \
@@ -156,7 +172,7 @@ pool-deposit:
 		-- \
 		deposit \
 		--sender $(ADMIN) \
-		--amounts '["1000000000000", "1000000000000"]' \
+		--amounts '["1000000000000", "1000000000000", "1000000000000"]' \
 		--min-lp-amount 1000
 
 pool-withdraw:
@@ -192,8 +208,8 @@ pool-pending-reward:
 		--id $(POOL_ADDRESS) \
 		--source $(ADMIN_ALIAS) \
 		--network $(NETWORK) 	\
-		-- \
 		--is-view \
+		-- \
 		pending_reward \
 		--user $(ADMIN)
 
@@ -224,7 +240,23 @@ pool-get-deposit-amount:
 		--is-view \
 		-- \
 		get_deposit_amount \
-		--amounts '["100000", "100000"]'
+		--amounts '["100000", "100000", "100000"]'
+
+pool-swap:
+	soroban contract invoke \
+		--id $(POOL_ADDRESS) \
+		--source $(ADMIN_ALIAS) \
+		--network $(NETWORK) 	\
+		--is-view \
+		-- \
+		swap \
+		--sender $(ALICE) \
+		--token_from 0 \
+		--token_to 1 \
+		--amount_in 10000000 \
+		--recipient $(ALICE) \
+		--receive_amount_min 0
+
 
 #----------TOKEN--------------------------
 
@@ -254,6 +286,7 @@ token-get-balance:
 	soroban contract invoke \
 		--id $(TOKEN_ADDRESS) \
 		--network $(NETWORK) 	\
+		--source $(ADMIN_ALIAS) \
 		--is-view \
 		-- \
 		balance \
@@ -270,13 +303,15 @@ token-get-name:
 		name
 
 wrap-token:
-	soroban lab token wrap \
+	soroban contract asset deploy \
 		--network $(NETWORK) 	\
-		--asset USDY:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
+		--source  $(ADMIN_ALIAS) \
+		--asset BOGD:GAYODJWF27E5OQO2C6LA6Z6QXQ2EYUONMXFNL2MNMGRJP6RED2CPQKTW
 
 native-token-address:
-	soroban lab token id \
- 		--network $(NETWORK) \
- 		--asset native
+	soroban contract asset id \
+		--network $(NETWORK) \
+		--source $(ADMIN_ALIAS) \
+		--asset native
 
 
