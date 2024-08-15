@@ -25,14 +25,17 @@ pub fn address_to_bytes(env: &Env, address: &Address) -> Result<BytesN<32>, Erro
 
 #[cfg(test)]
 mod tests {
-    use soroban_sdk::{Address, Env, String};
-    use soroban_sdk::testutils::arbitrary::std::println;
     use crate::utils::bytes::address_to_bytes;
+    use soroban_sdk::testutils::arbitrary::std::println;
+    use soroban_sdk::{Address, Env, String};
 
     #[test]
     fn test() {
         let env = Env::default();
-        let address = Address::from_string(&String::from_str(&env, "GACWN434MDHQPLIUW6SPRDWTQ7BER5BTQWJGL2GDQ54IZYJHJQHODRTZ"));
+        let address = Address::from_string(&String::from_str(
+            &env,
+            "GACWN434MDHQPLIUW6SPRDWTQ7BER5BTQWJGL2GDQ54IZYJHJQHODRTZ",
+        ));
         let result = address_to_bytes(&env, &address).unwrap();
         println!("{:?}", result);
     }

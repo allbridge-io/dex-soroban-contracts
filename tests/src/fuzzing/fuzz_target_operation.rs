@@ -1,8 +1,8 @@
-use std::fmt::Display;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use rand_derive2::RandGen;
 use serde_derive::Serialize;
+use std::fmt::Display;
 
 use crate::contracts::pool::Direction;
 use crate::utils::{CallResult, TestingEnv, User};

@@ -28,12 +28,22 @@ pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
     Ok(UserDeposit::get(&env, user))
 }
 
-pub fn get_receive_amount(env: Env, input: u128, token_from: Token, token_to: Token) -> Result<(u128, u128), Error> {
+pub fn get_receive_amount(
+    env: Env,
+    input: u128,
+    token_from: Token,
+    token_to: Token,
+) -> Result<(u128, u128), Error> {
     let receive_amount = Pool::get(&env)?.get_receive_amount(input, token_from, token_to)?;
     Ok((receive_amount.output, receive_amount.fee))
 }
 
-pub fn get_send_amount(env: Env, output: u128, token_from: Token, token_to: Token) -> Result<(u128, u128), Error> {
+pub fn get_send_amount(
+    env: Env,
+    output: u128,
+    token_from: Token,
+    token_to: Token,
+) -> Result<(u128, u128), Error> {
     Pool::get(&env)?.get_send_amount(output, token_from, token_to)
 }
 

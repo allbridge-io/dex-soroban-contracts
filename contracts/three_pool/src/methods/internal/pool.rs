@@ -8,12 +8,8 @@ use shared::{
 };
 use soroban_sdk::{Address, Env};
 
-use crate::storage::{
-    common::{Token},
-    pool::Pool,
-    user_deposit::UserDeposit,
-};
 use crate::storage::triple_values::TripleU128;
+use crate::storage::{common::Token, pool::Pool, user_deposit::UserDeposit};
 
 use super::pool_view::WithdrawAmount;
 
@@ -77,7 +73,12 @@ impl Pool {
         let current_contract = env.current_contract_address();
 
         if self.total_lp_amount == 0 {
-            require!(amounts.data.0 == amounts.data.1 && amounts.data.0 == amounts.data.2 && amounts.data.1 == amounts.data.2, Error::InvalidFirstDeposit);
+            require!(
+                amounts.data.0 == amounts.data.1
+                    && amounts.data.0 == amounts.data.2
+                    && amounts.data.1 == amounts.data.2,
+                Error::InvalidFirstDeposit
+            );
         }
 
         let deposit_amount = self.get_deposit_amount(amounts.clone())?;
@@ -248,7 +249,6 @@ impl Pool {
         ))
     }
 
-
     pub fn get_y(&self, x128: u128, z128: u128, d128: u128) -> Result<u128, Error> {
         let x = I256::from(x128);
         let z = I256::from(z128);
@@ -256,13 +256,17 @@ impl Pool {
         let a = I256::from(self.a);
         let a27 = a * 27;
 
-        let b= x + z - d + d / a27;
-        let c= d.pow(4) / (-27 * a27 * x * z);
+        let b = x + z - d + d / a27;
+        let c = d.pow(4) / (-27 * a27 * x * z);
         Ok(((-b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
     }
 
     pub fn get_current_d(&self) -> Result<u128, Error> {
-        self.get_d(self.token_balances[0], self.token_balances[1], self.token_balances[2])
+        self.get_d(
+            self.token_balances[0],
+            self.token_balances[1],
+            self.token_balances[2],
+        )
     }
 
     pub fn get_d(&self, x128: u128, y128: u128, z128: u128) -> Result<u128, Error> {
@@ -301,7 +305,6 @@ impl Pool {
     }
 }
 
-
 #[allow(clippy::inconsistent_digit_grouping)]
 #[cfg(test)]
 mod tests {
@@ -310,7 +313,7 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::storage::{pool::Pool};
+    use crate::storage::pool::Pool;
     use crate::storage::triple_values::TripleU128;
 
     #[contract]
@@ -355,11 +358,11 @@ mod tests {
         let big_d = 157_831_140_060_220_325;
         let mid_d = 6_084_878_857_843_302;
         assert_eq!(pool.get_y(&n, &n, &(n * 3)), n);
-        assert_eq!( pool.get_y(&n, &(n / 1_000), &big_d), n - 1);
-        assert_eq!( pool.get_y(&n, &n, &big_d), n / 1_000 - 1);
-        assert_eq!( pool.get_y(&n, &(n / 1_000), &mid_d), n / 1_000_000 - 1);
-        assert_eq!( pool.get_y(&n, &(n / 1_000_000), &mid_d), n / 1_000 - 1);
-        assert_eq!( pool.get_y(&(n/ 1_000), &(n / 1_000_000), &mid_d), n - 14);
+        assert_eq!(pool.get_y(&n, &(n / 1_000), &big_d), n - 1);
+        assert_eq!(pool.get_y(&n, &n, &big_d), n / 1_000 - 1);
+        assert_eq!(pool.get_y(&n, &(n / 1_000), &mid_d), n / 1_000_000 - 1);
+        assert_eq!(pool.get_y(&n, &(n / 1_000_000), &mid_d), n / 1_000 - 1);
+        assert_eq!(pool.get_y(&(n / 1_000), &(n / 1_000_000), &mid_d), n - 14);
     }
 
     #[test]
@@ -376,7 +379,9 @@ mod tests {
         let big_d = 157_831_140_060_220_325;
         assert_eq!(pool.get_d(&n, &n, &n), n * 3);
         assert_eq!(pool.get_d(&n, &n, &(n / 1_000)), big_d);
-        assert_eq!(pool.get_d(&n, &(n / 1_000), &(n / 1_000_000)), 6_084_878_857_843_302);
-
+        assert_eq!(
+            pool.get_d(&n, &(n / 1_000), &(n / 1_000_000)),
+            6_084_878_857_843_302
+        );
     }
 }

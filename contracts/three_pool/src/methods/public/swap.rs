@@ -1,11 +1,8 @@
 use shared::{soroban_data::SimpleSorobanData, Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::{
-    events::Swapped,
-    storage::{pool::Pool},
-};
 use crate::storage::common::Token;
+use crate::{events::Swapped, storage::pool::Pool};
 
 pub fn swap(
     env: Env,
@@ -26,7 +23,7 @@ pub fn swap(
         from_amount,
         receive_amount_min,
         token_from,
-        token_to
+        token_to,
     )?;
 
     pool.save(&env);

@@ -131,15 +131,9 @@ impl Snapshot {
         let alice_b_balance = testing_env.token_b.balance_of(&alice_address);
         let alice_c_balance = testing_env.token_c.balance_of(&alice_address);
 
-        let admin_a_balance = testing_env
-            .token_a
-            .balance_of(testing_env.admin.as_ref());
-        let admin_b_balance = testing_env
-            .token_b
-            .balance_of(testing_env.admin.as_ref());
-        let admin_c_balance = testing_env
-            .token_c
-            .balance_of(testing_env.admin.as_ref());
+        let admin_a_balance = testing_env.token_a.balance_of(testing_env.admin.as_ref());
+        let admin_b_balance = testing_env.token_b.balance_of(testing_env.admin.as_ref());
+        let admin_c_balance = testing_env.token_c.balance_of(testing_env.admin.as_ref());
 
         let bob_a_balance = testing_env.token_a.balance_of(&bob_address);
         let bob_b_balance = testing_env.token_b.balance_of(&bob_address);
@@ -224,25 +218,12 @@ impl Snapshot {
                 "acc_reward_c_per_share_p",
                 None,
             ),
-            (
-                "Pool admin a fee rewards",
-                "admin_a_fee_rewards",
-                Some(7),
-            ),
-            (
-                "Pool admin b fee rewards",
-                "admin_b_fee_rewards",
-                Some(7),
-            ),
-            (
-                "Pool admin c fee rewards",
-                "admin_c_fee_rewards",
-                Some(7),
-            ),
+            ("Pool admin a fee rewards", "admin_a_fee_rewards", Some(7)),
+            ("Pool admin b fee rewards", "admin_b_fee_rewards", Some(7)),
+            ("Pool admin c fee rewards", "admin_c_fee_rewards", Some(7)),
             ("Pool total lp amount", "total_lp_amount", Some(3)),
             ("Pool d", "d", Some(3)),
         ];
-
 
         for (title, value_key, use_float_diff) in balances {
             let (before, after) = (self[value_key], other[value_key]);

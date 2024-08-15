@@ -1,13 +1,15 @@
-use crate::{
-    three_pool_utils::{TestingEnv, TestingEnvConfig, TRIPLE_ZERO},
-};
+use crate::three_pool_utils::{TestingEnv, TestingEnvConfig, TRIPLE_ZERO};
 
 #[test]
 #[should_panic(expected = "Context(InvalidAction)")]
 fn claim_admin_fee_no_auth() {
     let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_admin_fee(1.0));
     let TestingEnv {
-        ref pool, ref bob, ref token_a, ref token_b, ..
+        ref pool,
+        ref bob,
+        ref token_a,
+        ref token_b,
+        ..
     } = testing_env;
 
     pool.swap(bob, bob, 100.0, 98.0, token_b, token_a);

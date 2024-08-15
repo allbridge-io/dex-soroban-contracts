@@ -1,6 +1,6 @@
-use soroban_sdk::{token, Address, Env};
-use crate::{contracts::three_pool::Token as PoolToken};
+use crate::contracts::three_pool::Token as PoolToken;
 use crate::utils::float_to_uint;
+use soroban_sdk::{token, Address, Env};
 
 use super::User;
 
@@ -31,7 +31,7 @@ impl Token {
             asset_client,
             env: env.clone(),
             pool_token,
-            tag: tag.into()
+            tag: tag.into(),
         }
     }
 

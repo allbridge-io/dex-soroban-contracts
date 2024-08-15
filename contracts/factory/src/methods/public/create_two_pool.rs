@@ -26,7 +26,7 @@ pub fn create_two_pool(
         factory_info.pools.len() < MAX_PAIRS_NUM,
         Error::MaxPoolsNumReached
     );
-    require!(tokens.len() == 2,Error::InvalidNumberOfTokens);
+    require!(tokens.len() == 2, Error::InvalidNumberOfTokens);
     let token_a = tokens.get_unchecked(0);
     let token_b = tokens.get_unchecked(1);
     require!(token_a != token_b, Error::IdenticalAddresses);
@@ -36,7 +36,7 @@ pub fn create_two_pool(
     );
 
     let sorted_tokens = FactoryInfo::sort_tokens(tokens.clone());
-    let mut tokens_with_address =  tokens;
+    let mut tokens_with_address = tokens;
     tokens_with_address.push_front(env.current_contract_address());
     let bytes = FactoryInfo::merge_addresses(tokens_with_address)?;
     let salt = env.crypto().keccak256(&bytes);

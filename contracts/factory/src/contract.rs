@@ -2,14 +2,23 @@ use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Vec};
 use storage::Admin;
 
-use crate::methods::public::{create_three_pool, create_two_pool, get_admin, get_pool, get_pools, get_three_pool_wasm_hash, get_two_pool_wasm_hash, initialize, set_admin, update_three_pool_wasm_hash, update_two_pool_wasm_hash};
+use crate::methods::public::{
+    create_three_pool, create_two_pool, get_admin, get_pool, get_pools, get_three_pool_wasm_hash,
+    get_two_pool_wasm_hash, initialize, set_admin, update_three_pool_wasm_hash,
+    update_two_pool_wasm_hash,
+};
 
 #[contract]
 pub struct FactoryContract;
 
 #[contractimpl]
 impl FactoryContract {
-    pub fn initialize(env: Env, two_pool_wasm_hash: BytesN<32>, three_pool_wasm_hash: BytesN<32>, admin: Address) -> Result<(), Error> {
+    pub fn initialize(
+        env: Env,
+        two_pool_wasm_hash: BytesN<32>,
+        three_pool_wasm_hash: BytesN<32>,
+        admin: Address,
+    ) -> Result<(), Error> {
         initialize(env, two_pool_wasm_hash, three_pool_wasm_hash, admin)
     }
 
@@ -44,7 +53,7 @@ impl FactoryContract {
                 fee_share_bp,
                 admin_fee_share_bp,
             ),
-            _ => Err(Error::InvalidNumberOfTokens)
+            _ => Err(Error::InvalidNumberOfTokens),
         }
     }
     // ----------- Admin -----------

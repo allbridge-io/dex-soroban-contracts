@@ -18,7 +18,11 @@ macro_rules! triple_value {
 
         impl $name {
             pub fn to_array(&self) -> [$inner_type; 3] {
-                [self.data.0.clone(), self.data.1.clone(), self.data.2.clone()]
+                [
+                    self.data.0.clone(),
+                    self.data.1.clone(),
+                    self.data.2.clone(),
+                ]
             }
         }
 

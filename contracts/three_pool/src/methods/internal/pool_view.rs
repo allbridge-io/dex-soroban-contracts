@@ -1,8 +1,8 @@
 use shared::{require, Error};
 use soroban_sdk::contracttype;
 
-use crate::storage::{common::Token, pool::Pool};
 use crate::storage::triple_values::TripleU128;
+use crate::storage::{common::Token, pool::Pool};
 
 pub struct ReceiveAmount {
     pub token_from_new_balance: u128,
@@ -55,7 +55,8 @@ impl Pool {
         let token_from_new_balance = self.token_balances[token_from] + input_sp;
         let token_third = token_from.third(token_to);
 
-        let token_to_new_balance = self.get_y(token_from_new_balance, self.token_balances[token_third], d0)?;
+        let token_to_new_balance =
+            self.get_y(token_from_new_balance, self.token_balances[token_third], d0)?;
         if self.token_balances[token_to] > token_to_new_balance {
             output = self.amount_from_system_precision(
                 self.token_balances[token_to] - token_to_new_balance,
@@ -74,7 +75,12 @@ impl Pool {
         })
     }
 
-    pub fn get_send_amount(&self, output: u128, token_from: Token, token_to: Token) -> Result<(u128, u128), Error> {
+    pub fn get_send_amount(
+        &self,
+        output: u128,
+        token_from: Token,
+        token_to: Token,
+    ) -> Result<(u128, u128), Error> {
         let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
         let output_with_fee = output + fee;
@@ -85,7 +91,8 @@ impl Pool {
         let token_to_new_balance = self.token_balances[token_to] - output_sp;
         let token_third = token_from.third(token_to);
 
-        let token_from_new_amount = self.get_y(token_to_new_balance, self.token_balances[token_third], d0)?;
+        let token_from_new_amount =
+            self.get_y(token_to_new_balance, self.token_balances[token_third], d0)?;
         if self.token_balances[token_from] < token_from_new_amount {
             input = self.amount_from_system_precision(
                 token_from_new_amount - self.token_balances[token_from],
@@ -114,14 +121,21 @@ impl Pool {
 
         let more_token_amount_sp = self.token_balances[more] * lp_amount / d0;
         let mid_token_amount_sp = self.token_balances[mid] * lp_amount / d0;
-        let y = self.get_y(self.token_balances[more] - more_token_amount_sp, self.token_balances[mid] - mid_token_amount_sp, d1)?;
+        let y = self.get_y(
+            self.token_balances[more] - more_token_amount_sp,
+            self.token_balances[mid] - mid_token_amount_sp,
+            d1,
+        )?;
         let less_token_amount_sp = self.token_balances[less] - y;
 
         let mut new_token_balances = self.token_balances.clone();
         let mut fees = TripleU128::default();
 
-        for (index, token_amount_sp) in [(more, more_token_amount_sp), (mid, mid_token_amount_sp), (less, less_token_amount_sp)]
-        {
+        for (index, token_amount_sp) in [
+            (more, more_token_amount_sp),
+            (mid, mid_token_amount_sp),
+            (less, less_token_amount_sp),
+        ] {
             let token_amount =
                 self.amount_from_system_precision(token_amount_sp, self.tokens_decimals[index]);
             let fee = token_amount * self.fee_share_bp / Self::BP;
@@ -164,7 +178,11 @@ impl Pool {
             new_token_balances_sp[index] += amounts_sp[index];
         }
 
-        let d1 = self.get_d(new_token_balances_sp[0], new_token_balances_sp[1], new_token_balances_sp[2])?;
+        let d1 = self.get_d(
+            new_token_balances_sp[0],
+            new_token_balances_sp[1],
+            new_token_balances_sp[2],
+        )?;
 
         require!(d1 > d0, Error::Forbidden);
         require!(
@@ -190,8 +208,8 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::storage::{common::Token, pool::Pool};
     use crate::storage::triple_values::TripleU128;
+    use crate::storage::{common::Token, pool::Pool};
 
     #[contract]
     pub struct TestPool;
@@ -219,7 +237,8 @@ mod tests {
             token_from: Token,
             token_to: Token,
         ) -> Result<(u128, u128), Error> {
-            let receive_amount = Pool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
+            let receive_amount =
+                Pool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
             Ok((receive_amount.output, receive_amount.fee))
         }
 

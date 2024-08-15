@@ -14,11 +14,7 @@ use crate::{
             get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
-    storage::{
-        common::{Token},
-        pool::Pool,
-        user_deposit::UserDeposit,
-    },
+    storage::{common::Token, pool::Pool, user_deposit::UserDeposit},
 };
 
 #[contract]
@@ -147,7 +143,12 @@ impl PoolContract {
         get_receive_amount(env, input, token_from, token_to)
     }
 
-    pub fn get_send_amount(env: Env, output: u128, token_from: Token, token_to: Token) -> Result<(u128, u128), Error> {
+    pub fn get_send_amount(
+        env: Env,
+        output: u128,
+        token_from: Token,
+        token_to: Token,
+    ) -> Result<(u128, u128), Error> {
         get_send_amount(env, output, token_from, token_to)
     }
 

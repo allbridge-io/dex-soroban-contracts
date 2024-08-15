@@ -1,8 +1,6 @@
 use test_case::test_case;
 
-use crate::{
-    three_pool_utils::{Snapshot, TestingEnv, TestingEnvConfig, TRIPLE_ZERO},
-};
+use crate::three_pool_utils::{Snapshot, TestingEnv, TestingEnvConfig, TRIPLE_ZERO};
 
 #[test]
 #[should_panic = "DexContract(ZeroAmount)"]
@@ -40,16 +38,13 @@ fn deposit_with_overflow() {
     pool.deposit(alice, (600_000_000.0, 600_000_000.0, 600_000_000.0), 0.0);
 }
 
-
 #[should_panic = "DexContract(InvalidFirstDeposit)"]
 #[test_case((99.0, 100.0, 100.0); "invalid_a")]
 #[test_case((100.0, 99.0, 100.0); "invalid_b")]
 #[test_case((100.0, 100.0, 99.0); "invalid_c")]
 fn deposit_invalid_first_deposit(deposit: (f64, f64, f64)) {
     let testing_env = TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
-    testing_env
-        .pool
-        .deposit(&testing_env.alice, deposit, 0.0);
+    testing_env.pool.deposit(&testing_env.alice, deposit, 0.0);
 }
 
 #[test_case((100.0, 50.0, 75.0), TRIPLE_ZERO, 225.0 ; "base")]

@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use soroban_sdk::{testutils::Address as _, testutils::BytesN as _, Address, BytesN};
 
 use crate::three_pool_utils::TestingEnv;
@@ -48,7 +50,10 @@ fn update_two_pool_wasm_hash() {
 
     testing_env.factory.update_wasm_hash(&new_wasm_hash);
 
-    assert_eq!(testing_env.factory.client.get_three_pool_wasm_hash(), new_wasm_hash);
+    assert_eq!(
+        testing_env.factory.client.get_three_pool_wasm_hash(),
+        new_wasm_hash
+    );
 }
 
 #[test]
@@ -178,7 +183,9 @@ fn add_new_pair() {
         10,
     );
 
-    let pool = testing_env.factory.pool(&token_a.id, &token_b.id, &token_c.id);
+    let pool = testing_env
+        .factory
+        .pool(&token_a.id, &token_b.id, &token_c.id);
 
     assert_eq!(deployed_pool, pool);
 }
@@ -193,10 +200,14 @@ fn get_pool() {
         ..
     } = testing_env;
 
-    let pool = testing_env.factory.pool(&token_b.id, &token_a.id, &token_c.id);
+    let pool = testing_env
+        .factory
+        .pool(&token_b.id, &token_a.id, &token_c.id);
     assert_eq!(pool, testing_env.pool.id);
 
-    let pool = testing_env.factory.pool(&token_a.id, &token_c.id, &token_b.id);
+    let pool = testing_env
+        .factory
+        .pool(&token_a.id, &token_c.id, &token_b.id);
     assert_eq!(pool, testing_env.pool.id);
 }
 

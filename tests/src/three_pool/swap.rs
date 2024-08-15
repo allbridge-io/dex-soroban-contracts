@@ -1,8 +1,8 @@
 use test_case::test_case;
 
 use crate::{
+    contracts::three_pool::Token as PoolToken,
     three_pool_utils::{Snapshot, TestingEnv, TestingEnvConfig},
-    contracts::three_pool::Token as PoolToken
 };
 
 use super::DepositArgs;
@@ -124,9 +124,23 @@ fn swap_more_than_pool_balance(token_from: PoolToken, token_to: PoolToken) {
     let snapshot_before = Snapshot::take(&testing_env);
 
     pool.deposit(alice, deposit, 1_000_000.0);
-    pool.swap(alice, alice, amount, 500_000.0, testing_env.get_token(token_from), testing_env.get_token(token_to));
+    pool.swap(
+        alice,
+        alice,
+        amount,
+        500_000.0,
+        testing_env.get_token(token_from),
+        testing_env.get_token(token_to),
+    );
     // Bring pool back to balance by Alice
-    pool.swap(alice, alice, amount, 500_000.0, testing_env.get_token(token_to), testing_env.get_token(token_from));
+    pool.swap(
+        alice,
+        alice,
+        amount,
+        500_000.0,
+        testing_env.get_token(token_to),
+        testing_env.get_token(token_from),
+    );
     pool.withdraw(alice, pool.user_lp_amount_f64(alice));
 
     let snapshot_after = Snapshot::take(&testing_env);

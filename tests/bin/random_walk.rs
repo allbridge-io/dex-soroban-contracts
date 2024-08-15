@@ -1,7 +1,7 @@
-use std::fmt::Display;
 use clap::Parser;
 use clap_derive::Parser;
 use csv::Writer;
+use std::fmt::Display;
 use tests::fuzzing::fuzz_target_operation::{ActionPoolChange, FuzzTargetOperation};
 use tests::utils::{TestingEnv, TestingEnvConfig};
 

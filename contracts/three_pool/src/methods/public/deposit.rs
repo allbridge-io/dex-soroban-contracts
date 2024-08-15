@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     events::{Deposit, RewardsClaimed},
-    storage::{triple_values::TripleU128, pool::Pool, user_deposit::UserDeposit},
+    storage::{pool::Pool, triple_values::TripleU128, user_deposit::UserDeposit},
 };
 
 pub fn deposit(

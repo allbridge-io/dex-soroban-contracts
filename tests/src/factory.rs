@@ -47,7 +47,10 @@ fn update_wasm_hash() {
 
     testing_env.factory.update_wasm_hash(&new_wasm_hash);
 
-    assert_eq!(testing_env.factory.client.get_two_pool_wasm_hash(), new_wasm_hash);
+    assert_eq!(
+        testing_env.factory.client.get_two_pool_wasm_hash(),
+        new_wasm_hash
+    );
 }
 
 #[test]

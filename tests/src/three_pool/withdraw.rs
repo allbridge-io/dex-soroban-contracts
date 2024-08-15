@@ -1,7 +1,7 @@
 use test_case::test_case;
 
-use crate::{
-    three_pool_utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, TRIPLE_ZERO},
+use crate::three_pool_utils::{
+    assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, TRIPLE_ZERO,
 };
 
 use super::{DepositArgs, DoWithdrawArgs};
@@ -184,11 +184,14 @@ fn withdraw_alice_profit_and_bob_loss() {
         TRIPLE_ZERO,
     );
 
-    let bob_b_diff =
-        snapshot_after_swap.bob_b_balance - snapshot_before_swap.bob_b_balance;
+    let bob_b_diff = snapshot_after_swap.bob_b_balance - snapshot_before_swap.bob_b_balance;
     let bob_loss = float_to_uint(swap_amount, 7) - bob_b_diff;
 
-    println!("{} {}", snapshot_after.get_user_balances_sum(alice), snapshot_before.get_user_balances_sum(alice));
+    println!(
+        "{} {}",
+        snapshot_after.get_user_balances_sum(alice),
+        snapshot_before.get_user_balances_sum(alice)
+    );
 
     let alice_profit = snapshot_after.get_user_balances_sum(alice)
         - snapshot_before.get_user_balances_sum(alice)

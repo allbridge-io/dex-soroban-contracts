@@ -1,15 +1,15 @@
+use std::fmt::Display;
 use std::{
     io::{stdout, Write},
     sync::{Arc, Mutex},
 };
-use std::fmt::Display;
 
 use clap::Parser;
 use clap_derive::Parser;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use tests::fuzzing::fuzz_target_operation::FuzzTargetOperation;
-use tests::utils::{Snapshot, TestingEnvConfig, TestingEnv};
+use tests::utils::{Snapshot, TestingEnv, TestingEnvConfig};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -90,9 +90,8 @@ fn main() {
         .collect::<Vec<_>>();
 
     runs.par_iter().for_each(|operations| {
-        let testing_env = TestingEnv::create(
-            TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
-        );
+        let testing_env =
+            TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0));
 
         let mut run_result = RunResult::default();
 

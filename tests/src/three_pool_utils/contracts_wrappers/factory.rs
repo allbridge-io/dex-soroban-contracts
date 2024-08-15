@@ -1,7 +1,7 @@
-use soroban_sdk::{Address, BytesN, Env, vec};
+use soroban_sdk::{vec, Address, BytesN, Env};
 
 use crate::{
-    contracts::{factory, three_pool, pool},
+    contracts::{factory, pool, three_pool},
     utils::{desoroban_result, unwrap_call_result},
 };
 
@@ -64,11 +64,15 @@ impl PoolFactory {
         );
     }
 
-
     pub fn pool(&self, token_a: &Address, token_b: &Address, token_c: &Address) -> Address {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_pool(&vec![&self.env, token_a.clone(), token_b.clone(), token_c.clone()])),
+            desoroban_result(self.client.try_pool(&vec![
+                &self.env,
+                token_a.clone(),
+                token_b.clone(),
+                token_c.clone(),
+            ])),
         )
     }
 }

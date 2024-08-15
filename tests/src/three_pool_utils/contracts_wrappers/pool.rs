@@ -5,7 +5,7 @@ use crate::{
     contracts::three_pool::{self, UserDeposit},
     three_pool_utils::{
         desoroban_result, float_to_uint, float_to_uint_sp, percentage_to_bp, uint_to_float_sp,
-        unwrap_call_result, CallResult, Token
+        unwrap_call_result, CallResult, Token,
     },
 };
 
@@ -25,11 +25,16 @@ impl Pool {
         }
     }
 
-    pub fn receive_amount(&self, amount: f64, token_from: &Token, token_to: &Token) -> (u128, u128) {
+    pub fn receive_amount(
+        &self,
+        amount: f64,
+        token_from: &Token,
+        token_to: &Token,
+    ) -> (u128, u128) {
         self.client.get_receive_amount(
             &float_to_uint(amount, 7),
             &token_from.pool_token,
-            &token_to.pool_token
+            &token_to.pool_token,
         )
     }
 
@@ -208,7 +213,14 @@ impl Pool {
     ) {
         unwrap_call_result(
             &self.env,
-            self.swap_checked(sender, recipient, amount, receive_amount_min, token_from, token_to),
+            self.swap_checked(
+                sender,
+                recipient,
+                amount,
+                receive_amount_min,
+                token_from,
+                token_to,
+            ),
         );
     }
 }

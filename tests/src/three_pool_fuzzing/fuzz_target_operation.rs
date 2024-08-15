@@ -1,8 +1,8 @@
-use std::fmt::Display;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use rand_derive2::RandGen;
 use serde_derive::Serialize;
+use std::fmt::Display;
 
 use crate::three_pool_utils::{CallResult, TestingEnv, Token, User};
 
@@ -39,7 +39,7 @@ pub enum SwapDirection {
     B2A,
     B2C,
     C2A,
-    C2B
+    C2B,
 }
 
 impl SwapDirection {
@@ -154,7 +154,7 @@ impl FuzzTargetOperation {
                 let (token_from, token_to) = direction.get_token_pair(testing_env);
                 testing_env
                     .pool
-                    .swap_checked(sender, recipient, amount.0, 0.0, token_from,  token_to)?;
+                    .swap_checked(sender, recipient, amount.0, 0.0, token_from, token_to)?;
 
                 Ok(())
             }

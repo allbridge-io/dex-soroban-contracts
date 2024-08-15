@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::three_pool::{Deposit, RewardsClaimed, Swapped, Withdraw, Token as PoolToken},
+    contracts::three_pool::{Deposit, RewardsClaimed, Swapped, Token as PoolToken, Withdraw},
     three_pool_utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
 };
 
@@ -142,7 +142,7 @@ impl TestingEnv {
         match pool_token {
             PoolToken::A => &self.token_a,
             PoolToken::B => &self.token_b,
-            PoolToken::C => &self.token_c
+            PoolToken::C => &self.token_c,
         }
     }
 
@@ -188,7 +188,11 @@ impl TestingEnv {
         token_c.airdrop(admin, admin_init_deposit * 2.0);
 
         if admin_init_deposit > 0.0 {
-            pool.deposit(admin, (admin_init_deposit, admin_init_deposit, admin_init_deposit), 0.0);
+            pool.deposit(
+                admin,
+                (admin_init_deposit, admin_init_deposit, admin_init_deposit),
+                0.0,
+            );
         }
 
         pool
@@ -231,7 +235,6 @@ impl TestingEnv {
         expected_fee: f64,
     ) {
         let swapped = get_latest_event::<Swapped>(&self.env).expect("Expected Swapped");
-
 
         assert_eq!(swapped.sender, sender.as_address());
         assert_eq!(swapped.recipient, recipient.as_address());
@@ -313,7 +316,7 @@ impl TestingEnv {
 
         let (user_a_before, user_b_before, user_c_before, user_lp_amount_before) =
             snapshot_before.get_user_balances(user);
-        let (user_a_after, user_b_after, user_c_after,user_lp_amount_after) =
+        let (user_a_after, user_b_after, user_c_after, user_lp_amount_after) =
             snapshot_after.get_user_balances(user);
 
         let expected_a_reward = float_to_uint(expected_a_reward, 7);
@@ -417,16 +420,13 @@ impl TestingEnv {
 
         if expected_a_fee != 0.0 && expected_b_fee != 0.0 && expected_c_fee != 0.0 {
             assert!(
-                snapshot_before.acc_reward_a_per_share_p
-                    < snapshot_after.acc_reward_a_per_share_p
+                snapshot_before.acc_reward_a_per_share_p < snapshot_after.acc_reward_a_per_share_p
             );
             assert!(
-                snapshot_before.acc_reward_b_per_share_p
-                    < snapshot_after.acc_reward_b_per_share_p
+                snapshot_before.acc_reward_b_per_share_p < snapshot_after.acc_reward_b_per_share_p
             );
             assert!(
-                snapshot_before.acc_reward_c_per_share_p
-                    < snapshot_after.acc_reward_c_per_share_p
+                snapshot_before.acc_reward_c_per_share_p < snapshot_after.acc_reward_c_per_share_p
             );
         }
 
@@ -450,7 +450,8 @@ impl TestingEnv {
             self.assert_claimed_reward_event(user, (a_reward, b_reward, c_reward));
         }
 
-        let (user_a_before, user_b_before, user_c_before, _) = snapshot_before.get_user_balances(user);
+        let (user_a_before, user_b_before, user_c_before, _) =
+            snapshot_before.get_user_balances(user);
         let (user_a_after, user_b_after, user_c_after, _) = snapshot_after.get_user_balances(user);
 
         let user_a_diff = user_a_after - user_a_before;
@@ -482,12 +483,9 @@ impl TestingEnv {
         let b_reward = float_to_uint(b_reward, 7);
         let c_reward = float_to_uint(c_reward, 7);
 
-        let admin_b_diff =
-            snapshot_after.admin_b_balance - snapshot_before.admin_b_balance;
-        let admin_a_diff =
-            snapshot_after.admin_a_balance - snapshot_before.admin_a_balance;
-        let admin_c_diff =
-            snapshot_after.admin_c_balance - snapshot_before.admin_c_balance;
+        let admin_b_diff = snapshot_after.admin_b_balance - snapshot_before.admin_b_balance;
+        let admin_a_diff = snapshot_after.admin_a_balance - snapshot_before.admin_a_balance;
+        let admin_c_diff = snapshot_after.admin_c_balance - snapshot_before.admin_c_balance;
 
         let pool_a_diff = snapshot_before.pool_a_balance - snapshot_after.pool_a_balance;
         let pool_b_diff = snapshot_before.pool_b_balance - snapshot_after.pool_b_balance;
@@ -529,11 +527,7 @@ impl TestingEnv {
         let sender_tag = sender.tag;
         let recipient_tag = recipient.tag;
 
-
-        let (from_token_tag, to_token_tag) = (
-            token_from.tag.clone(),
-            token_to.tag.clone(),
-            );
+        let (from_token_tag, to_token_tag) = (token_from.tag.clone(), token_to.tag.clone());
 
         let sender_balance_key = format!("{sender_tag}_{from_token_tag}_balance");
         let recipient_balance_key = format!("{recipient_tag}_{to_token_tag}_balance");
