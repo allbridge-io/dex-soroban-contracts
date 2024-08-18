@@ -2,7 +2,7 @@ use shared::{require, soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{token, Address, Env};
 use storage::Admin;
 
-use crate::storage::pool::Pool;
+use crate::{methods::internal::pool::Pool, storage::pool::ThreePool};
 
 #[allow(clippy::too_many_arguments)]
 pub fn initialize(
@@ -15,17 +15,17 @@ pub fn initialize(
     fee_share_bp: u128,
     admin_fee_share_bp: u128,
 ) -> Result<(), Error> {
-    require!(!Pool::has(&env), Error::Initialized);
+    require!(!ThreePool::has(&env), Error::Initialized);
 
-    require!(fee_share_bp < Pool::BP, Error::InvalidArg);
-    require!(admin_fee_share_bp < Pool::BP, Error::InvalidArg);
-    require!(a <= Pool::MAX_A, Error::InvalidArg);
+    require!(fee_share_bp < ThreePool::BP, Error::InvalidArg);
+    require!(admin_fee_share_bp < ThreePool::BP, Error::InvalidArg);
+    require!(a <= ThreePool::MAX_A, Error::InvalidArg);
 
     let decimals_a = token::Client::new(&env, &token_a).decimals();
     let decimals_b = token::Client::new(&env, &token_b).decimals();
     let decimals_c = token::Client::new(&env, &token_c).decimals();
 
-    Pool::from_init_params(
+    ThreePool::from_init_params(
         &env,
         a,
         token_a,

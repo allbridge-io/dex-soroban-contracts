@@ -1,7 +1,9 @@
 use shared::{require, Error};
 use soroban_sdk::{contracttype, Env, Vec};
 
-use crate::storage::{common::Token, pool::Pool, sized_array::SizedU128Array};
+use crate::storage::{common::Token, pool::ThreePool, sized_array::SizedU128Array};
+
+use super::pool::Pool;
 
 pub struct ReceiveAmount {
     pub token_from_new_balance: u128,
@@ -40,7 +42,7 @@ pub struct DepositAmount {
     pub new_token_balances: Vec<u128>,
 }
 
-impl Pool {
+impl ThreePool {
     pub fn get_receive_amount(
         &self,
         input: u128,
@@ -222,7 +224,7 @@ mod tests {
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
     use crate::storage::sized_array::SizedU128Array;
-    use crate::storage::{common::Token, pool::Pool};
+    use crate::storage::{common::Token, pool::ThreePool};
 
     #[contract]
     pub struct TestPool;
@@ -233,12 +235,12 @@ mod tests {
             let token_a = Address::generate(&env);
             let token_b = Address::generate(&env);
             let token_c = Address::generate(&env);
-            Pool::from_init_params(&env, 20, token_a, token_b, token_c, [7, 7, 7], 100, 1)
+            ThreePool::from_init_params(&env, 20, token_a, token_b, token_c, [7, 7, 7], 100, 1)
                 .save(&env);
         }
 
         pub fn set_balances(env: Env, new_balances: (u128, u128, u128)) -> Result<(), Error> {
-            Pool::update(&env, |pool| {
+            ThreePool::update(&env, |pool| {
                 let (a, b, c) = new_balances;
                 pool.token_balances = SizedU128Array::from_array(&env, [a, b, c]);
                 pool.total_lp_amount = pool.get_current_d()?;
@@ -253,7 +255,7 @@ mod tests {
             token_to: Token,
         ) -> Result<(u128, u128), Error> {
             let receive_amount =
-                Pool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
+                ThreePool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
             Ok((receive_amount.output, receive_amount.fee))
         }
 
@@ -263,7 +265,7 @@ mod tests {
             token_from: Token,
             token_to: Token,
         ) -> Result<(u128, u128), Error> {
-            Pool::get(&env)?.get_send_amount(amount, token_from, token_to)
+            ThreePool::get(&env)?.get_send_amount(amount, token_from, token_to)
         }
     }
 

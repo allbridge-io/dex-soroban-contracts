@@ -1,19 +1,20 @@
-use shared::{soroban_data::SimpleSorobanData, Error, Event};
+use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::{
     events::{Deposit, RewardsClaimed},
-    storage::{pool::Pool, sized_array::SizedU128Array, user_deposit::UserDeposit},
+    methods::internal::pool::Pool,
+    storage::{sized_array::SizedU128Array, user_deposit::UserDeposit},
 };
 
-pub fn deposit(
+pub fn deposit<P: Pool>(
     env: Env,
     sender: Address,
     amounts: (u128, u128, u128),
     min_lp_amount: u128,
 ) -> Result<(), Error> {
     sender.require_auth();
-    let mut pool = Pool::get(&env)?;
+    let mut pool = P::get(&env)?;
     let mut user_deposit = UserDeposit::get(&env, sender.clone());
     let amounts = SizedU128Array::from_array(&env, [amounts.0, amounts.1, amounts.2]);
 

@@ -14,7 +14,7 @@ use crate::{
             get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
-    storage::{common::Token, pool::Pool, user_deposit::UserDeposit},
+    storage::{common::Token, pool::ThreePool, user_deposit::UserDeposit},
 };
 
 #[contract]
@@ -53,13 +53,13 @@ impl PoolContract {
     ) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        deposit(env, sender, amounts, min_lp_amount)
+        deposit::<ThreePool>(env, sender, amounts, min_lp_amount)
     }
 
     pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        withdraw(env, sender, lp_amount)
+        withdraw::<ThreePool>(env, sender, lp_amount)
     }
 
     pub fn swap(
@@ -73,7 +73,7 @@ impl PoolContract {
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
-        swap(
+        swap::<ThreePool>(
             env,
             sender,
             recipient,
@@ -87,7 +87,7 @@ impl PoolContract {
     pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        claim_rewards(env, sender)
+        claim_rewards::<ThreePool>(env, sender)
     }
 
     // ----------- Admin -----------
@@ -95,7 +95,7 @@ impl PoolContract {
     pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        claim_admin_fee(env)
+        claim_admin_fee::<ThreePool>(env)
     }
 
     pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
@@ -107,13 +107,13 @@ impl PoolContract {
     pub fn set_admin_fee_share(env: Env, admin_fee_share_bp: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        set_admin_fee_share(env, admin_fee_share_bp)
+        set_admin_fee_share::<ThreePool>(env, admin_fee_share_bp)
     }
 
     pub fn set_fee_share(env: Env, fee_share_bp: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        set_fee_share(env, fee_share_bp)
+        set_fee_share::<ThreePool>(env, fee_share_bp)
     }
 
     // ----------- View -----------
@@ -122,7 +122,7 @@ impl PoolContract {
         pending_reward(env, user)
     }
 
-    pub fn get_pool(env: Env) -> Result<Pool, Error> {
+    pub fn get_pool(env: Env) -> Result<ThreePool, Error> {
         get_pool(env)
     }
 

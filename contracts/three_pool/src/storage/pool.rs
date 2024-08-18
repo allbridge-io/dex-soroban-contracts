@@ -12,7 +12,7 @@ use super::common::Token;
 #[contracttype]
 #[derive(Debug, Clone, SorobanData, SorobanSimpleData, SymbolKey, Instance)]
 #[extend_ttl_info_instance]
-pub struct Pool {
+pub struct ThreePool {
     pub a: u128,
 
     pub fee_share_bp: u128,
@@ -23,14 +23,9 @@ pub struct Pool {
     pub token_balances: SizedU128Array,
     pub acc_rewards_per_share_p: SizedU128Array,
     pub admin_fee_amount: SizedU128Array,
-    // pub tokens: Vec<Address>,
-    // pub tokens_decimals: Vec<u32>,
-    // pub token_balances: Vec<u128>,
-    // pub acc_rewards_per_share_p: Vec<u128>,
-    // pub admin_fee_amount: Vec<u128>,
 }
 
-impl Pool {
+impl ThreePool {
     pub fn from_init_params(
         env: &Env,
         a: u128,
@@ -41,7 +36,7 @@ impl Pool {
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Self {
-        Pool {
+        ThreePool {
             a,
 
             fee_share_bp,
