@@ -26,11 +26,12 @@ pub fn initialize(
     let decimals_c = token::Client::new(&env, &token_c).decimals();
 
     Pool::from_init_params(
+        &env,
         a,
         token_a,
         token_b,
         token_c,
-        (decimals_a, decimals_b, decimals_c),
+        [decimals_a, decimals_b, decimals_c],
         fee_share_bp,
         admin_fee_share_bp,
     )

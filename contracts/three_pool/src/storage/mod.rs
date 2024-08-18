@@ -1,4 +1,4 @@
 pub mod common;
 pub mod pool;
-pub mod triple_values;
+pub mod sized_array;
 pub mod user_deposit;

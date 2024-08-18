@@ -41,7 +41,7 @@ impl Index<&String> for Snapshot {
     type Output = u128;
 
     fn index(&self, string: &String) -> &Self::Output {
-        self.index(string.as_str())
+        self.get(string.as_str())
     }
 }
 

@@ -10,14 +10,14 @@ pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
 
     let mut pool = Pool::get(&env)?;
 
-    for (index, _) in pool.tokens.to_array().into_iter().enumerate() {
-        if pool.admin_fee_amount[index] > 0 {
+    for (index, _) in pool.tokens.iter().enumerate() {
+        if pool.admin_fee_amount.get(index) > 0 {
             pool.get_token_by_index(&env, index).transfer(
                 &env.current_contract_address(),
                 admin.as_ref(),
-                &safe_cast(pool.admin_fee_amount[index])?,
+                &safe_cast(pool.admin_fee_amount.get(index))?,
             );
-            pool.admin_fee_amount[index] = 0;
+            pool.admin_fee_amount.set(index, 0);
             pool.save(&env);
         }
     }

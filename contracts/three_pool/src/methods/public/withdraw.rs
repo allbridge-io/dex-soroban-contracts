@@ -20,15 +20,23 @@ pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error>
     Withdraw {
         user: sender.clone(),
         lp_amount,
-        amounts: withdraw_amount.amounts.data,
-        fees: withdraw_amount.fees.data,
+        amounts: (
+            withdraw_amount.amounts.get(0),
+            withdraw_amount.amounts.get(1),
+            withdraw_amount.amounts.get(2),
+        ),
+        fees: (
+            withdraw_amount.fees.get(0),
+            withdraw_amount.fees.get(1),
+            withdraw_amount.fees.get(2),
+        ),
     }
     .publish(&env);
 
-    if !rewards.is_zero() {
+    if !rewards.iter().sum::<u128>() == 0 {
         RewardsClaimed {
             user: sender,
-            rewards: rewards.data,
+            rewards: (rewards.get(0), rewards.get(1), rewards.get(2)),
         }
         .publish(&env);
     }

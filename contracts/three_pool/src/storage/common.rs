@@ -2,7 +2,7 @@ use soroban_sdk::contracttype;
 
 #[contracttype]
 #[derive(Debug, Clone, Copy)]
-#[repr(usize)]
+#[repr(u32)]
 pub enum Token {
     A = 0,
     B = 1,

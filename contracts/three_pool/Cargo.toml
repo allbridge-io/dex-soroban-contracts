@@ -12,6 +12,7 @@ shared = { workspace = true }
 proc_macros = { workspace = true }
 ethnum = { workspace = true }
 storage = { workspace = true }
+paste = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

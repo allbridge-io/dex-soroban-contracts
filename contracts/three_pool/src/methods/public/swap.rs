@@ -29,8 +29,8 @@ pub fn swap(
     pool.save(&env);
 
     Swapped {
-        from_token: pool.tokens[token_from].clone(),
-        to_token: pool.tokens[token_to].clone(),
+        from_token: pool.tokens.token(token_from),
+        to_token: pool.tokens.token(token_to),
         from_amount,
         to_amount,
         sender,

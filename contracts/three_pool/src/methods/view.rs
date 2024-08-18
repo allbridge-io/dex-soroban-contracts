@@ -2,6 +2,7 @@ use shared::{soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{Address, Env};
 use storage::Admin;
 
+use crate::storage::sized_array::SizedU128Array;
 use crate::storage::user_deposit::UserDeposit;
 use crate::storage::{common::Token, pool::Pool};
 
@@ -11,9 +12,9 @@ pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
     let user = UserDeposit::get(&env, user);
     let pool = Pool::get(&env)?;
 
-    let pending = pool.get_pending(&user);
+    let pending = pool.get_pending(&env, &user);
 
-    Ok((pending[0], pending[1]))
+    Ok((pending.get(0), pending.get(1)))
 }
 
 pub fn get_pool(env: Env) -> Result<Pool, Error> {
@@ -48,11 +49,16 @@ pub fn get_send_amount(
 }
 
 pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
-    Ok(Pool::get(&env)?.get_withdraw_amount(lp_amount)?.into())
+    Ok(Pool::get(&env)?
+        .get_withdraw_amount(&env, lp_amount)?
+        .into())
 }
 
 pub fn get_deposit_amount(env: Env, amounts: (u128, u128, u128)) -> Result<u128, Error> {
-    let deposit_amount = Pool::get(&env)?.get_deposit_amount(amounts.into())?;
+    let deposit_amount = Pool::get(&env)?.get_deposit_amount(
+        &env,
+        SizedU128Array::from_array(&env, [amounts.0, amounts.1, amounts.2]),
+    )?;
 
     Ok(deposit_amount.lp_amount)
 }
