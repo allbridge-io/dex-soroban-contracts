@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::pool::{Deposit, Direction, RewardsClaimed, Swapped, Withdraw},
+    contracts::pool::{Deposit, RewardsClaimed, Swapped, Token as TokenVariant, Withdraw},
     utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
 };
 
@@ -201,17 +201,23 @@ impl TestingEnv {
         &self,
         sender: &User,
         recipient: &User,
-        directin: Direction,
+        from_token: TokenVariant,
+        to_token: TokenVariant,
         from_amount: f64,
         expected_to_amount: f64,
         expected_fee: f64,
     ) {
         let swapped = get_latest_event::<Swapped>(&self.env).expect("Expected Swapped");
 
-        let (from_token, to_token) = match directin {
-            Direction::A2B => (self.yusd_token.as_address(), self.yaro_token.as_address()),
-            Direction::B2A => (self.yaro_token.as_address(), self.yusd_token.as_address()),
+        let get_token_address = |token: TokenVariant| -> Address {
+            match token {
+                TokenVariant::A => self.yusd_token.as_address(),
+                TokenVariant::B => self.yaro_token.as_address(),
+            }
         };
+
+        let from_token = get_token_address(from_token);
+        let to_token = get_token_address(to_token);
 
         assert_eq!(swapped.sender, sender.as_address());
         assert_eq!(swapped.recipient, recipient.as_address());
@@ -453,7 +459,8 @@ impl TestingEnv {
         snapshot_after: Snapshot,
         sender: &User,
         recipient: &User,
-        direction: Direction,
+        from_token: TokenVariant,
+        to_token: TokenVariant,
         amount: f64,
         expected_receive_amount: f64,
         expected_fee: f64,
@@ -463,7 +470,8 @@ impl TestingEnv {
         self.assert_swapped_event(
             sender,
             recipient,
-            direction.clone(),
+            from_token,
+            to_token,
             amount,
             expected_receive_amount,
             expected_fee,
@@ -472,10 +480,13 @@ impl TestingEnv {
         let sender_tag = sender.tag;
         let recipient_tag = recipient.tag;
 
-        let (from_token_tag, to_token_tag) = match direction {
-            Direction::A2B => ("yusd", "yaro"),
-            Direction::B2A => ("yaro", "yusd"),
+        let get_token_address = |token: TokenVariant| match token {
+            TokenVariant::A => "yusd",
+            TokenVariant::B => "yaro",
         };
+
+        let from_token_tag = get_token_address(from_token);
+        let to_token_tag = get_token_address(to_token);
 
         let sender_balance_key = format!("{sender_tag}_{from_token_tag}_balance");
         let recipient_balance_key = format!("{recipient_tag}_{to_token_tag}_balance");
@@ -552,7 +563,8 @@ impl TestingEnv {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        direction: Direction,
+        token_from: TokenVariant,
+        token_to: TokenVariant,
         expected_receive_amount: f64,
         expected_fee: f64,
     ) -> (Snapshot, Snapshot) {
@@ -562,7 +574,8 @@ impl TestingEnv {
             recipient,
             amount,
             receive_amount_min,
-            direction.clone(),
+            token_from,
+            token_to,
         );
         let snapshot_after = Snapshot::take(self);
 
@@ -574,7 +587,8 @@ impl TestingEnv {
             snapshot_after.clone(),
             sender,
             recipient,
-            direction,
+            token_from,
+            token_to,
             amount,
             expected_receive_amount,
             expected_fee,

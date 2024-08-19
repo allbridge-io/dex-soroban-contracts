@@ -1,5 +1,5 @@
 use crate::{
-    contracts::pool::Direction,
+    contracts::pool::Token,
     utils::{TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 
@@ -11,8 +11,8 @@ fn claim_admin_fee_no_auth() {
         ref pool, ref bob, ..
     } = testing_env;
 
-    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A);
-    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B);
+    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
+    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
 
     testing_env.clear_mock_auth().pool.claim_admin_fee();
 }
@@ -34,8 +34,8 @@ fn claim_admin_fee() {
     // Expected is 1% of 1% of 100 USD, which is around 1 cent
     let expected_admin_fees = (0.009_999_7, 0.010_000_2);
 
-    pool.swap(alice, bob, 100.0, 98.0, Direction::B2A);
-    pool.swap(alice, bob, 100.0, 99.0, Direction::A2B);
+    pool.swap(alice, bob, 100.0, 98.0, Token::B, Token::A);
+    pool.swap(alice, bob, 100.0, 99.0, Token::A, Token::B);
 
     testing_env.do_claim_admin_fee(expected_admin_fees);
     testing_env.do_claim_admin_fee(DOUBLE_ZERO);
@@ -56,8 +56,8 @@ fn claim_rewards() {
     } = testing_env;
     pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
 
-    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B);
-    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A);
+    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
+    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
 
     // Expected 1% of 100 USD, which is around 1%
     testing_env.do_claim(alice, (1.001_219_9, 0.998_779_9));
@@ -85,8 +85,8 @@ fn user_and_admin_claim_rewards() {
     let expected_user_rewards = (0.800_975_92, 0.799_023_92);
 
     pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
-    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B);
-    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A);
+    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
+    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
 
     testing_env.do_claim(alice, expected_user_rewards);
     testing_env.do_claim_admin_fee(expected_admin_fees);
@@ -111,8 +111,8 @@ fn get_rewards_after_second_claim() {
     let yusd_expected_reward = 1.001_219_9;
 
     pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
-    pool.swap(bob, bob, 100.0, 98.0, Direction::A2B);
+    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
     testing_env.do_claim(alice, (0.0, yaro_expected_reward));
-    pool.swap(bob, bob, 100.0, 98.0, Direction::B2A);
+    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
     testing_env.do_claim(alice, (yusd_expected_reward, 0.0));
 }

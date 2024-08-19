@@ -1,7 +1,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts::pool::Direction,
+    contracts::pool::Token,
     utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 
@@ -96,8 +96,8 @@ fn withdraw_with_rewards() {
     let expected_fee = (4.478_442, 4.521_503);
 
     pool.deposit(alice, deposits, 8_950.0);
-    pool.swap(bob, bob, 1_000.0, 995.5, Direction::A2B);
-    pool.swap(bob, bob, 1_000.0, 999., Direction::B2A);
+    pool.swap(bob, bob, 1_000.0, 995.5, Token::A, Token::B);
+    pool.swap(bob, bob, 1_000.0, 999., Token::B, Token::A);
 
     testing_env.do_withdraw(
         alice,
@@ -166,7 +166,7 @@ fn withdraw_alice_profit_and_bob_loss() {
     pool.deposit(alice, deposit, 99_950.0);
 
     let snapshot_before_swap = Snapshot::take(&testing_env);
-    pool.swap(bob, bob, swap_amount, 98336.0, Direction::A2B);
+    pool.swap(bob, bob, swap_amount, 98336.0, Token::A, Token::B);
     let snapshot_after_swap = Snapshot::take(&testing_env);
 
     let (snapshot_before, snapshot_after) = testing_env.do_withdraw(
@@ -218,7 +218,7 @@ fn withdraw_alice_loss_and_bob_profit() {
     pool.deposit(alice, deposit, 198_000.0);
 
     let snapshot_before_swap = Snapshot::take(&testing_env);
-    pool.swap(bob, bob, swap_amount, 100_000.0, Direction::B2A);
+    pool.swap(bob, bob, swap_amount, 100_000.0, Token::B, Token::A);
     let snapshot_after_swap = Snapshot::take(&testing_env);
 
     let (_, snapshot_after) = testing_env.do_withdraw(

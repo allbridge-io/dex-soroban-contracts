@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Env};
 
 use super::User;
 use crate::{
-    contracts::pool::{self, Direction, UserDeposit},
+    contracts::pool::{self, Token, UserDeposit},
     utils::{
         desoroban_result, float_to_uint, float_to_uint_sp, percentage_to_bp, uint_to_float_sp,
         unwrap_call_result, CallResult,
@@ -25,14 +25,9 @@ impl Pool {
         }
     }
 
-    pub fn receive_amount(&self, amount: f64, directin: Direction) -> (u128, u128) {
-        self.client.get_receive_amount(
-            &float_to_uint(amount, 7),
-            &(match directin {
-                Direction::A2B => pool::Token::A,
-                Direction::B2A => pool::Token::B,
-            }),
-        )
+    pub fn receive_amount(&self, amount: f64, from_token: Token) -> (u128, u128) {
+        self.client
+            .get_receive_amount(&float_to_uint(amount, 7), &from_token)
     }
 
     pub fn assert_total_lp_less_or_equal_d(&self) {
@@ -189,14 +184,16 @@ impl Pool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        direction: Direction,
+        token_from: &Token,
+        token_to: &Token,
     ) -> CallResult<u128> {
         desoroban_result(self.client.try_swap(
             &sender.as_address(),
             &recipient.as_address(),
             &float_to_uint(amount, 7),
             &float_to_uint(receive_amount_min, 7),
-            &direction,
+            token_from,
+            token_to,
         ))
     }
 
@@ -206,11 +203,19 @@ impl Pool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        direction: Direction,
+        token_from: Token,
+        token_to: Token,
     ) {
         unwrap_call_result(
             &self.env,
-            self.swap_checked(sender, recipient, amount, receive_amount_min, direction),
+            self.swap_checked(
+                sender,
+                recipient,
+                amount,
+                receive_amount_min,
+                &token_from,
+                &token_to,
+            ),
         );
     }
 }

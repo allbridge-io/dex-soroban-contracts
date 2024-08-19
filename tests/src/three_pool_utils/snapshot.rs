@@ -4,7 +4,7 @@ use color_print::cformat;
 
 use super::{int_to_float, TestingEnv, User};
 use crate::{
-    contracts::three_pool::{Pool as PoolInfo, UserDeposit},
+    contracts::three_pool::{ThreePool as PoolInfo, UserDeposit},
     three_pool_utils::format_diff,
 };
 
@@ -47,7 +47,7 @@ impl Index<&String> for Snapshot {
     type Output = u128;
 
     fn index(&self, string: &String) -> &Self::Output {
-        self.get(string.as_str())
+        self.index(string.as_str())
     }
 }
 
@@ -147,13 +147,13 @@ impl Snapshot {
         let d = testing_env.pool.client.get_d();
         let total_lp_amount = pool_info.total_lp_amount;
 
-        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.data.0;
-        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.data.1;
-        let acc_reward_c_per_share_p = pool_info.acc_rewards_per_share_p.data.2;
+        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.data.get_unchecked(0);
+        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.data.get_unchecked(1);
+        let acc_reward_c_per_share_p = pool_info.acc_rewards_per_share_p.data.get_unchecked(2);
 
-        let admin_a_fee_rewards = pool_info.admin_fee_amount.data.0;
-        let admin_b_fee_rewards = pool_info.admin_fee_amount.data.1;
-        let admin_c_fee_rewards = pool_info.admin_fee_amount.data.2;
+        let admin_a_fee_rewards = pool_info.admin_fee_amount.data.get_unchecked(0);
+        let admin_b_fee_rewards = pool_info.admin_fee_amount.data.get_unchecked(1);
+        let admin_c_fee_rewards = pool_info.admin_fee_amount.data.get_unchecked(2);
 
         let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
         let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);

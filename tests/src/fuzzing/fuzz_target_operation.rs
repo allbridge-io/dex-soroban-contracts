@@ -4,7 +4,7 @@ use rand_derive2::RandGen;
 use serde_derive::Serialize;
 use std::fmt::Display;
 
-use crate::contracts::pool::Direction;
+use crate::contracts::pool::Token;
 use crate::utils::{CallResult, TestingEnv, User};
 
 #[derive(Debug, Clone, Default)]
@@ -39,14 +39,14 @@ pub enum SwapDirection {
     YaroToYusd,
 }
 
-impl From<SwapDirection> for Direction {
-    fn from(value: SwapDirection) -> Self {
-        match value {
-            SwapDirection::YusdToYaro => Direction::A2B,
-            SwapDirection::YaroToYusd => Direction::B2A,
-        }
-    }
-}
+// impl From<SwapDirection> for Direction {
+//     fn from(value: SwapDirection) -> Self {
+//         match value {
+//             SwapDirection::YusdToYaro => Direction::A2B,
+//             SwapDirection::YaroToYusd => Direction::B2A,
+//         }
+//     }
+// }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, RandGen)]
 pub enum UserID {
@@ -142,11 +142,15 @@ impl FuzzTargetOperation {
             } => {
                 let sender = sender.get_user(testing_env);
                 let recipient = recipient.get_user(testing_env);
-                let direction: Direction = (*direction).into();
+
+                let (from, to) = match direction {
+                    SwapDirection::YusdToYaro => (Token::A, Token::B),
+                    SwapDirection::YaroToYusd => (Token::B, Token::A),
+                };
 
                 testing_env
                     .pool
-                    .swap_checked(sender, recipient, amount.0, 0.0, direction)?;
+                    .swap_checked(sender, recipient, amount.0, 0.0, &from, &to)?;
 
                 Ok(())
             }

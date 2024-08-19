@@ -1,7 +1,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts::pool::Direction,
+    contracts::pool::Token,
     utils::{Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 
@@ -106,8 +106,8 @@ fn get_reward_after_second_deposit() {
     let expected_lp_amount = 4_000.0;
 
     pool.deposit(alice, deposit, 4_000.0);
-    pool.swap(alice, bob, 100.0, 98.0, Direction::A2B);
-    pool.swap(bob, alice, 100.0, 99.0, Direction::B2A);
+    pool.swap(alice, bob, 100.0, 98.0, Token::A, Token::B);
+    pool.swap(bob, alice, 100.0, 99.0, Token::B, Token::A);
 
     testing_env.do_deposit(
         &testing_env.alice,
