@@ -1,23 +1,12 @@
 use shared::{require, Error};
-use soroban_sdk::{contracttype, Env, Vec};
+use soroban_sdk::{contracttype, Env};
 
-use crate::storage::{common::Token, pool::ThreePool, sized_array::SizedU128Array};
+use crate::{
+    common::{DepositAmount, PoolView, ReceiveAmount, WithdrawAmount},
+    storage::{common::Token, pool::ThreePool, sized_array::SizedU128Array},
+};
 
-use super::pool::Pool;
-
-pub struct ReceiveAmount {
-    pub token_from_new_balance: u128,
-    pub token_to_new_balance: u128,
-    pub output: u128,
-    pub fee: u128,
-}
-
-pub struct WithdrawAmount {
-    pub indexes: [usize; 3],
-    pub amounts: SizedU128Array,
-    pub fees: SizedU128Array,
-    pub new_token_balances: SizedU128Array,
-}
+use crate::common::Pool;
 
 #[contracttype]
 #[derive(Debug)]
@@ -31,41 +20,39 @@ pub struct WithdrawAmountView {
 impl From<WithdrawAmount> for WithdrawAmountView {
     fn from(v: WithdrawAmount) -> Self {
         Self {
-            amounts: (v.amounts.get(0), v.amounts.get(1), v.amounts.get(2)),
-            fees: (v.fees.get(0), v.fees.get(1), v.fees.get(2)),
+            amounts: (
+                v.amounts.get(0usize),
+                v.amounts.get(1usize),
+                v.amounts.get(2usize),
+            ),
+            fees: (v.fees.get(0usize), v.fees.get(1usize), v.fees.get(2usize)),
         }
     }
 }
 
-pub struct DepositAmount {
-    pub lp_amount: u128,
-    pub new_token_balances: Vec<u128>,
-}
-
-impl ThreePool {
-    pub fn get_receive_amount(
+impl PoolView for ThreePool {
+    fn get_receive_amount(
         &self,
         input: u128,
         token_from: Token,
         token_to: Token,
     ) -> Result<ReceiveAmount, Error> {
         let d0 = self.total_lp_amount;
-        let input_sp =
-            self.amount_to_system_precision(input, self.tokens_decimals.token(token_from));
+        let input_sp = self.amount_to_system_precision(input, self.tokens_decimals.get(token_from));
         let mut output = 0;
 
-        let token_from_new_balance = self.token_balances.token(token_from) + input_sp;
+        let token_from_new_balance = self.token_balances.get(token_from) + input_sp;
         let token_third = token_from.third(token_to);
 
-        let token_to_new_balance = self.get_y(
+        let token_to_new_balance = self.get_y([
             token_from_new_balance,
-            self.token_balances.token(token_third),
+            self.token_balances.get(token_third),
             d0,
-        )?;
-        if self.token_balances.token(token_to) > token_to_new_balance {
+        ])?;
+        if self.token_balances.get(token_to) > token_to_new_balance {
             output = self.amount_from_system_precision(
-                self.token_balances.token(token_to) - token_to_new_balance,
-                self.tokens_decimals.token(token_to),
+                self.token_balances.get(token_to) - token_to_new_balance,
+                self.tokens_decimals.get(token_to),
             );
         }
         let fee = output * self.fee_share_bp / Self::BP;
@@ -80,7 +67,7 @@ impl ThreePool {
         })
     }
 
-    pub fn get_send_amount(
+    fn get_send_amount(
         &self,
         output: u128,
         token_from: Token,
@@ -90,28 +77,28 @@ impl ThreePool {
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
         let output_with_fee = output + fee;
         let output_sp =
-            self.amount_to_system_precision(output_with_fee, self.tokens_decimals.token(token_to));
+            self.amount_to_system_precision(output_with_fee, self.tokens_decimals.get(token_to));
         let mut input = 0;
 
-        let token_to_new_balance = self.token_balances.token(token_to) - output_sp;
+        let token_to_new_balance = self.token_balances.get(token_to) - output_sp;
         let token_third = token_from.third(token_to);
 
-        let token_from_new_amount = self.get_y(
+        let token_from_new_amount = self.get_y([
             token_to_new_balance,
-            self.token_balances.token(token_third),
+            self.token_balances.get(token_third),
             d0,
-        )?;
-        if self.token_balances.token(token_from) < token_from_new_amount {
+        ])?;
+        if self.token_balances.get(token_from) < token_from_new_amount {
             input = self.amount_from_system_precision(
-                token_from_new_amount - self.token_balances.token(token_from),
-                self.tokens_decimals.token(token_from),
+                token_from_new_amount - self.token_balances.get(token_from),
+                self.tokens_decimals.get(token_from),
             );
         }
 
         Ok((input, fee))
     }
 
-    pub fn get_withdraw_amount(&self, env: &Env, lp_amount: u128) -> Result<WithdrawAmount, Error> {
+    fn get_withdraw_amount(&self, env: &Env, lp_amount: u128) -> Result<WithdrawAmount, Error> {
         let d0 = self.total_lp_amount;
         let mut amounts = SizedU128Array::from_array(env, [0u128; 3]);
 
@@ -129,11 +116,11 @@ impl ThreePool {
 
         let more_token_amount_sp = self.token_balances.get(more) * lp_amount / d0;
         let mid_token_amount_sp = self.token_balances.get(mid) * lp_amount / d0;
-        let y = self.get_y(
+        let y = self.get_y([
             self.token_balances.get(more) - more_token_amount_sp,
             self.token_balances.get(mid) - mid_token_amount_sp,
             d1,
-        )?;
+        ])?;
         let less_token_amount_sp = self.token_balances.get(less) - y;
 
         let mut new_token_balances = self.token_balances.clone();
@@ -164,7 +151,7 @@ impl ThreePool {
         })
     }
 
-    pub fn get_deposit_amount(
+    fn get_deposit_amount(
         &self,
         env: &Env,
         amounts: SizedU128Array,
@@ -174,9 +161,18 @@ impl ThreePool {
         let amounts_sp = SizedU128Array::from_array(
             env,
             [
-                self.amount_to_system_precision(amounts.get(0), self.tokens_decimals.get(0)),
-                self.amount_to_system_precision(amounts.get(1), self.tokens_decimals.get(1)),
-                self.amount_to_system_precision(amounts.get(2), self.tokens_decimals.get(2)),
+                self.amount_to_system_precision(
+                    amounts.get(0usize),
+                    self.tokens_decimals.get(0usize),
+                ),
+                self.amount_to_system_precision(
+                    amounts.get(1usize),
+                    self.tokens_decimals.get(1usize),
+                ),
+                self.amount_to_system_precision(
+                    amounts.get(2usize),
+                    self.tokens_decimals.get(2usize),
+                ),
             ],
         );
 
@@ -193,11 +189,11 @@ impl ThreePool {
             new_token_balances_sp.add(index, amounts_sp.get(index));
         }
 
-        let d1 = self.get_d(
-            new_token_balances_sp.get(0),
-            new_token_balances_sp.get(1),
-            new_token_balances_sp.get(2),
-        )?;
+        let d1 = self.get_d([
+            new_token_balances_sp.get(0usize),
+            new_token_balances_sp.get(1usize),
+            new_token_balances_sp.get(2usize),
+        ])?;
 
         require!(d1 > d0, Error::Forbidden);
         require!(
@@ -223,6 +219,8 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
+    use crate::common::Pool;
+    use crate::common::PoolView;
     use crate::storage::sized_array::SizedU128Array;
     use crate::storage::{common::Token, pool::ThreePool};
 
@@ -235,7 +233,7 @@ mod tests {
             let token_a = Address::generate(&env);
             let token_b = Address::generate(&env);
             let token_c = Address::generate(&env);
-            ThreePool::from_init_params(&env, 20, token_a, token_b, token_c, [7, 7, 7], 100, 1)
+            ThreePool::from_init_params(&env, 20, [token_a, token_b, token_c], [7, 7, 7], 100, 1)
                 .save(&env);
         }
 

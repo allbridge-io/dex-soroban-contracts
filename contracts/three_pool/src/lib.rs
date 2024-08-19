@@ -1,8 +1,10 @@
 #![no_std]
 
-mod contract;
+mod common;
 mod events;
 mod methods;
 mod storage;
 
-pub use contract::PoolContract;
+mod three_pool;
+
+pub use three_pool::PoolContract;

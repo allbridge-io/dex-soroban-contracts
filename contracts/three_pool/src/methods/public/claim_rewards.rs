@@ -1,15 +1,13 @@
 use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::{
-    events::RewardsClaimed, methods::internal::pool::Pool, storage::user_deposit::UserDeposit,
-};
+use crate::{common::Pool, events::RewardsClaimed, storage::user_deposit::UserDeposit};
 
-pub fn claim_rewards<P: Pool>(env: Env, sender: Address) -> Result<(), Error> {
+pub fn claim_rewards<const N: usize, P: Pool<N>>(env: Env, sender: Address) -> Result<(), Error> {
     sender.require_auth();
     let pool = P::get(&env)?;
 
-    let mut user_deposit = UserDeposit::get(&env, sender.clone());
+    let mut user_deposit = UserDeposit::get::<N>(&env, sender.clone());
     let rewards = pool.claim_rewards(&env, sender.clone(), &mut user_deposit)?;
 
     if rewards.iter().sum::<u128>() == 0 {
@@ -20,7 +18,11 @@ pub fn claim_rewards<P: Pool>(env: Env, sender: Address) -> Result<(), Error> {
 
     RewardsClaimed {
         user: sender,
-        rewards: (rewards.get(0), rewards.get(1), rewards.get(2)),
+        rewards: (
+            rewards.get(0usize),
+            rewards.get(1usize),
+            rewards.get(2usize),
+        ),
     }
     .publish(&env);
 

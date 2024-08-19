@@ -2,8 +2,6 @@ use soroban_sdk::{contracttype, Address, Env, Vec};
 
 use core::ops::{Deref, Sub};
 
-use super::common::Token;
-
 #[macro_export]
 macro_rules! sized_array {
     ($name:ident, $inner_type:ident) => {
@@ -29,12 +27,8 @@ macro_rules! sized_array {
             }
 
             #[inline]
-            pub fn set(&mut self, index: usize, v: $inner_type) {
-                self.data.set(index as u32, v);
-            }
-
-            #[inline]
-            pub fn set_by_token(&mut self, index: Token, v: $inner_type) {
+            pub fn set(&mut self, index: impl Into<usize>, v: $inner_type) {
+                let index: usize = index.into();
                 self.data.set(index as u32, v);
             }
 
@@ -42,16 +36,14 @@ macro_rules! sized_array {
                 self.data.clone()
             }
 
-            pub fn get(&self, index: usize) -> $inner_type {
+            pub fn get(&self, index: impl Into<usize>) -> $inner_type {
+                let index: usize = index.into();
+
                 if self.len <= (index as u32) {
                     panic!("Unexpected index");
                 }
 
                 self.get_unchecked(index as u32)
-            }
-
-            pub fn token(&self, index: Token) -> $inner_type {
-                self.get(index as usize)
             }
         }
 
@@ -71,23 +63,20 @@ sized_array!(SizedDecimalsArray, u32);
 
 impl SizedU128Array {
     #[inline]
-    pub fn default_val(env: &Env) -> Self {
-        Self::from_array(env, [0, 3])
+    pub fn default_val<const N: usize>(env: &Env) -> Self {
+        Self::from_array(env, [0; N])
     }
 
     #[inline]
-    pub fn add(&mut self, index: usize, v: u128) {
+    pub fn add(&mut self, index: impl Into<usize>, v: u128) {
+        let index: usize = index.into();
         self.set(index, self.get(index) + v);
     }
 
     #[inline]
-    pub fn sub(&mut self, index: usize, v: u128) {
+    pub fn sub(&mut self, index: impl Into<usize>, v: u128) {
+        let index: usize = index.into();
         self.set(index, self.get(index) - v);
-    }
-
-    #[inline]
-    pub fn add_by_token(&mut self, token: Token, v: u128) {
-        self.set_by_token(token, self.token(token) + v);
     }
 }
 
@@ -96,7 +85,8 @@ impl Sub for SizedU128Array {
 
     fn sub(self, rhs: Self) -> Self::Output {
         debug_assert!(self.len == rhs.len, "bad len");
-        let mut v = Self::default_val(self.env());
+        // TODO: fix it
+        let mut v = Self::default_val::<3>(self.env());
 
         for (i, (l, r)) in self.iter().zip(rhs.iter()).enumerate() {
             v.set(i, l - r);

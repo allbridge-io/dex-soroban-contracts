@@ -17,6 +17,8 @@ use crate::{
     storage::{common::Token, pool::ThreePool, user_deposit::UserDeposit},
 };
 
+const SIZE: usize = 3;
+
 #[contract]
 pub struct PoolContract;
 
@@ -33,13 +35,11 @@ impl PoolContract {
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Result<(), Error> {
-        initialize(
+        initialize::<SIZE, ThreePool>(
             env,
             admin,
             a,
-            token_a,
-            token_b,
-            token_c,
+            [token_a, token_b, token_c],
             fee_share_bp,
             admin_fee_share_bp,
         )
@@ -53,13 +53,13 @@ impl PoolContract {
     ) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        deposit::<ThreePool>(env, sender, amounts, min_lp_amount)
+        deposit::<SIZE, ThreePool>(env, sender, amounts, min_lp_amount)
     }
 
     pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        withdraw::<ThreePool>(env, sender, lp_amount)
+        withdraw::<SIZE, ThreePool>(env, sender, lp_amount)
     }
 
     pub fn swap(
@@ -73,7 +73,7 @@ impl PoolContract {
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
-        swap::<ThreePool>(
+        swap::<SIZE, ThreePool>(
             env,
             sender,
             recipient,
@@ -87,7 +87,7 @@ impl PoolContract {
     pub fn claim_rewards(env: Env, sender: Address) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        claim_rewards::<ThreePool>(env, sender)
+        claim_rewards::<SIZE, ThreePool>(env, sender)
     }
 
     // ----------- Admin -----------
@@ -95,7 +95,7 @@ impl PoolContract {
     pub fn claim_admin_fee(env: Env) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        claim_admin_fee::<ThreePool>(env)
+        claim_admin_fee::<SIZE, ThreePool>(env)
     }
 
     pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
@@ -107,31 +107,31 @@ impl PoolContract {
     pub fn set_admin_fee_share(env: Env, admin_fee_share_bp: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        set_admin_fee_share::<ThreePool>(env, admin_fee_share_bp)
+        set_admin_fee_share::<SIZE, ThreePool>(env, admin_fee_share_bp)
     }
 
     pub fn set_fee_share(env: Env, fee_share_bp: u128) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        set_fee_share::<ThreePool>(env, fee_share_bp)
+        set_fee_share::<SIZE, ThreePool>(env, fee_share_bp)
     }
 
     // ----------- View -----------
 
     pub fn pending_reward(env: Env, user: Address) -> Result<(u128, u128), Error> {
-        pending_reward(env, user)
+        pending_reward::<SIZE, ThreePool>(env, user)
     }
 
     pub fn get_pool(env: Env) -> Result<ThreePool, Error> {
-        get_pool(env)
+        get_pool::<SIZE, ThreePool>(env)
     }
 
     pub fn get_user_deposit(env: Env, user: Address) -> Result<UserDeposit, Error> {
-        get_user_deposit(env, user)
+        get_user_deposit::<SIZE>(env, user)
     }
 
     pub fn get_d(env: Env) -> Result<u128, Error> {
-        get_d(env)
+        get_d::<SIZE, ThreePool>(env)
     }
 
     pub fn get_receive_amount(
@@ -140,7 +140,7 @@ impl PoolContract {
         token_from: Token,
         token_to: Token,
     ) -> Result<(u128, u128), Error> {
-        get_receive_amount(env, input, token_from, token_to)
+        get_receive_amount::<SIZE, ThreePool>(env, input, token_from, token_to)
     }
 
     pub fn get_send_amount(
@@ -149,15 +149,15 @@ impl PoolContract {
         token_from: Token,
         token_to: Token,
     ) -> Result<(u128, u128), Error> {
-        get_send_amount(env, output, token_from, token_to)
+        get_send_amount::<SIZE, ThreePool>(env, output, token_from, token_to)
     }
 
     pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
-        get_withdraw_amount(env, lp_amount)
+        get_withdraw_amount::<SIZE, ThreePool>(env, lp_amount)
     }
 
     pub fn get_deposit_amount(env: Env, amounts: (u128, u128, u128)) -> Result<u128, Error> {
-        get_deposit_amount(env, amounts)
+        get_deposit_amount::<SIZE, ThreePool>(env, amounts)
     }
 
     pub fn get_admin(env: Env) -> Result<Address, Error> {

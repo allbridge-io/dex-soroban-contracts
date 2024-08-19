@@ -191,7 +191,7 @@ mod tests {
         pub fn init(env: Env) {
             let token_a = Address::generate(&env);
             let token_b = Address::generate(&env);
-            Pool::from_init_params(20, token_a, token_b, (7, 7), 100, 1).save(&env);
+            Pool::from_init_params(20, [token_a, token_b], [7, 7], 100, 1).save(&env);
         }
 
         pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {

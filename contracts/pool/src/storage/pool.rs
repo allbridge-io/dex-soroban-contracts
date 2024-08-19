@@ -30,9 +30,8 @@ pub struct Pool {
 impl Pool {
     pub fn from_init_params(
         a: u128,
-        token_a: Address,
-        token_b: Address,
-        decimals: (u32, u32),
+        tokens: [Address; 2],
+        decimals: [u32; 2],
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
     ) -> Self {
@@ -43,7 +42,7 @@ impl Pool {
             admin_fee_share_bp,
             total_lp_amount: 0,
 
-            tokens: DoubleAddress::from((token_a, token_b)),
+            tokens: DoubleAddress::from(tokens),
             tokens_decimals: DoubleU32::from(decimals),
             token_balances: DoubleU128::default(),
             acc_rewards_per_share_p: DoubleU128::default(),

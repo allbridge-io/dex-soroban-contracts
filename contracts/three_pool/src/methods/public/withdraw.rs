@@ -2,15 +2,19 @@ use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::{
+    common::Pool,
     events::{RewardsClaimed, Withdraw},
-    methods::internal::pool::Pool,
     storage::user_deposit::UserDeposit,
 };
 
-pub fn withdraw<P: Pool>(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error> {
+pub fn withdraw<const N: usize, P: Pool<N>>(
+    env: Env,
+    sender: Address,
+    lp_amount: u128,
+) -> Result<(), Error> {
     sender.require_auth();
     let mut pool = P::get(&env)?;
-    let mut user_deposit = UserDeposit::get(&env, sender.clone());
+    let mut user_deposit = UserDeposit::get::<N>(&env, sender.clone());
 
     let (withdraw_amount, rewards) =
         pool.withdraw(&env, sender.clone(), &mut user_deposit, lp_amount)?;
@@ -22,14 +26,14 @@ pub fn withdraw<P: Pool>(env: Env, sender: Address, lp_amount: u128) -> Result<(
         user: sender.clone(),
         lp_amount,
         amounts: (
-            withdraw_amount.amounts.get(0),
-            withdraw_amount.amounts.get(1),
-            withdraw_amount.amounts.get(2),
+            withdraw_amount.amounts.get(0usize),
+            withdraw_amount.amounts.get(1usize),
+            withdraw_amount.amounts.get(2usize),
         ),
         fees: (
-            withdraw_amount.fees.get(0),
-            withdraw_amount.fees.get(1),
-            withdraw_amount.fees.get(2),
+            withdraw_amount.fees.get(0usize),
+            withdraw_amount.fees.get(1usize),
+            withdraw_amount.fees.get(2usize),
         ),
     }
     .publish(&env);
@@ -37,7 +41,11 @@ pub fn withdraw<P: Pool>(env: Env, sender: Address, lp_amount: u128) -> Result<(
     if !rewards.iter().sum::<u128>() == 0 {
         RewardsClaimed {
             user: sender,
-            rewards: (rewards.get(0), rewards.get(1), rewards.get(2)),
+            rewards: (
+                rewards.get(0usize),
+                rewards.get(1usize),
+                rewards.get(2usize),
+            ),
         }
         .publish(&env);
     }

@@ -1,13 +1,7 @@
 use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
-use soroban_sdk::{
-    contracttype,
-    token::{self, TokenClient},
-    Address, Env,
-};
+use soroban_sdk::contracttype;
 
-use crate::storage::sized_array::*;
-
-use super::common::Token;
+use crate::{common::PoolStorage, storage::sized_array::*};
 
 #[contracttype]
 #[derive(Debug, Clone, SorobanData, SorobanSimpleData, SymbolKey, Instance)]
@@ -25,39 +19,60 @@ pub struct ThreePool {
     pub admin_fee_amount: SizedU128Array,
 }
 
-impl ThreePool {
-    pub fn from_init_params(
-        env: &Env,
-        a: u128,
-        token_a: Address,
-        token_b: Address,
-        token_c: Address,
-        decimals: [u32; 3],
-        fee_share_bp: u128,
-        admin_fee_share_bp: u128,
-    ) -> Self {
-        ThreePool {
-            a,
-
-            fee_share_bp,
-            admin_fee_share_bp,
-            total_lp_amount: 0,
-
-            tokens: SizedAddressArray::from_array(env, [token_a, token_b, token_c]),
-            tokens_decimals: SizedDecimalsArray::from_array(env, decimals),
-            token_balances: SizedU128Array::from_array(env, [0, 0, 0]),
-            acc_rewards_per_share_p: SizedU128Array::from_array(env, [0, 0, 0]),
-            admin_fee_amount: SizedU128Array::from_array(env, [0, 0, 0]),
-        }
+impl PoolStorage for ThreePool {
+    fn a(&self) -> u128 {
+        self.a
+    }
+    fn fee_share_bp(&self) -> u128 {
+        self.fee_share_bp
+    }
+    fn admin_fee_share_bp(&self) -> u128 {
+        self.admin_fee_share_bp
+    }
+    fn total_lp_amount(&self) -> u128 {
+        self.total_lp_amount
+    }
+    fn tokens(&self) -> &SizedAddressArray {
+        &self.tokens
+    }
+    fn tokens_decimals(&self) -> &SizedDecimalsArray {
+        &self.tokens_decimals
+    }
+    fn token_balances(&self) -> &SizedU128Array {
+        &self.token_balances
+    }
+    fn acc_rewards_per_share_p(&self) -> &SizedU128Array {
+        &self.acc_rewards_per_share_p
+    }
+    fn admin_fee_amount(&self) -> &SizedU128Array {
+        &self.admin_fee_amount
     }
 
-    #[inline]
-    pub fn get_token_by_index(&self, env: &Env, index: usize) -> TokenClient<'_> {
-        token::Client::new(env, &self.tokens.get(index))
+    fn a_mut(&mut self) -> &mut u128 {
+        &mut self.a
     }
-
-    #[inline]
-    pub fn get_token(&self, env: &Env, token: Token) -> TokenClient<'_> {
-        self.get_token_by_index(env, token as usize)
+    fn fee_share_bp_mut(&mut self) -> &mut u128 {
+        &mut self.fee_share_bp
+    }
+    fn admin_fee_share_bp_mut(&mut self) -> &mut u128 {
+        &mut self.admin_fee_share_bp
+    }
+    fn total_lp_amount_mut(&mut self) -> &mut u128 {
+        &mut self.total_lp_amount
+    }
+    fn tokens_mut(&mut self) -> &mut SizedAddressArray {
+        &mut self.tokens
+    }
+    fn tokens_decimals_mut(&mut self) -> &mut SizedDecimalsArray {
+        &mut self.tokens_decimals
+    }
+    fn token_balances_mut(&mut self) -> &mut SizedU128Array {
+        &mut self.token_balances
+    }
+    fn acc_rewards_per_share_p_mut(&mut self) -> &mut SizedU128Array {
+        &mut self.acc_rewards_per_share_p
+    }
+    fn admin_fee_amount_mut(&mut self) -> &mut SizedU128Array {
+        &mut self.admin_fee_amount
     }
 }

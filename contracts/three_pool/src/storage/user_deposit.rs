@@ -17,15 +17,15 @@ pub struct UserDeposit {
 }
 
 impl UserDeposit {
-    pub fn default(env: &Env) -> Self {
+    pub fn default_val<const N: usize>(env: &Env) -> Self {
         Self {
             lp_amount: 0,
             reward_debts: SizedU128Array::from_array(env, [0, 0, 0]),
         }
     }
 
-    pub fn get(env: &Env, address: Address) -> UserDeposit {
-        UserDeposit::get_by_key(env, &address).unwrap_or(UserDeposit::default(env))
+    pub fn get<const N: usize>(env: &Env, address: Address) -> UserDeposit {
+        UserDeposit::get_by_key(env, &address).unwrap_or(UserDeposit::default_val::<N>(env))
     }
 
     pub fn save(&self, env: &Env, address: Address) {

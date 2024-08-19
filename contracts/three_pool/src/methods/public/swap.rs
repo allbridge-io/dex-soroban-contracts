@@ -1,11 +1,9 @@
 use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::events::Swapped;
-use crate::methods::internal::pool::Pool;
-use crate::storage::common::Token;
+use crate::{common::Pool, events::Swapped, storage::common::Token};
 
-pub fn swap<P: Pool>(
+pub fn swap<const N: usize, P: Pool<N>>(
     env: Env,
     sender: Address,
     recipient: Address,
@@ -30,8 +28,8 @@ pub fn swap<P: Pool>(
     pool.save(&env);
 
     Swapped {
-        from_token: pool.tokens().token(token_from),
-        to_token: pool.tokens().token(token_to),
+        from_token: pool.tokens().get(token_from),
+        to_token: pool.tokens().get(token_to),
         from_amount,
         to_amount,
         sender,

@@ -9,10 +9,7 @@ use shared::{
 use soroban_sdk::{Address, Env};
 
 use crate::storage::{
-    common::{Direction, Token},
-    double_values::DoubleU128,
-    pool::Pool,
-    user_deposit::UserDeposit,
+    common::Token, double_values::DoubleU128, pool::Pool, user_deposit::UserDeposit,
 };
 
 use super::pool_view::WithdrawAmount;
@@ -34,14 +31,14 @@ impl Pool {
         recipient: Address,
         amount: u128,
         receive_amount_min: u128,
-        direction: Direction,
+        token_from: Token,
+        token_to: Token,
     ) -> Result<(u128, u128), Error> {
         if amount == 0 {
             return Ok((0, 0));
         }
 
         let current_contract = env.current_contract_address();
-        let (token_from, token_to) = direction.get_tokens();
         let receive_amount = self.get_receive_amount(amount, token_from)?;
 
         self.get_token(env, token_from)

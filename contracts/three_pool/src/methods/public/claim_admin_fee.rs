@@ -2,9 +2,9 @@ use shared::{soroban_data::SimpleSorobanData, utils::safe_cast, Error};
 use soroban_sdk::Env;
 use storage::Admin;
 
-use crate::methods::internal::pool::Pool;
+use crate::common::Pool;
 
-pub fn claim_admin_fee<P: Pool>(env: Env) -> Result<(), Error> {
+pub fn claim_admin_fee<const N: usize, P: Pool<N>>(env: Env) -> Result<(), Error> {
     let admin = Admin::get(&env)?;
     admin.require_auth();
 
@@ -12,7 +12,7 @@ pub fn claim_admin_fee<P: Pool>(env: Env) -> Result<(), Error> {
 
     for (index, _) in pool.tokens().iter().enumerate() {
         if pool.admin_fee_amount().get(index) > 0 {
-            pool.get_token_by_index(&env, index).transfer(
+            pool.get_token(&env, index).transfer(
                 &env.current_contract_address(),
                 admin.as_ref(),
                 &safe_cast(pool.admin_fee_amount().get(index))?,

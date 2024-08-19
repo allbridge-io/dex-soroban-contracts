@@ -9,8 +9,7 @@ pub fn initialize(
     env: Env,
     admin: Address,
     a: u128,
-    token_a: Address,
-    token_b: Address,
+    tokens: [Address; 2],
     fee_share_bp: u128,
     admin_fee_share_bp: u128,
 ) -> Result<(), Error> {
@@ -20,18 +19,15 @@ pub fn initialize(
     require!(admin_fee_share_bp < Pool::BP, Error::InvalidArg);
     require!(a <= Pool::MAX_A, Error::InvalidArg);
 
-    let decimals_a = token::Client::new(&env, &token_a).decimals();
-    let decimals_b = token::Client::new(&env, &token_b).decimals();
+    let mut decimals = [0; 2];
 
-    Pool::from_init_params(
-        a,
-        token_a,
-        token_b,
-        (decimals_a, decimals_b),
-        fee_share_bp,
-        admin_fee_share_bp,
-    )
-    .save(&env);
+    for (index, token) in tokens.iter().enumerate() {
+        let decimal = token::Client::new(&env, &token).decimals();
+
+        decimals[index] = decimal;
+    }
+
+    Pool::from_init_params(a, tokens, decimals, fee_share_bp, admin_fee_share_bp).save(&env);
     Admin(admin).save(&env);
 
     Ok(())

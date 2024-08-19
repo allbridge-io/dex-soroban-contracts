@@ -14,11 +14,7 @@ use crate::{
             get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
-    storage::{
-        common::{Direction, Token},
-        pool::Pool,
-        user_deposit::UserDeposit,
-    },
+    storage::{common::Token, pool::Pool, user_deposit::UserDeposit},
 };
 
 #[contract]
@@ -40,8 +36,7 @@ impl PoolContract {
             env,
             admin,
             a,
-            token_a,
-            token_b,
+            [token_a, token_b],
             fee_share_bp,
             admin_fee_share_bp,
         )
@@ -70,7 +65,8 @@ impl PoolContract {
         recipient: Address,
         amount_in: u128,
         receive_amount_min: u128,
-        direction: Direction,
+        token_from: Token,
+        token_to: Token,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
@@ -80,7 +76,8 @@ impl PoolContract {
             recipient,
             amount_in,
             receive_amount_min,
-            direction,
+            token_from,
+            token_to,
         )
     }
 

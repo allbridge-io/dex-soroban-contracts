@@ -2,12 +2,12 @@ use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::{
+    common::Pool,
     events::{Deposit, RewardsClaimed},
-    methods::internal::pool::Pool,
     storage::{sized_array::SizedU128Array, user_deposit::UserDeposit},
 };
 
-pub fn deposit<P: Pool>(
+pub fn deposit<const N: usize, P: Pool<N>>(
     env: Env,
     sender: Address,
     amounts: (u128, u128, u128),
@@ -15,7 +15,7 @@ pub fn deposit<P: Pool>(
 ) -> Result<(), Error> {
     sender.require_auth();
     let mut pool = P::get(&env)?;
-    let mut user_deposit = UserDeposit::get(&env, sender.clone());
+    let mut user_deposit = UserDeposit::get::<N>(&env, sender.clone());
     let amounts = SizedU128Array::from_array(&env, [amounts.0, amounts.1, amounts.2]);
 
     let (rewards, lp_amount) = pool.deposit(
@@ -32,14 +32,22 @@ pub fn deposit<P: Pool>(
     Deposit {
         user: sender.clone(),
         lp_amount,
-        amounts: (amounts.get(0), amounts.get(1), amounts.get(2)),
+        amounts: (
+            amounts.get(0usize),
+            amounts.get(1usize),
+            amounts.get(2usize),
+        ),
     }
     .publish(&env);
 
     if !rewards.iter().sum::<u128>() == 0 {
         RewardsClaimed {
             user: sender,
-            rewards: (rewards.get(0), rewards.get(1), rewards.get(2)),
+            rewards: (
+                rewards.get(0usize),
+                rewards.get(1usize),
+                rewards.get(2usize),
+            ),
         }
         .publish(&env);
     }

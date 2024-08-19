@@ -1,267 +1,90 @@
-use core::cmp::Ordering;
-
 use ethnum::I256;
 use shared::{
     require,
-    soroban_data::SimpleSorobanData,
     utils::{num::*, safe_cast},
     Error,
 };
-use soroban_sdk::{
-    token::{self, TokenClient},
-    Address, Env,
+use soroban_sdk::{Address, Env};
+
+use crate::{
+    common::PoolView,
+    storage::{
+        common::Token,
+        pool::ThreePool,
+        sized_array::{SizedAddressArray, SizedDecimalsArray},
+        user_deposit::UserDeposit,
+    },
+};
+use crate::{
+    common::{Pool, PoolStorage},
+    storage::sized_array::SizedU128Array,
 };
 
-use crate::storage::sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array};
-use crate::storage::{common::Token, pool::ThreePool, user_deposit::UserDeposit};
+use crate::common::WithdrawAmount;
 
-use super::pool_view::WithdrawAmount;
-
-pub trait PoolStorage {
-    fn a(&self) -> u128;
-    fn fee_share_bp(&self) -> u128;
-    fn admin_fee_share_bp(&self) -> u128;
-    fn total_lp_amount(&self) -> u128;
-    fn tokens(&self) -> &SizedAddressArray;
-    fn tokens_decimals(&self) -> &SizedDecimalsArray;
-    fn token_balances(&self) -> &SizedU128Array;
-    fn acc_rewards_per_share_p(&self) -> &SizedU128Array;
-    fn admin_fee_amount(&self) -> &SizedU128Array;
-
-    fn a_mut(&mut self) -> &mut u128;
-    fn fee_share_bp_mut(&mut self) -> &mut u128;
-    fn admin_fee_share_bp_mut(&mut self) -> &mut u128;
-    fn total_lp_amount_mut(&mut self) -> &mut u128;
-    fn tokens_mut(&mut self) -> &mut SizedAddressArray;
-    fn tokens_decimals_mut(&mut self) -> &mut SizedDecimalsArray;
-    fn token_balances_mut(&mut self) -> &mut SizedU128Array;
-    fn acc_rewards_per_share_p_mut(&mut self) -> &mut SizedU128Array;
-    fn admin_fee_amount_mut(&mut self) -> &mut SizedU128Array;
-
-    #[inline]
-    fn get_token_by_index(&self, env: &Env, index: usize) -> TokenClient<'_> {
-        token::Client::new(env, &self.tokens().get(index))
-    }
-
-    #[inline]
-    fn get_token(&self, env: &Env, token: Token) -> TokenClient<'_> {
-        self.get_token_by_index(env, token as usize)
-    }
-}
-
-pub trait Pool: PoolStorage + SimpleSorobanData {
-    const BP: u128 = 10000;
-
-    const MAX_A: u128 = 60;
-    const MAX_TOKEN_BALANCE: u128 = 2u128.pow(40);
-    const SYSTEM_PRECISION: u32 = 3;
-
-    const P: u128 = 48;
-
-    /* Methods */
-
-    fn swap(
-        &mut self,
+impl Pool<3> for ThreePool {
+    fn from_init_params(
         env: &Env,
-        sender: Address,
-        recipient: Address,
-        amount: u128,
-        receive_amount_min: u128,
-        token_from: Token,
-        token_to: Token,
-    ) -> Result<(u128, u128), Error>;
+        a: u128,
+        tokens: [Address; 3],
+        decimals: [u32; 3],
+        fee_share_bp: u128,
+        admin_fee_share_bp: u128,
+    ) -> Self {
+        ThreePool {
+            a,
 
-    fn deposit(
-        &mut self,
-        env: &Env,
-        amounts: SizedU128Array,
-        sender: Address,
-        user_deposit: &mut UserDeposit,
-        min_lp_amount: u128,
-    ) -> Result<(SizedU128Array, u128), Error>;
+            fee_share_bp,
+            admin_fee_share_bp,
+            total_lp_amount: 0,
 
-    fn withdraw(
-        &mut self,
-        env: &Env,
-        sender: Address,
-        user_deposit: &mut UserDeposit,
-        lp_amount: u128,
-    ) -> Result<(WithdrawAmount, SizedU128Array), Error>;
-
-    fn deposit_lp(
-        &mut self,
-        env: &Env,
-        user_deposit: &mut UserDeposit,
-        lp_amount: u128,
-    ) -> Result<SizedU128Array, Error> {
-        let pending = self.get_pending(env, user_deposit);
-
-        *self.total_lp_amount_mut() += lp_amount;
-        user_deposit.lp_amount += lp_amount;
-        user_deposit.reward_debts = self.get_reward_debts(env, user_deposit);
-
-        Ok(pending)
-    }
-
-    fn withdraw_lp(
-        &mut self,
-        env: &Env,
-        user_deposit: &mut UserDeposit,
-        lp_amount: u128,
-    ) -> Result<SizedU128Array, Error> {
-        require!(user_deposit.lp_amount >= lp_amount, Error::NotEnoughAmount);
-
-        let pending = self.get_pending(env, user_deposit);
-
-        *self.total_lp_amount_mut() -= lp_amount;
-        user_deposit.lp_amount -= lp_amount;
-        user_deposit.reward_debts = self.get_reward_debts(env, user_deposit);
-
-        Ok(pending)
-    }
-
-    fn claim_rewards(
-        &self,
-        env: &Env,
-        user: Address,
-        user_deposit: &mut UserDeposit,
-    ) -> Result<SizedU128Array, Error> {
-        let mut pending = SizedU128Array::default_val(env);
-
-        if user_deposit.lp_amount == 0 {
-            return Ok(pending);
+            tokens: SizedAddressArray::from_array(env, tokens),
+            tokens_decimals: SizedDecimalsArray::from_array(env, decimals),
+            token_balances: SizedU128Array::default_val::<3>(env),
+            acc_rewards_per_share_p: SizedU128Array::default_val::<3>(env),
+            admin_fee_amount: SizedU128Array::default_val::<3>(env),
         }
+    }
 
-        let rewards = self.get_reward_debts(env, user_deposit);
+    fn get_current_d(&self) -> Result<u128, Error> {
+        self.get_d([
+            self.token_balances.get(0usize),
+            self.token_balances.get(1usize),
+            self.token_balances.get(2usize),
+        ])
+    }
 
-        for (index, reward) in rewards.iter().enumerate() {
-            pending.set(index, reward - user_deposit.reward_debts.get(index));
+    fn get_d(&self, values: [u128; 3]) -> Result<u128, Error> {
+        let x = I256::from(values[0]);
+        let y = I256::from(values[1]);
+        let z = I256::from(values[2]);
+        let a = I256::from(self.a);
 
-            if pending.get(index) > 0 {
-                user_deposit.reward_debts.set(index, reward);
-
-                self.get_token_by_index(env, index).transfer(
-                    &env.current_contract_address(),
-                    &user,
-                    &safe_cast(pending.get(index))?,
-                );
+        let mut d = x + y + z;
+        loop {
+            let f = 27 * a * (x + y + z) - (27 * a * d - d) - d.pow(4) / (27 * x * y * z);
+            let df = -4 * d.pow(3) / (27 * x * y * z) - 27 * a + 1;
+            if f.abs() < df.abs() {
+                break;
             }
+            d -= f / df;
         }
 
-        Ok(pending)
+        Ok(d.as_u128())
     }
 
-    fn add_rewards(&mut self, mut reward_amount: u128, token: Token) {
-        if self.total_lp_amount() > 0 {
-            let admin_fee_rewards = reward_amount * self.admin_fee_share_bp() / ThreePool::BP;
-            reward_amount -= admin_fee_rewards;
+    fn get_y(&self, values: [u128; 3]) -> Result<u128, Error> {
+        let x = I256::from(values[0]);
+        let z = I256::from(values[1]);
+        let d = I256::from(values[2]);
+        let a = I256::from(self.a);
+        let a27 = a * 27;
 
-            let total_lp_amount = self.total_lp_amount();
-            self.acc_rewards_per_share_p_mut()
-                .add_by_token(token, (reward_amount << ThreePool::P) / total_lp_amount);
-            self.admin_fee_amount_mut()
-                .add_by_token(token, admin_fee_rewards);
-        }
-    }
-
-    fn get_pending(&self, env: &Env, user_deposit: &UserDeposit) -> SizedU128Array {
-        if user_deposit.lp_amount == 0 {
-            return SizedU128Array::default_val(env);
-        }
-
-        let rewards = self.get_reward_debts(env, user_deposit);
-
-        rewards - user_deposit.reward_debts.clone()
+        let b = x + z - d + d / a27;
+        let c = d.pow(4) / (-27 * a27 * x * z);
+        Ok(((-b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
     }
 
-    fn get_reward_debts(&self, env: &Env, user_deposit: &UserDeposit) -> SizedU128Array {
-        let mut v = SizedU128Array::default_val(env);
-
-        for (index, acc_rewards_per_share_p) in self.acc_rewards_per_share_p().iter().enumerate() {
-            let new_acc_rewards =
-                (user_deposit.lp_amount * acc_rewards_per_share_p) >> ThreePool::P;
-            v.set(index, new_acc_rewards);
-        }
-
-        v
-    }
-
-    fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
-        match decimals.cmp(&Self::SYSTEM_PRECISION) {
-            Ordering::Greater => amount / (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
-            Ordering::Less => amount * (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
-            Ordering::Equal => amount,
-        }
-    }
-
-    fn amount_from_system_precision(&self, amount: u128, decimals: u32) -> u128 {
-        match decimals.cmp(&Self::SYSTEM_PRECISION) {
-            Ordering::Greater => amount * (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
-            Ordering::Less => amount / (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
-            Ordering::Equal => amount,
-        }
-    }
-}
-
-impl PoolStorage for ThreePool {
-    fn a(&self) -> u128 {
-        self.a
-    }
-    fn fee_share_bp(&self) -> u128 {
-        self.fee_share_bp
-    }
-    fn admin_fee_share_bp(&self) -> u128 {
-        self.admin_fee_share_bp
-    }
-    fn total_lp_amount(&self) -> u128 {
-        self.total_lp_amount
-    }
-    fn tokens(&self) -> &SizedAddressArray {
-        &self.tokens
-    }
-    fn tokens_decimals(&self) -> &SizedDecimalsArray {
-        &self.tokens_decimals
-    }
-    fn token_balances(&self) -> &SizedU128Array {
-        &self.token_balances
-    }
-    fn acc_rewards_per_share_p(&self) -> &SizedU128Array {
-        &self.acc_rewards_per_share_p
-    }
-    fn admin_fee_amount(&self) -> &SizedU128Array {
-        &self.admin_fee_amount
-    }
-
-    fn a_mut(&mut self) -> &mut u128 {
-        &mut self.a
-    }
-    fn fee_share_bp_mut(&mut self) -> &mut u128 {
-        &mut self.fee_share_bp
-    }
-    fn admin_fee_share_bp_mut(&mut self) -> &mut u128 {
-        &mut self.admin_fee_share_bp
-    }
-    fn total_lp_amount_mut(&mut self) -> &mut u128 {
-        &mut self.total_lp_amount
-    }
-    fn tokens_mut(&mut self) -> &mut SizedAddressArray {
-        &mut self.tokens
-    }
-    fn tokens_decimals_mut(&mut self) -> &mut SizedDecimalsArray {
-        &mut self.tokens_decimals
-    }
-    fn token_balances_mut(&mut self) -> &mut SizedU128Array {
-        &mut self.token_balances
-    }
-    fn acc_rewards_per_share_p_mut(&mut self) -> &mut SizedU128Array {
-        &mut self.acc_rewards_per_share_p
-    }
-    fn admin_fee_amount_mut(&mut self) -> &mut SizedU128Array {
-        &mut self.admin_fee_amount
-    }
-}
-
-impl Pool for ThreePool {
     #[allow(clippy::too_many_arguments)]
     fn swap(
         &mut self,
@@ -284,9 +107,9 @@ impl Pool for ThreePool {
             .transfer(&sender, &current_contract, &safe_cast(amount)?);
 
         self.token_balances
-            .set_by_token(token_from, receive_amount.token_from_new_balance);
+            .set(token_from, receive_amount.token_from_new_balance);
         self.token_balances
-            .set_by_token(token_to, receive_amount.token_to_new_balance);
+            .set(token_to, receive_amount.token_to_new_balance);
 
         self.add_rewards(receive_amount.fee, token_to);
 
@@ -315,12 +138,9 @@ impl Pool for ThreePool {
         let current_contract = env.current_contract_address();
 
         if self.total_lp_amount == 0 {
-            require!(
-                amounts.get(0) == amounts.get(1)
-                    && amounts.get(0) == amounts.get(2)
-                    && amounts.get(1) == amounts.get(2),
-                Error::InvalidFirstDeposit
-            );
+            let first = amounts.get(0usize);
+            let is_deposit_valid = amounts.iter().all(|v| v == first);
+            require!(is_deposit_valid, Error::InvalidFirstDeposit);
         }
 
         let deposit_amount = self.get_deposit_amount(env, amounts.clone())?;
@@ -333,11 +153,8 @@ impl Pool for ThreePool {
                 continue;
             }
 
-            self.get_token_by_index(env, index).transfer(
-                &sender,
-                &current_contract,
-                &safe_cast(amount)?,
-            );
+            self.get_token(env, index)
+                .transfer(&sender, &current_contract, &safe_cast(amount)?);
         }
 
         let rewards = self.deposit_lp(env, user_deposit, deposit_amount.lp_amount)?;
@@ -347,11 +164,8 @@ impl Pool for ThreePool {
                 continue;
             }
 
-            self.get_token_by_index(env, index).transfer(
-                &current_contract,
-                &sender,
-                &safe_cast(reward)?,
-            );
+            self.get_token(env, index)
+                .transfer(&current_contract, &sender, &safe_cast(reward)?);
         }
 
         Ok((rewards, deposit_amount.lp_amount))
@@ -378,7 +192,7 @@ impl Pool for ThreePool {
             let token_amount = token_amount + rewards_amounts.get(index);
 
             self.add_rewards(withdraw_amount.fees.get(index), index.into());
-            self.get_token_by_index(env, index).transfer(
+            self.get_token(env, index).transfer(
                 &current_contract,
                 &sender,
                 &safe_cast(token_amount)?,
@@ -389,54 +203,13 @@ impl Pool for ThreePool {
         let d1 = self.total_lp_amount;
 
         require!(
-            self.token_balances.get(0) < old_balances.get(0)
-                && self.token_balances.get(1) < old_balances.get(1)
+            self.token_balances.get(0usize) < old_balances.get(0usize)
+                && self.token_balances.get(1usize) < old_balances.get(1usize)
                 && d1 < d0,
             Error::ZeroChanges
         );
 
         Ok((withdraw_amount, rewards_amounts))
-    }
-}
-
-impl ThreePool {
-    pub fn get_y(&self, x128: u128, z128: u128, d128: u128) -> Result<u128, Error> {
-        let x = I256::from(x128);
-        let z = I256::from(z128);
-        let d = I256::from(d128);
-        let a = I256::from(self.a);
-        let a27 = a * 27;
-
-        let b = x + z - d + d / a27;
-        let c = d.pow(4) / (-27 * a27 * x * z);
-        Ok(((-b + sqrt(&(b.pow(2) - 4 * c).unsigned_abs()).as_i256()) / 2).as_u128())
-    }
-
-    pub fn get_current_d(&self) -> Result<u128, Error> {
-        self.get_d(
-            self.token_balances.get(0),
-            self.token_balances.get(1),
-            self.token_balances.get(2),
-        )
-    }
-
-    pub fn get_d(&self, x128: u128, y128: u128, z128: u128) -> Result<u128, Error> {
-        let x = I256::from(x128);
-        let y = I256::from(y128);
-        let z = I256::from(z128);
-        let a = I256::from(self.a);
-
-        let mut d = x + y + z;
-        loop {
-            let f = 27 * a * (x + y + z) - (27 * a * d - d) - d.pow(4) / (27 * x * y * z);
-            let df = -4 * d.pow(3) / (27 * x * y * z) - 27 * a + 1;
-            if f.abs() < df.abs() {
-                break;
-            }
-            d -= f / df;
-        }
-
-        Ok(d.as_u128())
     }
 }
 
@@ -451,6 +224,8 @@ mod tests {
     use crate::storage::pool::ThreePool;
     use crate::storage::sized_array::SizedU128Array;
 
+    use super::Pool;
+
     #[contract]
     pub struct TestPool;
 
@@ -460,7 +235,7 @@ mod tests {
             let token_a = Address::generate(&env);
             let token_b = Address::generate(&env);
             let token_c = Address::generate(&env);
-            ThreePool::from_init_params(&env, 20, token_a, token_b, token_c, [7, 7, 7], 100, 1)
+            ThreePool::from_init_params(&env, 20, [token_a, token_b, token_c], [7, 7, 7], 100, 1)
                 .save(&env);
         }
 
@@ -474,10 +249,10 @@ mod tests {
         }
 
         pub fn get_y(env: Env, x: u128, z: u128, d: u128) -> Result<u128, Error> {
-            ThreePool::get(&env)?.get_y(x, z, d)
+            ThreePool::get(&env)?.get_y([x, z, d])
         }
         pub fn get_d(env: Env, x: u128, y: u128, z: u128) -> Result<u128, Error> {
-            ThreePool::get(&env)?.get_d(x, y, z)
+            ThreePool::get(&env)?.get_d([x, y, z])
         }
     }
 

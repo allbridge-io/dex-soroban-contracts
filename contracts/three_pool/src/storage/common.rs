@@ -2,7 +2,7 @@ use soroban_sdk::contracttype;
 
 #[contracttype]
 #[derive(Debug, Clone, Copy)]
-#[repr(u32)]
+#[repr(usize)]
 pub enum Token {
     A = 0,
     B = 1,
@@ -17,6 +17,12 @@ impl From<usize> for Token {
             2 => Token::C,
             _ => unreachable!(),
         }
+    }
+}
+
+impl Into<usize> for Token {
+    fn into(self) -> usize {
+        self as usize
     }
 }
 
