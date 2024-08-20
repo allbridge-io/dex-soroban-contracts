@@ -20,7 +20,7 @@ impl UserDeposit {
     pub fn default_val<const N: usize>(env: &Env) -> Self {
         Self {
             lp_amount: 0,
-            reward_debts: SizedU128Array::from_array(env, [0, 0, 0]),
+            reward_debts: SizedU128Array::from_array(env, [0; N]),
         }
     }
 
