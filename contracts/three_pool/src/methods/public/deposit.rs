@@ -40,7 +40,7 @@ pub fn deposit<const N: usize, P: Pool<N>>(
     }
     .publish(&env);
 
-    if !rewards.iter().sum::<u128>() == 0 {
+    if rewards.iter().sum::<u128>() != 0 {
         RewardsClaimed {
             user: sender,
             rewards: (
