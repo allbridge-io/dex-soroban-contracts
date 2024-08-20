@@ -4,7 +4,7 @@ use storage::Admin;
 
 use crate::{
     common::Pool,
-    storage::{common::Token, sized_array::SizedU128Array, user_deposit::UserDeposit},
+    storage::{sized_array::SizedU128Array, user_deposit::UserDeposit},
 };
 
 use super::internal::pool_view::WithdrawAmountView;
@@ -36,8 +36,8 @@ pub fn get_user_deposit<const N: usize>(env: Env, user: Address) -> Result<UserD
 pub fn get_receive_amount<const N: usize, P: Pool<N>>(
     env: Env,
     input: u128,
-    token_from: Token,
-    token_to: Token,
+    token_from: P::Token,
+    token_to: P::Token,
 ) -> Result<(u128, u128), Error> {
     let receive_amount = P::get(&env)?.get_receive_amount(input, token_from, token_to)?;
     Ok((receive_amount.output, receive_amount.fee))
@@ -46,8 +46,8 @@ pub fn get_receive_amount<const N: usize, P: Pool<N>>(
 pub fn get_send_amount<const N: usize, P: Pool<N>>(
     env: Env,
     output: u128,
-    token_from: Token,
-    token_to: Token,
+    token_from: P::Token,
+    token_to: P::Token,
 ) -> Result<(u128, u128), Error> {
     P::get(&env)?.get_send_amount(output, token_from, token_to)
 }

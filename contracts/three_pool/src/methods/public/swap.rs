@@ -1,7 +1,7 @@
 use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::{common::Pool, events::Swapped, storage::common::Token};
+use crate::{common::Pool, events::Swapped};
 
 pub fn swap<const N: usize, P: Pool<N>>(
     env: Env,
@@ -9,8 +9,8 @@ pub fn swap<const N: usize, P: Pool<N>>(
     recipient: Address,
     from_amount: u128,
     receive_amount_min: u128,
-    token_from: Token,
-    token_to: Token,
+    token_from: P::Token,
+    token_to: P::Token,
 ) -> Result<u128, Error> {
     sender.require_auth();
     let mut pool = P::get(&env)?;

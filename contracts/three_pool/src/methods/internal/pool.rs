@@ -9,7 +9,7 @@ use soroban_sdk::{Address, Env};
 use crate::{
     common::PoolView,
     storage::{
-        common::Token,
+        common::ThreePoolToken,
         pool::ThreePool,
         sized_array::{SizedAddressArray, SizedDecimalsArray},
         user_deposit::UserDeposit,
@@ -26,6 +26,7 @@ impl Pool<3> for ThreePool {
     type Deposit = crate::events::three_pool_events::Deposit;
     type RewardsClaimed = crate::events::three_pool_events::RewardsClaimed;
     type Withdraw = crate::events::three_pool_events::Withdraw;
+    type Token = ThreePoolToken;
 
     fn from_init_params(
         env: &Env,
@@ -97,8 +98,8 @@ impl Pool<3> for ThreePool {
         recipient: Address,
         amount: u128,
         receive_amount_min: u128,
-        token_from: Token,
-        token_to: Token,
+        token_from: ThreePoolToken,
+        token_to: ThreePoolToken,
     ) -> Result<(u128, u128), Error> {
         if amount == 0 {
             return Ok((0, 0));

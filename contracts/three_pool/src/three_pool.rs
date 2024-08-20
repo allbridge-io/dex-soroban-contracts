@@ -14,7 +14,7 @@ use crate::{
             get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
-    storage::{common::Token, pool::ThreePool, user_deposit::UserDeposit},
+    storage::{common::ThreePoolToken, pool::ThreePool, user_deposit::UserDeposit},
 };
 
 const SIZE: usize = 3;
@@ -68,8 +68,8 @@ impl PoolContract {
         recipient: Address,
         amount_in: u128,
         receive_amount_min: u128,
-        token_from: Token,
-        token_to: Token,
+        token_from: ThreePoolToken,
+        token_to: ThreePoolToken,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
@@ -137,8 +137,8 @@ impl PoolContract {
     pub fn get_receive_amount(
         env: Env,
         input: u128,
-        token_from: Token,
-        token_to: Token,
+        token_from: ThreePoolToken,
+        token_to: ThreePoolToken,
     ) -> Result<(u128, u128), Error> {
         get_receive_amount::<SIZE, ThreePool>(env, input, token_from, token_to)
     }
@@ -146,8 +146,8 @@ impl PoolContract {
     pub fn get_send_amount(
         env: Env,
         output: u128,
-        token_from: Token,
-        token_to: Token,
+        token_from: ThreePoolToken,
+        token_to: ThreePoolToken,
     ) -> Result<(u128, u128), Error> {
         get_send_amount::<SIZE, ThreePool>(env, output, token_from, token_to)
     }

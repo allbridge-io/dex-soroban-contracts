@@ -3,7 +3,7 @@ use soroban_sdk::{contracttype, Env};
 
 use crate::{
     common::{DepositAmount, PoolView, ReceiveAmount, WithdrawAmount},
-    storage::{common::Token, pool::ThreePool, sized_array::SizedU128Array},
+    storage::{common::ThreePoolToken, pool::ThreePool, sized_array::SizedU128Array},
 };
 
 use crate::common::Pool;
@@ -30,12 +30,12 @@ impl From<WithdrawAmount> for WithdrawAmountView {
     }
 }
 
-impl PoolView for ThreePool {
+impl PoolView<ThreePoolToken> for ThreePool {
     fn get_receive_amount(
         &self,
         input: u128,
-        token_from: Token,
-        token_to: Token,
+        token_from: ThreePoolToken,
+        token_to: ThreePoolToken,
     ) -> Result<ReceiveAmount, Error> {
         let d0 = self.total_lp_amount;
         let input_sp = self.amount_to_system_precision(input, self.tokens_decimals.get(token_from));
@@ -70,8 +70,8 @@ impl PoolView for ThreePool {
     fn get_send_amount(
         &self,
         output: u128,
-        token_from: Token,
-        token_to: Token,
+        token_from: ThreePoolToken,
+        token_to: ThreePoolToken,
     ) -> Result<(u128, u128), Error> {
         let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
@@ -222,7 +222,7 @@ mod tests {
     use crate::common::Pool;
     use crate::common::PoolView;
     use crate::storage::sized_array::SizedU128Array;
-    use crate::storage::{common::Token, pool::ThreePool};
+    use crate::storage::{common::ThreePoolToken, pool::ThreePool};
 
     #[contract]
     pub struct TestPool;
@@ -249,8 +249,8 @@ mod tests {
         pub fn get_receive_amount(
             env: Env,
             amount: u128,
-            token_from: Token,
-            token_to: Token,
+            token_from: ThreePoolToken,
+            token_to: ThreePoolToken,
         ) -> Result<(u128, u128), Error> {
             let receive_amount =
                 ThreePool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
@@ -260,8 +260,8 @@ mod tests {
         pub fn get_send_amount(
             env: Env,
             amount: u128,
-            token_from: Token,
-            token_to: Token,
+            token_from: ThreePoolToken,
+            token_to: ThreePoolToken,
         ) -> Result<(u128, u128), Error> {
             ThreePool::get(&env)?.get_send_amount(amount, token_from, token_to)
         }
@@ -277,8 +277,9 @@ mod tests {
         pool.set_balances(&(200_000_000, 200_000_000, 200_000_000));
 
         let input = 10_000_0000000_u128;
-        let (output, fee) = pool.get_receive_amount(&input, &Token::A, &Token::B);
-        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::A, &Token::B);
+        let (output, fee) = pool.get_receive_amount(&input, &ThreePoolToken::A, &ThreePoolToken::B);
+        let (calc_input, calc_fee) =
+            pool.get_send_amount(&output, &ThreePoolToken::A, &ThreePoolToken::B);
 
         println!("input: {}", input);
         println!("output: {}, fee: {}", output, fee);
@@ -298,8 +299,9 @@ mod tests {
         pool.set_balances(&(200_000_000, 500_000_000, 200_000_000));
 
         let input = 10_000_0000000_u128;
-        let (output, fee) = pool.get_receive_amount(&input, &Token::A, &Token::B);
-        let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::A, &Token::B);
+        let (output, fee) = pool.get_receive_amount(&input, &ThreePoolToken::A, &ThreePoolToken::B);
+        let (calc_input, calc_fee) =
+            pool.get_send_amount(&output, &ThreePoolToken::A, &ThreePoolToken::B);
 
         println!("input: {}", input);
         println!("output: {}, fee: {}", output, fee);

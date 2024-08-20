@@ -2,6 +2,7 @@ use soroban_sdk::{contracttype, Address, Env, Vec};
 
 use core::ops::{Deref, Sub};
 
+// TODO: refactor
 #[macro_export]
 macro_rules! sized_array {
     ($name:ident, $inner_type:ident) => {
