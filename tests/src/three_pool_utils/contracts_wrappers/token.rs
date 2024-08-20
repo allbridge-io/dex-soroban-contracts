@@ -1,4 +1,4 @@
-use crate::contracts::three_pool::Token as PoolToken;
+use crate::contracts::three_pool::ThreePoolToken as PoolToken;
 use crate::utils::float_to_uint;
 use soroban_sdk::{token, Address, Env};
 

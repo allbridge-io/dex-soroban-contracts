@@ -3,11 +3,9 @@ use soroban_sdk::{Address, Env};
 use storage::Admin;
 
 use crate::{
-    common::Pool,
+    common::{Pool, WithdrawAmount},
     storage::{sized_array::SizedU128Array, user_deposit::UserDeposit},
 };
-
-use super::internal::pool_view::WithdrawAmountView;
 
 pub fn pending_reward<const N: usize, P: Pool<N>>(
     env: Env,
@@ -52,10 +50,10 @@ pub fn get_send_amount<const N: usize, P: Pool<N>>(
     P::get(&env)?.get_send_amount(output, token_from, token_to)
 }
 
-pub fn get_withdraw_amount<const N: usize, P: Pool<N>>(
+pub fn get_withdraw_amount<const N: usize, P: Pool<N>, WA: From<WithdrawAmount<N>>>(
     env: Env,
     lp_amount: u128,
-) -> Result<WithdrawAmountView, Error> {
+) -> Result<WA, Error> {
     Ok(P::get(&env)?.get_withdraw_amount(&env, lp_amount)?.into())
 }
 

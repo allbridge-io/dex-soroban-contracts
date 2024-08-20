@@ -9,7 +9,6 @@ macro_rules! sized_array {
         #[contracttype]
         #[derive(Debug, Clone)]
         pub struct $name {
-            len: u32,
             data: Vec<$inner_type>,
         }
 
@@ -21,10 +20,7 @@ macro_rules! sized_array {
 
             #[inline]
             pub fn from_vec(data: Vec<$inner_type>) -> Self {
-                Self {
-                    len: data.len(),
-                    data,
-                }
+                Self { data }
             }
 
             #[inline]
@@ -39,10 +35,6 @@ macro_rules! sized_array {
 
             pub fn get(&self, index: impl Into<usize>) -> $inner_type {
                 let index: usize = index.into();
-
-                if self.len <= (index as u32) {
-                    panic!("Unexpected index");
-                }
 
                 self.get_unchecked(index as u32)
             }
@@ -85,7 +77,6 @@ impl Sub for SizedU128Array {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        debug_assert!(self.len == rhs.len, "bad len");
         // TODO: fix it
         let mut v = Self::default_val::<3>(self.env());
 

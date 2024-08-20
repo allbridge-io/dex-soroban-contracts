@@ -1,7 +1,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts::three_pool::Token as PoolToken,
+    contracts::three_pool::ThreePoolToken as PoolToken,
     three_pool_utils::{Snapshot, TestingEnv, TestingEnvConfig},
 };
 

@@ -1,7 +1,9 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::three_pool::{Deposit, RewardsClaimed, Swapped, Token as PoolToken, Withdraw},
+    contracts::three_pool::{
+        Deposit, RewardsClaimed, Swapped, ThreePoolToken as PoolToken, Withdraw,
+    },
     three_pool_utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
 };
 

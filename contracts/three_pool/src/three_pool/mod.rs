@@ -1,10 +1,19 @@
+mod events;
+mod pool;
+mod pool_view;
+mod three_pool;
+mod token;
+mod utils;
+
+use pool_view::WithdrawAmountView;
 use shared::{utils::extend_ttl_instance, Error};
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
 use storage::Admin;
+use three_pool::ThreePool;
+use token::Token;
 
 use crate::{
     methods::{
-        internal::pool_view::WithdrawAmountView,
         public::{
             claim_admin_fee, claim_rewards, deposit, initialize, set_admin, set_admin_fee_share,
             set_fee_share, swap, withdraw,
@@ -14,7 +23,7 @@ use crate::{
             get_user_deposit, get_withdraw_amount, pending_reward,
         },
     },
-    storage::{common::ThreePoolToken, pool::ThreePool, user_deposit::UserDeposit},
+    storage::user_deposit::UserDeposit,
 };
 
 const SIZE: usize = 3;
@@ -68,8 +77,8 @@ impl PoolContract {
         recipient: Address,
         amount_in: u128,
         receive_amount_min: u128,
-        token_from: ThreePoolToken,
-        token_to: ThreePoolToken,
+        token_from: Token,
+        token_to: Token,
     ) -> Result<u128, Error> {
         extend_ttl_instance(&env);
 
@@ -137,8 +146,8 @@ impl PoolContract {
     pub fn get_receive_amount(
         env: Env,
         input: u128,
-        token_from: ThreePoolToken,
-        token_to: ThreePoolToken,
+        token_from: Token,
+        token_to: Token,
     ) -> Result<(u128, u128), Error> {
         get_receive_amount::<SIZE, ThreePool>(env, input, token_from, token_to)
     }
@@ -146,14 +155,14 @@ impl PoolContract {
     pub fn get_send_amount(
         env: Env,
         output: u128,
-        token_from: ThreePoolToken,
-        token_to: ThreePoolToken,
+        token_from: Token,
+        token_to: Token,
     ) -> Result<(u128, u128), Error> {
         get_send_amount::<SIZE, ThreePool>(env, output, token_from, token_to)
     }
 
     pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
-        get_withdraw_amount::<SIZE, ThreePool>(env, lp_amount)
+        get_withdraw_amount::<SIZE, ThreePool, WithdrawAmountView>(env, lp_amount)
     }
 
     pub fn get_deposit_amount(env: Env, amounts: (u128, u128, u128)) -> Result<u128, Error> {

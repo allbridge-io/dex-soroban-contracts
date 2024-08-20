@@ -7,26 +7,24 @@ use shared::{
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    common::PoolView,
+    common::{Pool, PoolStorage, PoolView, WithdrawAmount},
     storage::{
-        common::ThreePoolToken,
-        pool::ThreePool,
-        sized_array::{SizedAddressArray, SizedDecimalsArray},
+        sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},
         user_deposit::UserDeposit,
     },
-};
-use crate::{
-    common::{Pool, PoolStorage},
-    storage::sized_array::SizedU128Array,
+    three_pool::ThreePool,
 };
 
-use crate::common::WithdrawAmount;
+use super::{
+    events::{Deposit, RewardsClaimed, Withdraw},
+    token::Token,
+};
 
 impl Pool<3> for ThreePool {
-    type Deposit = crate::events::three_pool_events::Deposit;
-    type RewardsClaimed = crate::events::three_pool_events::RewardsClaimed;
-    type Withdraw = crate::events::three_pool_events::Withdraw;
-    type Token = ThreePoolToken;
+    type Deposit = Deposit;
+    type RewardsClaimed = RewardsClaimed;
+    type Withdraw = Withdraw;
+    type Token = Token;
 
     fn from_init_params(
         env: &Env,
@@ -98,8 +96,8 @@ impl Pool<3> for ThreePool {
         recipient: Address,
         amount: u128,
         receive_amount_min: u128,
-        token_from: ThreePoolToken,
-        token_to: ThreePoolToken,
+        token_from: Token,
+        token_to: Token,
     ) -> Result<(u128, u128), Error> {
         if amount == 0 {
             return Ok((0, 0));
@@ -182,7 +180,7 @@ impl Pool<3> for ThreePool {
         sender: Address,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(WithdrawAmount, SizedU128Array), Error> {
+    ) -> Result<(WithdrawAmount<3>, SizedU128Array), Error> {
         let current_contract = env.current_contract_address();
         let d0 = self.total_lp_amount;
         let old_balances = self.token_balances.clone();
@@ -226,8 +224,7 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::storage::pool::ThreePool;
-    use crate::storage::sized_array::SizedU128Array;
+    use crate::{storage::sized_array::SizedU128Array, three_pool::ThreePool};
 
     use super::Pool;
 

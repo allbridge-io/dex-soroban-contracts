@@ -9,7 +9,6 @@ use soroban_sdk::{
 use crate::{
     events::{DepositEvent, RewardsClaimedEvent, WithdrawEvent},
     storage::{
-        common::ThreePoolToken,
         sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},
         user_deposit::UserDeposit,
     },
@@ -49,8 +48,8 @@ pub struct ReceiveAmount {
     pub fee: u128,
 }
 
-pub struct WithdrawAmount {
-    pub indexes: [usize; 3],
+pub struct WithdrawAmount<const N: usize> {
+    pub indexes: [usize; N],
     pub amounts: SizedU128Array,
     pub fees: SizedU128Array,
     pub new_token_balances: SizedU128Array,
@@ -61,7 +60,7 @@ pub struct DepositAmount {
     pub new_token_balances: Vec<u128>,
 }
 
-pub trait PoolView<Token: Into<usize> + Clone + Copy> {
+pub trait PoolView<const N: usize, Token: Into<usize> + Clone + Copy> {
     fn get_receive_amount(
         &self,
         input: u128,
@@ -76,7 +75,7 @@ pub trait PoolView<Token: Into<usize> + Clone + Copy> {
         token_to: Token,
     ) -> Result<(u128, u128), Error>;
 
-    fn get_withdraw_amount(&self, env: &Env, lp_amount: u128) -> Result<WithdrawAmount, Error>;
+    fn get_withdraw_amount(&self, env: &Env, lp_amount: u128) -> Result<WithdrawAmount<N>, Error>;
 
     fn get_deposit_amount(
         &self,
@@ -85,7 +84,7 @@ pub trait PoolView<Token: Into<usize> + Clone + Copy> {
     ) -> Result<DepositAmount, Error>;
 }
 
-pub trait Pool<const N: usize>: PoolStorage + PoolView<Self::Token> + SimpleSorobanData {
+pub trait Pool<const N: usize>: PoolStorage + PoolView<N, Self::Token> + SimpleSorobanData {
     const BP: u128 = 10000;
 
     const MAX_A: u128 = 60;
@@ -138,7 +137,7 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView<Self::Token> + SimpleSoro
         sender: Address,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(WithdrawAmount, SizedU128Array), Error>;
+    ) -> Result<(WithdrawAmount<N>, SizedU128Array), Error>;
 
     fn get_current_d(&self) -> Result<u128, Error>;
     fn get_d(&self, values: [u128; N]) -> Result<u128, Error>;
@@ -207,7 +206,7 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView<Self::Token> + SimpleSoro
         Ok(pending)
     }
 
-    fn add_rewards(&mut self, mut reward_amount: u128, token: ThreePoolToken) {
+    fn add_rewards(&mut self, mut reward_amount: u128, token: Self::Token) {
         if self.total_lp_amount() > 0 {
             let admin_fee_rewards = reward_amount * self.admin_fee_share_bp() / Self::BP;
             reward_amount -= admin_fee_rewards;
