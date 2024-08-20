@@ -2,7 +2,8 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::three_pool::{
-        Deposit, RewardsClaimed, Swapped, ThreePoolToken as PoolToken, Withdraw,
+        Swapped, ThreeDeposit as Deposit, ThreeRewardsClaimed as RewardsClaimed, ThreeToken,
+        ThreeWithdraw as Withdraw,
     },
     three_pool_utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
 };
@@ -84,7 +85,7 @@ impl TestingEnv {
         env.budget().reset_limits(u64::MAX, u64::MAX);
 
         let admin = User::generate(&env, "admin");
-        let native_token = Token::create(&env, admin.as_ref(), PoolToken::A, "native");
+        let native_token = Token::create(&env, admin.as_ref(), ThreeToken::A, "native");
         let alice = User::generate(&env, "alice");
         let bob = User::generate(&env, "bob");
 
@@ -140,18 +141,18 @@ impl TestingEnv {
         self
     }
 
-    pub fn get_token(&self, pool_token: PoolToken) -> &Token {
+    pub fn get_token(&self, pool_token: ThreeToken) -> &Token {
         match pool_token {
-            PoolToken::A => &self.token_a,
-            PoolToken::B => &self.token_b,
-            PoolToken::C => &self.token_c,
+            ThreeToken::A => &self.token_a,
+            ThreeToken::B => &self.token_b,
+            ThreeToken::C => &self.token_c,
         }
     }
 
     pub fn generate_tokens(env: &Env, admin: &Address) -> (Token, Token, Token) {
-        let token_a = Token::create(env, admin, PoolToken::A, "a");
-        let token_b = Token::create(env, admin, PoolToken::B, "b");
-        let token_c = Token::create(env, admin, PoolToken::C, "c");
+        let token_a = Token::create(env, admin, ThreeToken::A, "a");
+        let token_b = Token::create(env, admin, ThreeToken::B, "b");
+        let token_c = Token::create(env, admin, ThreeToken::C, "c");
 
         (token_a, token_b, token_c)
     }

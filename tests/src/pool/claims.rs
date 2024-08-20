@@ -1,5 +1,5 @@
 use crate::{
-    contracts::pool::Token,
+    contracts::pool::TwoToken as Token,
     utils::{TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
 };
 

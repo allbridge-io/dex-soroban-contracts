@@ -12,6 +12,7 @@ shared = { path = "./common/shared" }
 proc_macros = { path = "./common/proc_macros" }
 storage = { path = "./common/storage" }
 tests = { path = "./tests" }
+generic_pool = { path = "./contracts/generic_pool" }
 
 [profile.release]
 opt-level = "z"

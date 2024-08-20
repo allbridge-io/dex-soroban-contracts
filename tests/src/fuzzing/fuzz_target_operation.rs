@@ -4,7 +4,7 @@ use rand_derive2::RandGen;
 use serde_derive::Serialize;
 use std::fmt::Display;
 
-use crate::contracts::pool::Token;
+use crate::contracts::pool::TwoToken;
 use crate::utils::{CallResult, TestingEnv, User};
 
 #[derive(Debug, Clone, Default)]
@@ -144,8 +144,8 @@ impl FuzzTargetOperation {
                 let recipient = recipient.get_user(testing_env);
 
                 let (from, to) = match direction {
-                    SwapDirection::YusdToYaro => (Token::A, Token::B),
-                    SwapDirection::YaroToYusd => (Token::B, Token::A),
+                    SwapDirection::YusdToYaro => (TwoToken::A, TwoToken::B),
+                    SwapDirection::YaroToYusd => (TwoToken::B, TwoToken::A),
                 };
 
                 testing_env

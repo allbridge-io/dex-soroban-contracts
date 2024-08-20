@@ -1,7 +1,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts::pool::Token,
+    contracts::pool::TwoToken as Token,
     utils::{Snapshot, TestingEnv, TestingEnvConfig},
 };
 

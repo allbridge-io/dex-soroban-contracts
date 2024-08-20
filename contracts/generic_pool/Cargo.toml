@@ -1,10 +1,10 @@
 [package]
-name = "three-pool"
+name = "generic_pool"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib"]
+# [lib]
+# crate-type = ["cdylib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
@@ -12,7 +12,7 @@ shared = { workspace = true }
 proc_macros = { workspace = true }
 ethnum = { workspace = true }
 storage = { workspace = true }
-generic_pool = { workspace = true }
+paste = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

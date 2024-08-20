@@ -56,10 +56,10 @@ test: all
 	cargo test
 
 build-two-pool:
-	soroban contract build --package pool
+	soroban contract build --package two-pool
 
 build-three-pool:
-	soroban contract build --package three_pool
+	soroban contract build --package three-pool
 
 build-factory:
 	soroban contract build --package factory

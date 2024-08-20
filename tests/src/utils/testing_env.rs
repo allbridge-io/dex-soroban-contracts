@@ -1,7 +1,10 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::pool::{Deposit, RewardsClaimed, Swapped, Token as TokenVariant, Withdraw},
+    contracts::pool::{
+        Swapped, TwoDeposit as Deposit, TwoRewardsClaimed as RewardsClaimed, TwoToken,
+        TwoWithdraw as Withdraw,
+    },
     utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
 };
 
@@ -201,18 +204,18 @@ impl TestingEnv {
         &self,
         sender: &User,
         recipient: &User,
-        from_token: TokenVariant,
-        to_token: TokenVariant,
+        from_token: TwoToken,
+        to_token: TwoToken,
         from_amount: f64,
         expected_to_amount: f64,
         expected_fee: f64,
     ) {
         let swapped = get_latest_event::<Swapped>(&self.env).expect("Expected Swapped");
 
-        let get_token_address = |token: TokenVariant| -> Address {
+        let get_token_address = |token: TwoToken| -> Address {
             match token {
-                TokenVariant::A => self.yusd_token.as_address(),
-                TokenVariant::B => self.yaro_token.as_address(),
+                TwoToken::A => self.yusd_token.as_address(),
+                TwoToken::B => self.yaro_token.as_address(),
             }
         };
 
@@ -459,8 +462,8 @@ impl TestingEnv {
         snapshot_after: Snapshot,
         sender: &User,
         recipient: &User,
-        from_token: TokenVariant,
-        to_token: TokenVariant,
+        from_token: TwoToken,
+        to_token: TwoToken,
         amount: f64,
         expected_receive_amount: f64,
         expected_fee: f64,
@@ -480,9 +483,9 @@ impl TestingEnv {
         let sender_tag = sender.tag;
         let recipient_tag = recipient.tag;
 
-        let get_token_address = |token: TokenVariant| match token {
-            TokenVariant::A => "yusd",
-            TokenVariant::B => "yaro",
+        let get_token_address = |token: TwoToken| match token {
+            TwoToken::A => "yusd",
+            TwoToken::B => "yaro",
         };
 
         let from_token_tag = get_token_address(from_token);
@@ -563,8 +566,8 @@ impl TestingEnv {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: TokenVariant,
-        token_to: TokenVariant,
+        token_from: TwoToken,
+        token_to: TwoToken,
         expected_receive_amount: f64,
         expected_fee: f64,
     ) -> (Snapshot, Snapshot) {
