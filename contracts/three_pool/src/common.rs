@@ -6,10 +6,13 @@ use soroban_sdk::{
     Address, Env, Vec,
 };
 
-use crate::storage::{
-    common::Token,
-    sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},
-    user_deposit::UserDeposit,
+use crate::{
+    events::{DepositEvent, RewardsClaimedEvent, WithdrawEvent},
+    storage::{
+        common::Token,
+        sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},
+        user_deposit::UserDeposit,
+    },
 };
 
 pub trait PoolStorage {
@@ -90,6 +93,10 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView + SimpleSorobanData {
     const SYSTEM_PRECISION: u32 = 3;
 
     const P: u128 = 48;
+
+    type Deposit: DepositEvent;
+    type RewardsClaimed: RewardsClaimedEvent;
+    type Withdraw: WithdrawEvent;
 
     /* Contructor  */
 

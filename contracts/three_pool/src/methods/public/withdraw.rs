@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     common::Pool,
-    events::{RewardsClaimed, Withdraw},
+    events::{RewardsClaimedEvent, WithdrawEvent},
     storage::user_deposit::UserDeposit,
 };
 
@@ -22,32 +22,16 @@ pub fn withdraw<const N: usize, P: Pool<N>>(
     pool.save(&env);
     user_deposit.save(&env, sender.clone());
 
-    Withdraw {
-        user: sender.clone(),
+    P::Withdraw::create(
+        sender.clone(),
         lp_amount,
-        amounts: (
-            withdraw_amount.amounts.get(0usize),
-            withdraw_amount.amounts.get(1usize),
-            withdraw_amount.amounts.get(2usize),
-        ),
-        fees: (
-            withdraw_amount.fees.get(0usize),
-            withdraw_amount.fees.get(1usize),
-            withdraw_amount.fees.get(2usize),
-        ),
-    }
+        withdraw_amount.amounts,
+        withdraw_amount.fees,
+    )
     .publish(&env);
 
-    if !(rewards.iter().sum::<u128>() == 0) {
-        RewardsClaimed {
-            user: sender,
-            rewards: (
-                rewards.get(0usize),
-                rewards.get(1usize),
-                rewards.get(2usize),
-            ),
-        }
-        .publish(&env);
+    if rewards.iter().sum::<u128>() != 0 {
+        P::RewardsClaimed::create(sender, rewards).publish(&env);
     }
 
     Ok(())

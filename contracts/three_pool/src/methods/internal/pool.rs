@@ -23,6 +23,10 @@ use crate::{
 use crate::common::WithdrawAmount;
 
 impl Pool<3> for ThreePool {
+    type Deposit = crate::events::three_pool_events::Deposit;
+    type RewardsClaimed = crate::events::three_pool_events::RewardsClaimed;
+    type Withdraw = crate::events::three_pool_events::Withdraw;
+
     fn from_init_params(
         env: &Env,
         a: u128,

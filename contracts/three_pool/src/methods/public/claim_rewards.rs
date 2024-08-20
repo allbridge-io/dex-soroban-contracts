@@ -1,7 +1,7 @@
 use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::{common::Pool, events::RewardsClaimed, storage::user_deposit::UserDeposit};
+use crate::{common::Pool, events::RewardsClaimedEvent, storage::user_deposit::UserDeposit};
 
 pub fn claim_rewards<const N: usize, P: Pool<N>>(env: Env, sender: Address) -> Result<(), Error> {
     sender.require_auth();
@@ -16,15 +16,7 @@ pub fn claim_rewards<const N: usize, P: Pool<N>>(env: Env, sender: Address) -> R
 
     user_deposit.save(&env, sender.clone());
 
-    RewardsClaimed {
-        user: sender,
-        rewards: (
-            rewards.get(0usize),
-            rewards.get(1usize),
-            rewards.get(2usize),
-        ),
-    }
-    .publish(&env);
+    P::RewardsClaimed::create(sender, rewards).publish(&env);
 
     Ok(())
 }
