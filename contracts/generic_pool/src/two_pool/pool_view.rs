@@ -35,7 +35,7 @@ impl PoolView<2, TwoToken> for TwoPool {
     ) -> Result<ReceiveAmount, Error> {
         let token_to = token_from.opposite();
         let d0 = self.total_lp_amount;
-        let input_sp = self.amount_to_system_precision(input, self.tokens_decimals.get(token_from));
+        let input_sp = self.amount_to_system_precision(input, token_from);
         let mut output = 0;
 
         let token_from_new_balance = self.token_balances.get(token_from) + input_sp;
@@ -44,7 +44,7 @@ impl PoolView<2, TwoToken> for TwoPool {
         if self.token_balances.get(token_to) > token_to_new_balance {
             output = self.amount_from_system_precision(
                 self.token_balances.get(token_to) - token_to_new_balance,
-                self.tokens_decimals.get(token_to),
+                token_to,
             );
         }
         let fee = output * self.fee_share_bp / Self::BP;
@@ -69,8 +69,7 @@ impl PoolView<2, TwoToken> for TwoPool {
         let d0 = self.total_lp_amount;
         let fee = output * self.fee_share_bp / (Self::BP - self.fee_share_bp);
         let output_with_fee = output + fee;
-        let output_sp =
-            self.amount_to_system_precision(output_with_fee, self.tokens_decimals.get(token_to));
+        let output_sp = self.amount_to_system_precision(output_with_fee, token_to);
         let mut input = 0;
 
         let token_to_new_balance = self.token_balances.get(token_to) - output_sp;
@@ -79,7 +78,7 @@ impl PoolView<2, TwoToken> for TwoPool {
         if self.token_balances.get(token_from) < token_from_new_amount {
             input = self.amount_from_system_precision(
                 token_from_new_amount - self.token_balances.get(token_from),
-                self.tokens_decimals.get(token_from),
+                token_from,
             );
         }
 
@@ -106,12 +105,10 @@ impl PoolView<2, TwoToken> for TwoPool {
 
         for (index, token_amount_sp) in [(more, more_token_amount_sp), (less, less_token_amount_sp)]
         {
-            let token_amount =
-                self.amount_from_system_precision(token_amount_sp, self.tokens_decimals.get(index));
+            let token_amount = self.amount_from_system_precision(token_amount_sp, index);
             let fee = token_amount * self.fee_share_bp / Self::BP;
 
-            let token_amount_sp = self
-                .amount_to_system_precision(token_amount - fee, self.tokens_decimals.get(index));
+            let token_amount_sp = self.amount_to_system_precision(token_amount - fee, index);
 
             fees.set(index, fee);
             amounts.set(index, token_amount_sp);
@@ -136,14 +133,8 @@ impl PoolView<2, TwoToken> for TwoPool {
         let amounts_sp = SizedU128Array::from_array(
             env,
             [
-                self.amount_to_system_precision(
-                    amounts.get(0usize),
-                    self.tokens_decimals.get(0usize),
-                ),
-                self.amount_to_system_precision(
-                    amounts.get(1usize),
-                    self.tokens_decimals.get(1usize),
-                ),
+                self.amount_to_system_precision(amounts.get(0usize), 0usize),
+                self.amount_to_system_precision(amounts.get(1usize), 1usize),
             ],
         );
 
@@ -180,93 +171,101 @@ impl PoolView<2, TwoToken> for TwoPool {
     }
 }
 
-// #[allow(clippy::inconsistent_digit_grouping)]
-// #[cfg(test)]
-// mod tests {
-//     extern crate std;
-//     use std::println;
+#[allow(clippy::inconsistent_digit_grouping)]
+#[cfg(test)]
+mod tests {
+    extern crate std;
+    use std::println;
 
-//     use shared::{soroban_data::SimpleSorobanData, Error};
-//     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
+    use shared::{soroban_data::SimpleSorobanData, Error};
+    use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-//     use crate::storage::{common::Token, double_values::DoubleU128, pool::Pool};
+    use crate::{
+        common::{Pool, PoolView},
+        storage::sized_array::SizedU128Array,
+        two_pool::{token::TwoToken, two_pool::TwoPool},
+    };
 
-//     #[contract]
-//     pub struct TestPool;
+    #[contract]
+    pub struct TestPool;
 
-//     #[contractimpl]
-//     impl TestPool {
-//         pub fn init(env: Env) {
-//             let token_a = Address::generate(&env);
-//             let token_b = Address::generate(&env);
-//             Pool::from_init_params(20, [token_a, token_b], [7, 7], 100, 1).save(&env);
-//         }
+    #[contractimpl]
+    impl TestPool {
+        pub fn init(env: Env) {
+            let token_a = Address::generate(&env);
+            let token_b = Address::generate(&env);
+            TwoPool::from_init_params(&env, 20, [token_a, token_b], [7, 7], 100, 1).save(&env);
+        }
 
-//         pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
-//             Pool::update(&env, |pool| {
-//                 pool.token_balances = DoubleU128::from(new_balances);
-//                 pool.total_lp_amount = pool.get_current_d()?;
-//                 Ok(())
-//             })
-//         }
+        pub fn set_balances(env: Env, new_balances: (u128, u128)) -> Result<(), Error> {
+            TwoPool::update(&env, |pool| {
+                pool.token_balances =
+                    SizedU128Array::from_array(&env, [new_balances.0, new_balances.1]);
+                pool.total_lp_amount = pool.get_current_d()?;
+                Ok(())
+            })
+        }
 
-//         pub fn get_receive_amount(
-//             env: Env,
-//             amount: u128,
-//             token_from: Token,
-//         ) -> Result<(u128, u128), Error> {
-//             let receive_amount = Pool::get(&env)?.get_receive_amount(amount, token_from)?;
-//             Ok((receive_amount.output, receive_amount.fee))
-//         }
+        pub fn get_receive_amount(
+            env: Env,
+            amount: u128,
+            token_from: TwoToken,
+            token_to: TwoToken,
+        ) -> Result<(u128, u128), Error> {
+            let receive_amount =
+                TwoPool::get(&env)?.get_receive_amount(amount, token_from, token_to)?;
+            Ok((receive_amount.output, receive_amount.fee))
+        }
 
-//         pub fn get_send_amount(
-//             env: Env,
-//             amount: u128,
-//             token_to: Token,
-//         ) -> Result<(u128, u128), Error> {
-//             Pool::get(&env)?.get_send_amount(amount, token_to)
-//         }
-//     }
+        pub fn get_send_amount(
+            env: Env,
+            amount: u128,
+            token_from: TwoToken,
+            token_to: TwoToken,
+        ) -> Result<(u128, u128), Error> {
+            TwoPool::get(&env)?.get_send_amount(amount, token_from, token_to)
+        }
+    }
 
-//     #[test]
-//     fn test() {
-//         let env = Env::default();
+    #[test]
+    fn test() {
+        let env = Env::default();
 
-//         let test_pool_id = env.register_contract(None, TestPool);
-//         let pool = TestPoolClient::new(&env, &test_pool_id);
-//         pool.init();
-//         pool.set_balances(&(200_000_000, 200_000_000));
+        let test_pool_id = env.register_contract(None, TestPool);
+        let pool = TestPoolClient::new(&env, &test_pool_id);
+        pool.init();
+        pool.set_balances(&(200_000_000, 200_000_000));
 
-//         let input = 10_000_0000000_u128;
-//         let (output, fee) = pool.get_receive_amount(&input, &Token::A);
-//         let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
+        let input = 10_000_0000000_u128;
+        let (output, fee) = pool.get_receive_amount(&input, &TwoToken::A, &TwoToken::B);
+        let (calc_input, calc_fee) = pool.get_send_amount(&output, &TwoToken::A, &TwoToken::B);
 
-//         println!("input: {}", input);
-//         println!("output: {}, fee: {}", output, fee);
-//         println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
+        println!("input: {}", input);
+        println!("output: {}, fee: {}", output, fee);
+        println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
 
-//         assert_eq!(input, calc_input);
-//         assert_eq!(fee, calc_fee);
-//     }
+        assert_eq!(input, calc_input);
+        assert_eq!(fee, calc_fee);
+    }
 
-//     #[test]
-//     fn test_disbalance() {
-//         let env = Env::default();
+    #[test]
+    fn test_disbalance() {
+        let env = Env::default();
 
-//         let test_pool_id = env.register_contract(None, TestPool);
-//         let pool = TestPoolClient::new(&env, &test_pool_id);
-//         pool.init();
-//         pool.set_balances(&(200_000_000, 500_000_000));
+        let test_pool_id = env.register_contract(None, TestPool);
+        let pool = TestPoolClient::new(&env, &test_pool_id);
+        pool.init();
+        pool.set_balances(&(200_000_000, 500_000_000));
 
-//         let input = 10_000_0000000_u128;
-//         let (output, fee) = pool.get_receive_amount(&input, &Token::A);
-//         let (calc_input, calc_fee) = pool.get_send_amount(&output, &Token::B);
+        let input = 10_000_0000000_u128;
+        let (output, fee) = pool.get_receive_amount(&input, &TwoToken::A, &TwoToken::B);
+        let (calc_input, calc_fee) = pool.get_send_amount(&output, &TwoToken::A, &TwoToken::B);
 
-//         println!("input: {}", input);
-//         println!("output: {}, fee: {}", output, fee);
-//         println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
+        println!("input: {}", input);
+        println!("output: {}, fee: {}", output, fee);
+        println!("calc input: {}, calc fee: {}", calc_input, calc_fee);
 
-//         assert_eq!(input, calc_input);
-//         assert_eq!(fee, calc_fee);
-//     }
-// }
+        assert_eq!(input, calc_input);
+        assert_eq!(fee, calc_fee);
+    }
+}
