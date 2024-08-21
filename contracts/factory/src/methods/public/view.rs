@@ -12,12 +12,8 @@ pub fn get_pools(env: &Env) -> Result<Map<Address, Vec<Address>>, Error> {
     FactoryInfo::get(env)?.get_pools()
 }
 
-pub fn get_two_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
-    Ok(FactoryInfo::get(&env)?.two_pool_wasm_hash)
-}
-
-pub fn get_three_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
-    Ok(FactoryInfo::get(&env)?.three_pool_wasm_hash)
+pub fn get_pool_wasm_hash<const N: usize>(env: Env) -> Result<BytesN<32>, Error> {
+    Ok(FactoryInfo::get(&env)?.get_pool_wasm_hash::<N>())
 }
 
 pub fn get_admin(env: Env) -> Result<Address, Error> {

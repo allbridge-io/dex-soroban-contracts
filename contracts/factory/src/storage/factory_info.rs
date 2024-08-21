@@ -67,6 +67,14 @@ impl FactoryInfo {
         Ok(map)
     }
 
+    pub fn get_pool_wasm_hash<const N: usize>(&self) -> BytesN<32> {
+        if N == 2 {
+            self.two_pool_wasm_hash.clone()
+        } else {
+            self.three_pool_wasm_hash.clone()
+        }
+    }
+
     pub fn get_pool(&self, mut tokens: Vec<Address>) -> Result<Address, Error> {
         tokens = FactoryInfo::sort_tokens(tokens);
 

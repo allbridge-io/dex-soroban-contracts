@@ -6,8 +6,7 @@ members = ["contracts/*", "common/*", "tests"]
 soroban-sdk = "21.6"
 soroban-env-common = "21.2"
 ethnum = "1.5"
-arrayref = "0.3"
-# paste = "1.0"
+arrayref = "0.3.8"
 shared = { path = "./common/shared" }
 proc_macros = { path = "./common/proc_macros" }
 storage = { path = "./common/storage" }
