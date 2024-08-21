@@ -4,8 +4,9 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
 
 use generic_pool::{
     methods::{public::*, view::*},
+    pool::WithdrawAmountView,
     storage::user_deposit::UserDeposit,
-    two_pool::{pool_view::TwoWithdrawAmountView, token::TwoToken, two_pool::TwoPool},
+    two_pool::{pool::TwoPool, token::TwoToken},
 };
 use shared::{utils::extend_ttl_instance, Error};
 use storage::Admin;
@@ -144,8 +145,8 @@ impl TwoPoolContract {
         get_send_amount::<SIZE, TwoPool>(env, output, token_from, token_to)
     }
 
-    pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<TwoWithdrawAmountView, Error> {
-        get_withdraw_amount::<SIZE, TwoPool, TwoWithdrawAmountView>(env, lp_amount)
+    pub fn get_withdraw_amount(env: Env, lp_amount: u128) -> Result<WithdrawAmountView, Error> {
+        get_withdraw_amount::<SIZE, TwoPool>(env, lp_amount)
     }
 
     pub fn get_deposit_amount(env: Env, amounts: (u128, u128, u128)) -> Result<u128, Error> {

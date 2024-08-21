@@ -2,16 +2,14 @@ use core::cmp::Ordering;
 
 use shared::{require, soroban_data::SimpleSorobanData, utils::safe_cast, Error};
 use soroban_sdk::{
+    contracttype,
     token::{Client, TokenClient},
     Address, Env, Vec,
 };
 
-use crate::{
-    events::{DepositEvent, RewardsClaimedEvent, WithdrawEvent},
-    storage::{
-        sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},
-        user_deposit::UserDeposit,
-    },
+use crate::storage::{
+    sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},
+    user_deposit::UserDeposit,
 };
 
 pub trait PoolStorage {
@@ -60,31 +58,31 @@ pub struct DepositAmount {
     pub new_token_balances: Vec<u128>,
 }
 
-pub trait PoolView<const N: usize, Token: Into<usize> + Clone + Copy> {
-    fn get_receive_amount(
-        &self,
-        input: u128,
-        token_from: Token,
-        token_to: Token,
-    ) -> Result<ReceiveAmount, Error>;
-
-    fn get_send_amount(
-        &self,
-        output: u128,
-        token_from: Token,
-        token_to: Token,
-    ) -> Result<(u128, u128), Error>;
-
-    fn get_withdraw_amount(&self, env: &Env, lp_amount: u128) -> Result<WithdrawAmount<N>, Error>;
-
-    fn get_deposit_amount(
-        &self,
-        env: &Env,
-        amounts: SizedU128Array,
-    ) -> Result<DepositAmount, Error>;
+#[contracttype]
+#[derive(Debug)]
+pub struct WithdrawAmountView {
+    /// system precision
+    pub amounts: Vec<u128>,
+    /// token precision
+    pub fees: Vec<u128>,
 }
 
-pub trait Pool<const N: usize>: PoolStorage + PoolView<N, Self::Token> + SimpleSorobanData {
+impl<const N: usize> From<WithdrawAmount<N>> for WithdrawAmountView {
+    fn from(v: WithdrawAmount<N>) -> Self {
+        Self {
+            amounts: v.amounts.get_inner(),
+            fees: v.fees.get_inner(),
+        }
+    }
+}
+
+pub trait PoolMath<const N: usize> {
+    fn get_current_d(&self) -> Result<u128, Error>;
+    fn get_d(&self, values: [u128; N]) -> Result<u128, Error>;
+    fn get_y(&self, values: [u128; N]) -> Result<u128, Error>;
+}
+
+pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
     const BP: u128 = 10000;
 
     const MAX_A: u128 = 60;
@@ -93,12 +91,9 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView<N, Self::Token> + SimpleS
 
     const P: u128 = 48;
 
-    type Deposit: DepositEvent;
-    type RewardsClaimed: RewardsClaimedEvent;
-    type Withdraw: WithdrawEvent;
     type Token: Into<usize> + Clone + Copy;
 
-    /* Contructor  */
+    /* Constructor  */
 
     fn from_init_params(
         env: &Env,
@@ -138,10 +133,6 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView<N, Self::Token> + SimpleS
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
     ) -> Result<(WithdrawAmount<N>, SizedU128Array), Error>;
-
-    fn get_current_d(&self) -> Result<u128, Error>;
-    fn get_d(&self, values: [u128; N]) -> Result<u128, Error>;
-    fn get_y(&self, values: [u128; N]) -> Result<u128, Error>;
 
     fn deposit_lp(
         &mut self,
@@ -239,7 +230,79 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView<N, Self::Token> + SimpleS
         v
     }
 
-    fn amount_to_system_precision(&self, amount: u128, decimals: u32) -> u128 {
+    /* Views */
+
+    fn get_receive_amount(
+        &self,
+        input: u128,
+        token_from: Self::Token,
+        token_to: Self::Token,
+    ) -> Result<ReceiveAmount, Error>;
+
+    fn get_send_amount(
+        &self,
+        output: u128,
+        token_from: Self::Token,
+        token_to: Self::Token,
+    ) -> Result<(u128, u128), Error>;
+
+    fn get_withdraw_amount(&self, env: &Env, lp_amount: u128) -> Result<WithdrawAmount<N>, Error>;
+
+    fn get_deposit_amount(
+        &self,
+        env: &Env,
+        amounts: SizedU128Array,
+    ) -> Result<DepositAmount, Error> {
+        let d0 = self.total_lp_amount();
+
+        let mut amounts_sp = [0; N];
+
+        for index in 0..N {
+            amounts_sp[index] = self.amount_to_system_precision(amounts.get(index), index);
+        }
+
+        let amounts_sp = SizedU128Array::from_array(env, amounts_sp);
+
+        let total_amount_sp = amounts_sp.iter().sum::<u128>();
+        require!(total_amount_sp > 0, Error::ZeroAmount);
+
+        let mut new_token_balances_sp = self.token_balances().clone();
+
+        for (index, amount) in amounts.iter().enumerate() {
+            if amount == 0 {
+                continue;
+            }
+
+            new_token_balances_sp.add(index, amounts_sp.get(index));
+        }
+
+        let mut d_args = [0u128; N];
+
+        for index in 0..N {
+            d_args[index] = new_token_balances_sp.get(index);
+        }
+
+        let d1 = self.get_d(d_args)?;
+
+        require!(d1 > d0, Error::Forbidden);
+        require!(
+            new_token_balances_sp.iter().sum::<u128>() < Self::MAX_TOKEN_BALANCE,
+            Error::PoolOverflow
+        );
+
+        let lp_amount = d1 - d0;
+
+        Ok(DepositAmount {
+            lp_amount,
+            new_token_balances: new_token_balances_sp.get_inner(),
+        })
+    }
+
+    /* Utils */
+
+    fn amount_to_system_precision(&self, amount: u128, index: impl Into<usize>) -> u128 {
+        let decimals = self.tokens_decimals().get(index);
+
         match decimals.cmp(&Self::SYSTEM_PRECISION) {
             Ordering::Greater => amount / (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
             Ordering::Less => amount * (10u128.pow(Self::SYSTEM_PRECISION - decimals)),
@@ -247,7 +310,9 @@ pub trait Pool<const N: usize>: PoolStorage + PoolView<N, Self::Token> + SimpleS
         }
     }
 
-    fn amount_from_system_precision(&self, amount: u128, decimals: u32) -> u128 {
+    fn amount_from_system_precision(&self, amount: u128, index: impl Into<usize>) -> u128 {
+        let decimals = self.tokens_decimals().get(index);
+
         match decimals.cmp(&Self::SYSTEM_PRECISION) {
             Ordering::Greater => amount * (10u128.pow(decimals - Self::SYSTEM_PRECISION)),
             Ordering::Less => amount / (10u128.pow(Self::SYSTEM_PRECISION - decimals)),

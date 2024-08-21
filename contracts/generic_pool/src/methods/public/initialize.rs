@@ -2,7 +2,7 @@ use shared::{require, soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{token, Address, Env};
 use storage::Admin;
 
-use crate::common::Pool;
+use crate::pool::Pool;
 
 #[allow(clippy::too_many_arguments)]
 pub fn initialize<const N: usize, P: Pool<N>>(

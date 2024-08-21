@@ -1,8 +1,8 @@
 #![no_std]
 
-mod common;
 mod events;
 pub mod methods;
+pub mod pool;
 pub mod storage;
 
 pub mod three_pool;

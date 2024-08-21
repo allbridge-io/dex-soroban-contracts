@@ -147,13 +147,13 @@ impl Snapshot {
         let d = testing_env.pool.client.get_d();
         let total_lp_amount = pool_info.total_lp_amount;
 
-        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.data.get_unchecked(0);
-        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.data.get_unchecked(1);
-        let acc_reward_c_per_share_p = pool_info.acc_rewards_per_share_p.data.get_unchecked(2);
+        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(0);
+        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(1);
+        let acc_reward_c_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(2);
 
-        let admin_a_fee_rewards = pool_info.admin_fee_amount.data.get_unchecked(0);
-        let admin_b_fee_rewards = pool_info.admin_fee_amount.data.get_unchecked(1);
-        let admin_c_fee_rewards = pool_info.admin_fee_amount.data.get_unchecked(2);
+        let admin_a_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(0);
+        let admin_b_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(1);
+        let admin_c_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(2);
 
         let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
         let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);

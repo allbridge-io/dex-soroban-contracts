@@ -1,7 +1,7 @@
 use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
-use crate::{common::Pool, events::Swapped};
+use crate::{pool::Pool, events::Swapped};
 
 pub fn swap<const N: usize, P: Pool<N>>(
     env: Env,

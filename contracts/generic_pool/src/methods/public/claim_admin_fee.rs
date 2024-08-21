@@ -2,7 +2,7 @@ use shared::{soroban_data::SimpleSorobanData, utils::safe_cast, Error};
 use soroban_sdk::Env;
 use storage::Admin;
 
-use crate::common::Pool;
+use crate::pool::Pool;
 
 pub fn claim_admin_fee<const N: usize, P: Pool<N>>(env: Env) -> Result<(), Error> {
     let admin = Admin::get(&env)?;

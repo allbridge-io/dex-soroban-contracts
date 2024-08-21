@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env};
 use storage::Admin;
 
 use crate::{
-    common::{Pool, WithdrawAmount},
+    pool::{Pool, WithdrawAmountView},
     storage::{sized_array::SizedU128Array, user_deposit::UserDeposit},
 };
 
@@ -50,10 +50,10 @@ pub fn get_send_amount<const N: usize, P: Pool<N>>(
     P::get(&env)?.get_send_amount(output, token_from, token_to)
 }
 
-pub fn get_withdraw_amount<const N: usize, P: Pool<N>, WA: From<WithdrawAmount<N>>>(
+pub fn get_withdraw_amount<const N: usize, P: Pool<N>>(
     env: Env,
     lp_amount: u128,
-) -> Result<WA, Error> {
+) -> Result<WithdrawAmountView, Error> {
     Ok(P::get(&env)?.get_withdraw_amount(&env, lp_amount)?.into())
 }
 

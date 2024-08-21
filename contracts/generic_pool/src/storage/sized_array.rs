@@ -2,15 +2,12 @@ use soroban_sdk::{contracttype, Address, Env, Vec};
 
 use core::ops::{Deref, Sub};
 
-// TODO: refactor
 #[macro_export]
 macro_rules! sized_array {
     ($name:ident, $inner_type:ident) => {
         #[contracttype]
         #[derive(Debug, Clone)]
-        pub struct $name {
-            data: Vec<$inner_type>,
-        }
+        pub struct $name(Vec<$inner_type>);
 
         impl $name {
             #[inline]
@@ -20,19 +17,21 @@ macro_rules! sized_array {
 
             #[inline]
             pub fn from_vec(data: Vec<$inner_type>) -> Self {
-                Self { data }
+                Self(data)
             }
 
             #[inline]
             pub fn set(&mut self, index: impl Into<usize>, v: $inner_type) {
                 let index: usize = index.into();
-                self.data.set(index as u32, v);
+                self.0.set(index as u32, v);
             }
 
+            #[inline]
             pub fn get_inner(&self) -> Vec<$inner_type> {
-                self.data.clone()
+                self.0.clone()
             }
 
+            #[inline]
             pub fn get(&self, index: impl Into<usize>) -> $inner_type {
                 let index: usize = index.into();
 
@@ -44,7 +43,7 @@ macro_rules! sized_array {
             type Target = Vec<$inner_type>;
 
             fn deref(&self) -> &Self::Target {
-                &self.data
+                &self.0
             }
         }
     };
@@ -77,8 +76,8 @@ impl Sub for SizedU128Array {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        // TODO: fix it
-        let mut v = Self::default_val::<3>(self.env());
+        debug_assert!(self.len() == rhs.len(), "SizedU128Array: unexpected len");
+        let mut v = self.clone();
 
         for (i, (l, r)) in self.iter().zip(rhs.iter()).enumerate() {
             v.set(i, l - r);

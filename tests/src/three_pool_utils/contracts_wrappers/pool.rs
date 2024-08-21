@@ -64,15 +64,15 @@ impl Pool {
 
         assert_eq!(pool_info.total_lp_amount, 0);
         assert_eq!(
-            pool_info.token_balances.data,
+            pool_info.token_balances.0,
             Vec::from_array(&self.env, [0, 0, 0])
         );
         assert_eq!(
-            pool_info.acc_rewards_per_share_p.data,
+            pool_info.acc_rewards_per_share_p.0,
             Vec::from_array(&self.env, [0, 0, 0])
         );
         assert_eq!(
-            pool_info.admin_fee_amount.data,
+            pool_info.admin_fee_amount.0,
             Vec::from_array(&self.env, [0, 0, 0])
         );
     }

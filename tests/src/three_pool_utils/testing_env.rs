@@ -1,10 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::three_pool::{
-        Swapped, ThreeDeposit as Deposit, ThreeRewardsClaimed as RewardsClaimed, ThreeToken,
-        ThreeWithdraw as Withdraw,
-    },
+    contracts::three_pool::{Deposit, RewardsClaimed, Swapped, ThreeToken, Withdraw},
     three_pool_utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
 };
 
@@ -211,17 +208,17 @@ impl TestingEnv {
 
         assert_eq!(rewards_claimed.user, expected_user.as_address());
         assert_rel_eq(
-            rewards_claimed.rewards.0,
+            rewards_claimed.rewards.get_unchecked(0),
             float_to_uint(expected_a_reward, 7),
             1,
         );
         assert_rel_eq(
-            rewards_claimed.rewards.1,
+            rewards_claimed.rewards.get_unchecked(1),
             float_to_uint(expected_b_reward, 7),
             1,
         );
         assert_rel_eq(
-            rewards_claimed.rewards.2,
+            rewards_claimed.rewards.get_unchecked(2),
             float_to_uint(expected_c_reward, 7),
             1,
         );
@@ -262,13 +259,25 @@ impl TestingEnv {
         assert_eq!(withdraw.user, expected_user.as_address());
         assert_eq!(withdraw.lp_amount, float_to_uint_sp(lp_amount));
 
-        assert_rel_eq(withdraw.amounts.0, float_to_uint_sp(a_amount), 1);
-        assert_rel_eq(withdraw.amounts.1, float_to_uint_sp(b_amount), 1);
-        assert_rel_eq(withdraw.amounts.2, float_to_uint_sp(c_amount), 1);
+        assert_rel_eq(
+            withdraw.amounts.get_unchecked(0),
+            float_to_uint_sp(a_amount),
+            1,
+        );
+        assert_rel_eq(
+            withdraw.amounts.get_unchecked(1),
+            float_to_uint_sp(b_amount),
+            1,
+        );
+        assert_rel_eq(
+            withdraw.amounts.get_unchecked(2),
+            float_to_uint_sp(c_amount),
+            1,
+        );
 
-        assert_rel_eq(withdraw.fees.0, float_to_uint(a_fee, 7), 1);
-        assert_rel_eq(withdraw.fees.1, float_to_uint(b_fee, 7), 1);
-        assert_rel_eq(withdraw.fees.2, float_to_uint(c_fee, 7), 1);
+        assert_rel_eq(withdraw.fees.get_unchecked(0), float_to_uint(a_fee, 7), 1);
+        assert_rel_eq(withdraw.fees.get_unchecked(1), float_to_uint(b_fee, 7), 1);
+        assert_rel_eq(withdraw.fees.get_unchecked(2), float_to_uint(c_fee, 7), 1);
     }
 
     pub fn assert_deposit_event(
@@ -280,9 +289,9 @@ impl TestingEnv {
         let deposit = get_latest_event::<Deposit>(&self.env).expect("Expected Deposit");
 
         assert_eq!(deposit.user, expected_user.as_address());
-        assert_eq!(deposit.amounts.0, float_to_uint(token_a, 7));
-        assert_eq!(deposit.amounts.1, float_to_uint(token_b, 7));
-        assert_eq!(deposit.amounts.2, float_to_uint(token_c, 7));
+        assert_eq!(deposit.amounts.get_unchecked(0), float_to_uint(token_a, 7));
+        assert_eq!(deposit.amounts.get_unchecked(1), float_to_uint(token_b, 7));
+        assert_eq!(deposit.amounts.get_unchecked(2), float_to_uint(token_c, 7));
         assert_eq!(float_to_uint_sp(expected_lp_amount), deposit.lp_amount);
     }
 

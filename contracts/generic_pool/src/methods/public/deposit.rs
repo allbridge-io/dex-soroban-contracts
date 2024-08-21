@@ -2,8 +2,8 @@ use shared::{Error, Event};
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    common::Pool,
-    events::{DepositEvent, RewardsClaimedEvent},
+    pool::Pool,
+    events::{Deposit, RewardsClaimed},
     storage::{sized_array::SizedU128Array, user_deposit::UserDeposit},
 };
 
@@ -29,10 +29,19 @@ pub fn deposit<const N: usize, P: Pool<N>>(
     pool.save(&env);
     user_deposit.save(&env, sender.clone());
 
-    P::Deposit::create(sender.clone(), lp_amount, amounts).publish(&env);
+    Deposit {
+        user: sender.clone(),
+        lp_amount,
+        amounts: amounts.get_inner(),
+    }
+    .publish(&env);
 
     if rewards.iter().sum::<u128>() != 0 {
-        P::RewardsClaimed::create(sender, rewards).publish(&env);
+        RewardsClaimed {
+            user: sender,
+            rewards: rewards.get_inner(),
+        }
+        .publish(&env);
     }
 
     Ok(())

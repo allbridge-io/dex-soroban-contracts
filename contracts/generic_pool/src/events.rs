@@ -1,7 +1,5 @@
-use shared::Event;
-use soroban_sdk::{contracttype, Address};
+use soroban_sdk::{contracttype, Address, Vec};
 
-use crate::storage::sized_array::SizedU128Array;
 use proc_macros::Event;
 
 #[derive(Event)]
@@ -19,17 +17,32 @@ pub struct Swapped {
     pub fee: u128,
 }
 
-pub trait DepositEvent: Event {
-    fn create(user: Address, lp_amount: u128, amounts: SizedU128Array) -> Self;
+#[derive(Event)]
+#[contracttype]
+pub struct Deposit {
+    pub user: Address,
+    // system precision
+    pub lp_amount: u128,
+    // token precision
+    pub amounts: Vec<u128>,
 }
-pub trait WithdrawEvent: Event {
-    fn create(
-        user: Address,
-        lp_amount: u128,
-        amounts: SizedU128Array,
-        fees: SizedU128Array,
-    ) -> Self;
+
+#[derive(Event)]
+#[contracttype]
+pub struct Withdraw {
+    pub user: Address,
+    // system precision
+    pub lp_amount: u128,
+    // system precision
+    pub amounts: Vec<u128>,
+    // token precision
+    pub fees: Vec<u128>,
 }
-pub trait RewardsClaimedEvent: Event {
-    fn create(user: Address, rewards: SizedU128Array) -> Self;
+
+#[derive(Event)]
+#[contracttype]
+pub struct RewardsClaimed {
+    pub user: Address,
+    // token precision
+    pub rewards: Vec<u128>,
 }

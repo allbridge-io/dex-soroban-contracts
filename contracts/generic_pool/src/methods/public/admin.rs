@@ -2,7 +2,7 @@ use shared::{require, soroban_data::SimpleSorobanData, Error};
 use soroban_sdk::{Address, Env};
 use storage::Admin;
 
-use crate::common::Pool;
+use crate::pool::Pool;
 
 pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
     Admin::require_exist_auth(&env)?;
