@@ -20,6 +20,7 @@ impl ThreePoolToken {
     }
 
     pub fn create(env: &Env, admin: &Address, pool_token: ThreeToken, tag: &str) -> ThreePoolToken {
+        #[allow(deprecated)]
         let id = env.register_stellar_asset_contract(admin.clone());
         let client = token::Client::new(env, &id);
         let asset_client = token::StellarAssetClient::new(env, &id);

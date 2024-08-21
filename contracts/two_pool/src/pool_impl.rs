@@ -6,7 +6,7 @@ use shared::{
 };
 use soroban_sdk::{Address, Env};
 
-use crate::{
+use generic_pool::{
     pool::{Pool, PoolMath, PoolStorage, ReceiveAmount, WithdrawAmount},
     storage::{
         sized_array::{SizedAddressArray, SizedDecimalsArray, SizedU128Array},

@@ -3,16 +3,16 @@ resolver = "2"
 members = ["contracts/*", "common/*", "tests"]
 
 [workspace.dependencies]
-soroban-sdk = "20.5.0"
-soroban-env-common = "20.3.0"
+soroban-sdk = "21.6"
+soroban-env-common = "21.2"
 ethnum = "1.5"
-arrayref = "0.3.7"
-paste = "1.0"
+arrayref = "0.3"
+# paste = "1.0"
 shared = { path = "./common/shared" }
 proc_macros = { path = "./common/proc_macros" }
 storage = { path = "./common/storage" }
 tests = { path = "./tests" }
-generic_pool = { path = "./contracts/generic_pool" }
+generic_pool = { path = "./common/generic_pool" }
 
 [profile.release]
 opt-level = "z"

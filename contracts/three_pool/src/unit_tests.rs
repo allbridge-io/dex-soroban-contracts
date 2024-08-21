@@ -6,11 +6,12 @@ mod tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::{
-        pool::PoolMath, storage::sized_array::SizedU128Array, three_pool::pool::ThreePool,
+    use generic_pool::{
+        pool::{Pool, PoolMath},
+        storage::sized_array::SizedU128Array,
     };
 
-    use crate::pool::Pool;
+    use crate::pool::ThreePool;
 
     #[contract]
     pub struct TestPool;
@@ -93,11 +94,12 @@ mod view_tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::{
+    use generic_pool::{
         pool::{Pool, PoolMath},
         storage::sized_array::SizedU128Array,
-        three_pool::{pool::ThreePool, token::ThreeToken},
     };
+
+    use crate::{pool::ThreePool, token::ThreeToken};
 
     #[contract]
     pub struct TestPool;

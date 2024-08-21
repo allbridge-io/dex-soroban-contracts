@@ -19,6 +19,7 @@ impl TwoPoolToken {
     }
 
     pub fn create(env: &Env, admin: &Address) -> TwoPoolToken {
+        #[allow(deprecated)]
         let id = env.register_stellar_asset_contract(admin.clone());
         let client = token::Client::new(env, &id);
         let asset_client = token::StellarAssetClient::new(env, &id);

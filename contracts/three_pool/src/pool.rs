@@ -1,7 +1,7 @@
 use proc_macros::{extend_ttl_info_instance, Instance, SorobanData, SorobanSimpleData, SymbolKey};
 use soroban_sdk::contracttype;
 
-use crate::{pool::PoolStorage, storage::sized_array::*};
+use generic_pool::{pool::PoolStorage, storage::sized_array::*};
 
 #[contracttype]
 #[derive(Debug, Clone, SorobanData, SorobanSimpleData, SymbolKey, Instance)]

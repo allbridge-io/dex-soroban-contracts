@@ -7,10 +7,10 @@ mod view_tests {
     use shared::{soroban_data::SimpleSorobanData, Error};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
-    use crate::{
+    use crate::{pool::TwoPool, token::TwoToken};
+    use generic_pool::{
         pool::{Pool, PoolMath},
         storage::sized_array::SizedU128Array,
-        two_pool::{pool::TwoPool, token::TwoToken},
     };
 
     #[contract]

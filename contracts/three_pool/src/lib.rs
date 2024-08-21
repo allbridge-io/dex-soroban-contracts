@@ -1,15 +1,21 @@
 #![no_std]
 
+mod pool;
+mod pool_impl;
+mod token;
+mod unit_tests;
+
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
 
 use generic_pool::{
     methods::{public::*, view::*},
     pool::WithdrawAmountView,
     storage::user_deposit::UserDeposit,
-    three_pool::{pool::ThreePool, token::ThreeToken},
 };
 use shared::{utils::extend_ttl_instance, Error};
 use storage::Admin;
+
+use crate::{pool::ThreePool, token::ThreeToken};
 
 const SIZE: usize = 3;
 
