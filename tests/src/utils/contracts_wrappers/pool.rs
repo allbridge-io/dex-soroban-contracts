@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, Vec};
 
 use super::User;
 use crate::{
@@ -60,10 +60,18 @@ impl Pool {
         assert_eq!(pool_info.admin_fee_share_bp, expected_admin_fee_share_bp);
 
         assert_eq!(pool_info.total_lp_amount, 0);
-        // TODO: fix
-        // assert_eq!(pool_info.token_balances.data, (0, 0));
-        // assert_eq!(pool_info.acc_rewards_per_share_p.data, (0, 0));
-        // assert_eq!(pool_info.admin_fee_amount.data, (0, 0));
+        assert_eq!(
+            pool_info.token_balances.data,
+            Vec::from_array(&self.env, [0, 0])
+        );
+        assert_eq!(
+            pool_info.acc_rewards_per_share_p.data,
+            Vec::from_array(&self.env, [0, 0])
+        );
+        assert_eq!(
+            pool_info.admin_fee_amount.data,
+            Vec::from_array(&self.env, [0, 0])
+        );
     }
 
     pub fn total_lp(&self) -> u128 {
