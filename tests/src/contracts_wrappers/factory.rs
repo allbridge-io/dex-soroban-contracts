@@ -1,4 +1,4 @@
-use soroban_sdk::{vec, Address, BytesN, Env};
+use soroban_sdk::{vec, Address, BytesN, Env, Vec};
 
 use crate::{
     contracts::{factory, pool, three_pool},
@@ -27,12 +27,11 @@ impl PoolFactory {
         }
     }
 
-    pub fn create_pool(
+    pub fn create_pool<const N: usize>(
         &self,
         admin: &Address,
         a: u128,
-        token_a: &Address,
-        token_b: &Address,
+        tokens: [Address; N],
         fee_share_bp: u128,
         admin_fee: u128,
     ) -> Address {
@@ -42,17 +41,47 @@ impl PoolFactory {
                 admin,
                 admin,
                 &a,
-                &soroban_sdk::vec![&self.env, token_a.clone(), token_b.clone()],
+                &Vec::from_array(&self.env, tokens),
                 &fee_share_bp,
                 &admin_fee,
             )),
         )
     }
 
-    pub fn update_wasm_hash(&self, new_wasm_hash: &BytesN<32>) {
+    pub fn create_three_pool(
+        &self,
+        admin: &Address,
+        a: u128,
+        token_a: &Address,
+        token_b: &Address,
+        token_c: &Address,
+        fee_share_bp: u128,
+        admin_fee: u128,
+    ) -> Address {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_create_pool(
+                admin,
+                admin,
+                &a,
+                &vec![&self.env, token_a.clone(), token_b.clone(), token_c.clone()],
+                &fee_share_bp,
+                &admin_fee,
+            )),
+        )
+    }
+
+    pub fn update_two_wasm_hash(&self, new_wasm_hash: &BytesN<32>) {
         unwrap_call_result(
             &self.env,
             desoroban_result(self.client.try_update_two_pool_wasm_hash(new_wasm_hash)),
+        );
+    }
+
+    pub fn update_three_wasm_hash(&self, new_wasm_hash: &BytesN<32>) {
+        unwrap_call_result(
+            &self.env,
+            desoroban_result(self.client.try_update_three_pool_wasm_hash(new_wasm_hash)),
         );
     }
 
@@ -63,14 +92,10 @@ impl PoolFactory {
         );
     }
 
-    pub fn pool(&self, token_a: &Address, token_b: &Address) -> Address {
+    pub fn pool<const N: usize>(&self, tokens: [Address; N]) -> Address {
         unwrap_call_result(
             &self.env,
-            desoroban_result(self.client.try_pool(&vec![
-                &self.env,
-                token_a.clone(),
-                token_b.clone(),
-            ])),
+            desoroban_result(self.client.try_pool(&Vec::from_array(&self.env, tokens))),
         )
     }
 }

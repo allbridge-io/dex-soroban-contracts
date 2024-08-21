@@ -14,9 +14,10 @@ use soroban_sdk::{
 
 use soroban_sdk::xdr::ScAddress;
 
-// use crate::contracts::pool::Direction;
-
 pub const SYSTEM_PRECISION: u32 = 3;
+
+pub const TRIPLE_ZERO: (f64, f64, f64) = (0.0, 0.0, 0.0);
+pub const DOUBLE_ZERO: (f64, f64) = (0.0, 0.0);
 
 pub fn error_code_to_error(v: u32) -> shared::Error {
     // don't try this at home

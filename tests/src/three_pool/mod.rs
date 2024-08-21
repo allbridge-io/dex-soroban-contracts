@@ -4,11 +4,19 @@ pub mod deposit;
 pub mod swap;
 pub mod withdraw;
 
+mod three_pool_snapshot;
+mod three_pool_testing_env;
+
+pub use three_pool_snapshot::*;
+pub use three_pool_testing_env::*;
+
+#[cfg(test)]
 pub struct DepositArgs {
     amounts: (f64, f64, f64),
     min_lp: f64,
 }
 
+#[cfg(test)]
 pub struct DoWithdrawArgs {
     amount: f64,
     expected_amounts: (f64, f64, f64),

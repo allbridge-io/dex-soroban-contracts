@@ -2,8 +2,8 @@ use clap::Parser;
 use clap_derive::Parser;
 use csv::Writer;
 use std::fmt::Display;
-use tests::fuzzing::fuzz_target_operation::{ActionPoolChange, FuzzTargetOperation};
-use tests::utils::{TestingEnv, TestingEnvConfig};
+use tests::fuzzing::two_fuzz_target_operation::{ActionPoolChange, FuzzTargetOperation};
+use tests::two_pool::{TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -58,8 +58,9 @@ fn main() {
 
     let operations = FuzzTargetOperation::generate_run(run_len);
 
-    let testing_env =
-        TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0));
+    let testing_env = TwoPoolTestingEnv::create(
+        TwoPoolTestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
+    );
 
     let mut run_result = RunResult::default();
 

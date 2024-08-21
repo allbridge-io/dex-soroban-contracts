@@ -4,7 +4,9 @@ use rand_derive2::RandGen;
 use serde_derive::Serialize;
 use std::fmt::Display;
 
-use crate::three_pool_utils::{CallResult, TestingEnv, Token, User};
+use crate::contracts_wrappers::{ThreePoolToken, User};
+use crate::three_pool::ThreePoolTestingEnv;
+use crate::utils::CallResult;
 
 #[derive(Debug, Clone, Default)]
 pub struct Action {
@@ -43,7 +45,10 @@ pub enum SwapDirection {
 }
 
 impl SwapDirection {
-    pub fn get_token_pair<'a>(&self, testing_env: &'a TestingEnv) -> (&'a Token, &'a Token) {
+    pub fn get_token_pair<'a>(
+        &self,
+        testing_env: &'a ThreePoolTestingEnv,
+    ) -> (&'a ThreePoolToken, &'a ThreePoolToken) {
         match self {
             SwapDirection::A2B => (&testing_env.token_a, &testing_env.token_b),
             SwapDirection::A2C => (&testing_env.token_a, &testing_env.token_c),
@@ -62,7 +67,7 @@ pub enum UserID {
 }
 
 impl UserID {
-    pub fn get_user<'a>(&self, testing_env: &'a TestingEnv) -> &'a User {
+    pub fn get_user<'a>(&self, testing_env: &'a ThreePoolTestingEnv) -> &'a User {
         match self {
             UserID::Alice => &testing_env.alice,
             UserID::Bob => &testing_env.bob,
@@ -141,7 +146,7 @@ impl FuzzTargetOperation {
         (&mut rng).sample_iter(Standard).take(len).collect()
     }
 
-    pub fn execute(&self, testing_env: &TestingEnv) -> CallResult {
+    pub fn execute(&self, testing_env: &ThreePoolTestingEnv) -> CallResult {
         match self {
             FuzzTargetOperation::Swap {
                 direction,

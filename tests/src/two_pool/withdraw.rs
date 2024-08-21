@@ -1,8 +1,11 @@
+#![cfg(test)]
+
 use test_case::test_case;
 
 use crate::{
     contracts::pool::TwoToken as Token,
-    utils::{assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
+    two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv, TwoPoolTestingEnvConfig},
+    utils::{assert_rel_eq, float_to_uint, DOUBLE_ZERO},
 };
 
 use super::{DepositArgs, DoWithdrawArgs};
@@ -10,8 +13,8 @@ use super::{DepositArgs, DoWithdrawArgs};
 #[test]
 #[should_panic = "DexContract(NotEnoughAmount)"]
 fn withdraw_full_and_try_again() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
+    let testing_env = TwoPoolTestingEnv::default();
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ..
@@ -25,42 +28,46 @@ fn withdraw_full_and_try_again() {
 #[test]
 #[should_panic = "DexContract(ZeroChanges)"]
 fn withdraw_zero_change() {
-    let testing_env = TestingEnv::default();
+    let testing_env = TwoPoolTestingEnv::default();
     testing_env.pool.withdraw(&testing_env.alice, 0.0);
 }
 
 #[test_case(
-    TestingEnvConfig::default(),
+    TwoPoolTestingEnvConfig::default(),
     DepositArgs { amounts: (4_000.0, 5_000.0), min_lp: 8_999.0 },
     DoWithdrawArgs { amount: 8999.942, expected_amounts: (4_478.442, 4_521.503), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 8_999.942, expected_admin_fee: DOUBLE_ZERO }
     ; "base_withdraw"
 )]
 #[test_case(
-    TestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
+    TwoPoolTestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
     DepositArgs { amounts: (4_000.0, 5_000.0), min_lp: 8_999.0 },
     DoWithdrawArgs { amount: 8999.942, expected_amounts: (4_473.963, 4_516.981), expected_fee: (4.478_442, 4.521_503), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 8_999.942, expected_admin_fee: (0.895_688_4, 0.904_300_6) }
     ; "withdraw_with_fee"
 )]
 #[test_case(
-    TestingEnvConfig::default(),
+    TwoPoolTestingEnvConfig::default(),
     DepositArgs { amounts: (15_000.0, 25_000.0), min_lp: 39_950.0 },
     DoWithdrawArgs { amount: 0.002, expected_amounts: (0.002, 0.001), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.002, expected_admin_fee: DOUBLE_ZERO }
     ; "smallest_withdraw"
 )]
 #[test_case(
-    TestingEnvConfig::default().with_pool_fee_share(0.1),
+    TwoPoolTestingEnvConfig::default().with_pool_fee_share(0.1),
     DepositArgs { amounts: (15_000.0, 25_000.0), min_lp: 39_950.0 },
     DoWithdrawArgs { amount: 0.004, expected_amounts: (0.002, 0.001), expected_fee: (0.000_003, 0.000_002), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: DOUBLE_ZERO }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
-    TestingEnvConfig::default(),
+    TwoPoolTestingEnvConfig::default(),
     DepositArgs { amounts: (50_000_000.0, 5_000.0), min_lp: 31_250_000.0 },
     DoWithdrawArgs { amount: 31_492_001.072, expected_amounts: (49_783_831.892, 104_337.373), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 31_492_001.072, expected_admin_fee: DOUBLE_ZERO }
     ; "withdraw_disbalance"
 )]
-fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_args: DoWithdrawArgs) {
-    let testing_env = TestingEnv::create(config);
+fn withdraw(
+    config: TwoPoolTestingEnvConfig,
+    deposit_args: DepositArgs,
+    do_withdraw_args: DoWithdrawArgs,
+) {
+    let testing_env = TwoPoolTestingEnv::create(config);
     testing_env.pool.deposit(
         &testing_env.alice,
         deposit_args.amounts,
@@ -79,8 +86,9 @@ fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_arg
 
 #[test]
 fn withdraw_with_rewards() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
+    let testing_env =
+        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -112,8 +120,8 @@ fn withdraw_with_rewards() {
 
 #[test]
 fn withdraw_multiply_times() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
+    let testing_env = TwoPoolTestingEnv::default();
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ..
@@ -125,14 +133,14 @@ fn withdraw_multiply_times() {
     pool.deposit(alice, deposit, 8_999.0);
     let total_alice_lp_amount = pool.user_lp_amount_f64(alice);
     let alice_lp_amount = total_alice_lp_amount / n as f64;
-    let snapshot_before = Snapshot::take(&testing_env);
+    let snapshot_before = TwoPoolSnapshot::take(&testing_env);
     let alice_balance_before = snapshot_before.get_user_balances_sum(alice);
 
     for _ in 0..n {
         pool.withdraw(alice, alice_lp_amount);
     }
 
-    let snapshot_after = Snapshot::take(&testing_env);
+    let snapshot_after = TwoPoolSnapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
     let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
@@ -145,8 +153,9 @@ fn withdraw_multiply_times() {
 // Alice should withdraw more than she deposited
 #[test]
 fn withdraw_alice_profit_and_bob_loss() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
+    let testing_env =
+        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -165,9 +174,9 @@ fn withdraw_alice_profit_and_bob_loss() {
 
     pool.deposit(alice, deposit, 99_950.0);
 
-    let snapshot_before_swap = Snapshot::take(&testing_env);
+    let snapshot_before_swap = TwoPoolSnapshot::take(&testing_env);
     pool.swap(bob, bob, swap_amount, 98336.0, Token::A, Token::B);
-    let snapshot_after_swap = Snapshot::take(&testing_env);
+    let snapshot_after_swap = TwoPoolSnapshot::take(&testing_env);
 
     let (snapshot_before, snapshot_after) = testing_env.do_withdraw(
         alice,
@@ -196,8 +205,9 @@ fn withdraw_alice_profit_and_bob_loss() {
 // Alice should get less, Bob profit, should be less than Alice loss
 #[test]
 fn withdraw_alice_loss_and_bob_profit() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
+    let testing_env =
+        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -214,12 +224,12 @@ fn withdraw_alice_loss_and_bob_profit() {
     let expected_bob_profit = 1_505.050_343;
     let expected_fee = (98.796_609, 99.596_695);
 
-    let snapshot_before_deposit = Snapshot::take(&testing_env);
+    let snapshot_before_deposit = TwoPoolSnapshot::take(&testing_env);
     pool.deposit(alice, deposit, 198_000.0);
 
-    let snapshot_before_swap = Snapshot::take(&testing_env);
+    let snapshot_before_swap = TwoPoolSnapshot::take(&testing_env);
     pool.swap(bob, bob, swap_amount, 100_000.0, Token::B, Token::A);
-    let snapshot_after_swap = Snapshot::take(&testing_env);
+    let snapshot_after_swap = TwoPoolSnapshot::take(&testing_env);
 
     let (_, snapshot_after) = testing_env.do_withdraw(
         alice,

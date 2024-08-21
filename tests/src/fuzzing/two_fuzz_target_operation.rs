@@ -1,11 +1,15 @@
-use rand::distributions::{Distribution, Standard};
-use rand::Rng;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 use rand_derive2::RandGen;
 use serde_derive::Serialize;
 use std::fmt::Display;
 
-use crate::contracts::pool::TwoToken;
-use crate::utils::{CallResult, TestingEnv, User};
+use crate::{
+    contracts::pool::TwoToken, contracts_wrappers::User, two_pool::TwoPoolTestingEnv,
+    utils::CallResult,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct Action {
@@ -55,7 +59,7 @@ pub enum UserID {
 }
 
 impl UserID {
-    pub fn get_user<'a>(&self, testing_env: &'a TestingEnv) -> &'a User {
+    pub fn get_user<'a>(&self, testing_env: &'a TwoPoolTestingEnv) -> &'a User {
         match self {
             UserID::Alice => &testing_env.alice,
             UserID::Bob => &testing_env.bob,
@@ -132,7 +136,7 @@ impl FuzzTargetOperation {
         (&mut rng).sample_iter(Standard).take(len).collect()
     }
 
-    pub fn execute(&self, testing_env: &TestingEnv) -> CallResult {
+    pub fn execute(&self, testing_env: &TwoPoolTestingEnv) -> CallResult {
         match self {
             FuzzTargetOperation::Swap {
                 direction,

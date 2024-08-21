@@ -2,23 +2,24 @@ use soroban_sdk::{Address, Env, Vec};
 
 use super::User;
 use crate::{
-    contracts::pool::{self, TwoToken, UserDeposit},
+    contracts::three_pool::{self, UserDeposit},
+    contracts_wrappers::ThreePoolToken,
     utils::{
         desoroban_result, float_to_uint, float_to_uint_sp, percentage_to_bp, uint_to_float_sp,
         unwrap_call_result, CallResult,
     },
 };
 
-pub struct Pool {
+pub struct ThreePool {
     pub id: soroban_sdk::Address,
-    pub client: pool::Client<'static>,
+    pub client: three_pool::Client<'static>,
     pub env: Env,
 }
 
-impl Pool {
-    pub fn new(env: &Env, id: Address) -> Pool {
-        let client = pool::Client::new(env, &id);
-        Pool {
+impl ThreePool {
+    pub fn new(env: &Env, id: Address) -> ThreePool {
+        let client = three_pool::Client::new(env, &id);
+        ThreePool {
             id,
             client,
             env: env.clone(),
@@ -28,11 +29,14 @@ impl Pool {
     pub fn receive_amount(
         &self,
         amount: f64,
-        from_token: TwoToken,
-        to_token: TwoToken,
+        token_from: &ThreePoolToken,
+        token_to: &ThreePoolToken,
     ) -> (u128, u128) {
-        self.client
-            .get_receive_amount(&float_to_uint(amount, 7), &from_token, &to_token)
+        self.client.get_receive_amount(
+            &float_to_uint(amount, 7),
+            &token_from.pool_token,
+            &token_to.pool_token,
+        )
     }
 
     pub fn assert_total_lp_less_or_equal_d(&self) {
@@ -62,15 +66,15 @@ impl Pool {
         assert_eq!(pool_info.total_lp_amount, 0);
         assert_eq!(
             pool_info.token_balances.0,
-            Vec::from_array(&self.env, [0, 0])
+            Vec::from_array(&self.env, [0, 0, 0])
         );
         assert_eq!(
             pool_info.acc_rewards_per_share_p.0,
-            Vec::from_array(&self.env, [0, 0])
+            Vec::from_array(&self.env, [0, 0, 0])
         );
         assert_eq!(
             pool_info.admin_fee_amount.0,
-            Vec::from_array(&self.env, [0, 0])
+            Vec::from_array(&self.env, [0, 0, 0])
         );
     }
 
@@ -147,11 +151,10 @@ impl Pool {
         unwrap_call_result(&self.env, self.withdraw_checked(user, withdraw_amount));
     }
 
-    /// (yusd, yaro)
     pub fn deposit_with_address_checked(
         &self,
         user: &Address,
-        deposit_amounts: (f64, f64),
+        deposit_amounts: (f64, f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
         desoroban_result(self.client.try_deposit(
@@ -159,16 +162,16 @@ impl Pool {
             &(
                 float_to_uint(deposit_amounts.0, 7),
                 float_to_uint(deposit_amounts.1, 7),
+                float_to_uint(deposit_amounts.2, 7),
             ),
             &float_to_uint_sp(min_lp_amount),
         ))
     }
 
-    /// (yusd, yaro)
     pub fn deposit_with_address(
         &self,
         user: &Address,
-        deposit_amounts: (f64, f64),
+        deposit_amounts: (f64, f64, f64),
         min_lp_amount: f64,
     ) {
         unwrap_call_result(
@@ -177,18 +180,16 @@ impl Pool {
         );
     }
 
-    /// (yusd, yaro)
     pub fn deposit_checked(
         &self,
         user: &User,
-        deposit_amounts: (f64, f64),
+        deposit_amounts: (f64, f64, f64),
         min_lp_amount: f64,
     ) -> CallResult {
         self.deposit_with_address_checked(&user.as_address(), deposit_amounts, min_lp_amount)
     }
 
-    /// (yusd, yaro)
-    pub fn deposit(&self, user: &User, deposit_amounts: (f64, f64), min_lp_amount: f64) {
+    pub fn deposit(&self, user: &User, deposit_amounts: (f64, f64, f64), min_lp_amount: f64) {
         self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
     }
 
@@ -198,16 +199,16 @@ impl Pool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: &TwoToken,
-        token_to: &TwoToken,
+        token_from: &ThreePoolToken,
+        token_to: &ThreePoolToken,
     ) -> CallResult<u128> {
         desoroban_result(self.client.try_swap(
             &sender.as_address(),
             &recipient.as_address(),
             &float_to_uint(amount, 7),
             &float_to_uint(receive_amount_min, 7),
-            token_from,
-            token_to,
+            &token_from.pool_token,
+            &token_to.pool_token,
         ))
     }
 
@@ -217,8 +218,8 @@ impl Pool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: TwoToken,
-        token_to: TwoToken,
+        token_from: &ThreePoolToken,
+        token_to: &ThreePoolToken,
     ) {
         unwrap_call_result(
             &self.env,
@@ -227,8 +228,8 @@ impl Pool {
                 recipient,
                 amount,
                 receive_amount_min,
-                &token_from,
-                &token_to,
+                token_from,
+                token_to,
             ),
         );
     }

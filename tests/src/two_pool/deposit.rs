@@ -1,14 +1,14 @@
+#![cfg(test)]
+
 use test_case::test_case;
 
-use crate::{
-    contracts::pool::TwoToken as Token,
-    utils::{Snapshot, TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
-};
+use crate::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
+use crate::{contracts::pool::TwoToken as Token, utils::DOUBLE_ZERO};
 
 #[test]
 #[should_panic = "DexContract(ZeroAmount)"]
 fn deposit_zero_amount() {
-    let testing_env = TestingEnv::default();
+    let testing_env = TwoPoolTestingEnv::default();
     testing_env
         .pool
         .deposit(&testing_env.alice, (0.0, 0.0), 0.0);
@@ -17,7 +17,7 @@ fn deposit_zero_amount() {
 #[test]
 #[should_panic = "DexContract(Slippage)"]
 fn deposit_slippage() {
-    let testing_env = TestingEnv::default();
+    let testing_env = TwoPoolTestingEnv::default();
     testing_env
         .pool
         .deposit(&testing_env.alice, (100.0, 0.0), 100.0);
@@ -26,8 +26,8 @@ fn deposit_slippage() {
 #[test]
 #[should_panic = "DexContract(PoolOverflow)"]
 fn deposit_with_overflow() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
+    let testing_env = TwoPoolTestingEnv::default();
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref yaro_token,
@@ -44,7 +44,8 @@ fn deposit_with_overflow() {
 #[test]
 #[should_panic = "DexContract(InvalidFirstDeposit)"]
 fn deposit_invalid_first_deposit() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
+    let testing_env =
+        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_admin_init_deposit(0.0));
     testing_env
         .pool
         .deposit(&testing_env.alice, (100.0, 25.0), 0.0);
@@ -56,14 +57,14 @@ fn deposit_invalid_first_deposit() {
 #[test_case((100.0, 0.0), DOUBLE_ZERO, 99.998 ; "deposit_only_yusd")]
 #[test_case((0.0, 100.0), DOUBLE_ZERO, 99.998 ; "deposit_only_yaro")]
 fn deposit(deposit: (f64, f64), expected_rewards: (f64, f64), expected_lp: f64) {
-    let testing_env = TestingEnv::default();
+    let testing_env = TwoPoolTestingEnv::default();
     testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
 }
 
 #[test]
 fn deposit_twice_in_different_tokens() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
+    let testing_env = TwoPoolTestingEnv::default();
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ..
@@ -71,10 +72,10 @@ fn deposit_twice_in_different_tokens() {
 
     let expected_lp_amount = 200.0;
 
-    let snapshot_before = Snapshot::take(&testing_env);
+    let snapshot_before = TwoPoolSnapshot::take(&testing_env);
     pool.deposit(alice, (100.0, 0.0), 99.0);
     pool.deposit(alice, (0.0, 100.0), 99.0);
-    let snapshot_after = Snapshot::take(&testing_env);
+    let snapshot_after = TwoPoolSnapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd, 100 yaro");
 
     testing_env.assert_deposit_without_event(
@@ -89,12 +90,12 @@ fn deposit_twice_in_different_tokens() {
 
 #[test]
 fn get_reward_after_second_deposit() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = TwoPoolTestingEnv::create(
+        TwoPoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,

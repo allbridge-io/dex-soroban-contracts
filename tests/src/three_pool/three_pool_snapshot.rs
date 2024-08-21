@@ -2,14 +2,14 @@ use std::{cmp::Ordering, ops::Index};
 
 use color_print::cformat;
 
-use super::{int_to_float, TestingEnv, User};
-use crate::{
-    contracts::three_pool::{ThreePool as PoolInfo, UserDeposit},
-    three_pool_utils::format_diff,
-};
+use crate::contracts::three_pool::{ThreePool as PoolInfo, UserDeposit};
+use crate::contracts_wrappers::User;
+use crate::utils::{format_diff, int_to_float};
+
+use super::ThreePoolTestingEnv;
 
 #[derive(Debug, Clone)]
-pub struct Snapshot {
+pub struct ThreePoolSnapshot {
     pub pool_info: PoolInfo,
 
     pub alice_a_balance: u128,
@@ -43,7 +43,7 @@ pub struct Snapshot {
     pub d: u128,
 }
 
-impl Index<&String> for Snapshot {
+impl Index<&String> for ThreePoolSnapshot {
     type Output = u128;
 
     fn index(&self, string: &String) -> &Self::Output {
@@ -51,7 +51,7 @@ impl Index<&String> for Snapshot {
     }
 }
 
-impl Index<&str> for Snapshot {
+impl Index<&str> for ThreePoolSnapshot {
     type Output = u128;
 
     fn index(&self, string: &str) -> &Self::Output {
@@ -90,7 +90,7 @@ impl Index<&str> for Snapshot {
     }
 }
 
-pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
+fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
     let float_diff = int_to_float(b as i128 - a as i128, decimals as i32);
 
     let float_diff = match b.partial_cmp(&a).unwrap() {
@@ -102,7 +102,7 @@ pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, 
     (format_diff(a, b), float_diff)
 }
 
-impl Snapshot {
+impl ThreePoolSnapshot {
     pub fn get_user_balances(&self, user: &User) -> (u128, u128, u128, u128) {
         (
             self[&format!("{}_a_balance", user.tag)],
@@ -123,7 +123,7 @@ impl Snapshot {
         alice_balances + bob_balances
     }
 
-    pub fn take(testing_env: &TestingEnv) -> Snapshot {
+    pub fn take(testing_env: &ThreePoolTestingEnv) -> ThreePoolSnapshot {
         let alice_address = testing_env.alice.as_address();
         let bob_address = testing_env.bob.as_address();
 
@@ -158,7 +158,7 @@ impl Snapshot {
         let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
         let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);
 
-        Snapshot {
+        ThreePoolSnapshot {
             d,
             pool_info,
             admin_a_balance,
@@ -185,7 +185,7 @@ impl Snapshot {
         }
     }
 
-    pub fn print_change_with(&self, other: &Snapshot, title: &str) {
+    pub fn print_change_with(&self, other: &ThreePoolSnapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
         let balances = [

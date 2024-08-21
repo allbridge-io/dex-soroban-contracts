@@ -1,10 +1,16 @@
-use crate::three_pool_utils::{TestingEnv, TestingEnvConfig, TRIPLE_ZERO};
+#![cfg(test)]
+
+use crate::{
+    three_pool::{ThreePoolTestingEnv, ThreePoolTestingEnvConfig},
+    utils::TRIPLE_ZERO,
+};
 
 #[test]
 #[should_panic(expected = "Context(InvalidAction)")]
 fn claim_admin_fee_no_auth() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_admin_fee(1.0));
-    let TestingEnv {
+    let testing_env =
+        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_admin_fee(1.0));
+    let ThreePoolTestingEnv {
         ref pool,
         ref bob,
         ref token_a,
@@ -20,12 +26,12 @@ fn claim_admin_fee_no_auth() {
 
 #[test]
 fn claim_admin_fee() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = ThreePoolTestingEnv::create(
+        ThreePoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_pool_admin_fee(1.0),
     );
-    let TestingEnv {
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -48,12 +54,12 @@ fn claim_admin_fee() {
 
 #[test]
 fn claim_rewards() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = ThreePoolTestingEnv::create(
+        ThreePoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -75,13 +81,13 @@ fn claim_rewards() {
 
 #[test]
 fn user_and_admin_claim_rewards() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = ThreePoolTestingEnv::create(
+        ThreePoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_pool_admin_fee(20.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -106,12 +112,12 @@ fn user_and_admin_claim_rewards() {
 
 #[test]
 fn get_rewards_after_second_claim() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = ThreePoolTestingEnv::create(
+        ThreePoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,

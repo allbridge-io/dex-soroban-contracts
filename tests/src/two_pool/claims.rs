@@ -1,13 +1,14 @@
-use crate::{
-    contracts::pool::TwoToken as Token,
-    utils::{TestingEnv, TestingEnvConfig, DOUBLE_ZERO},
-};
+#![cfg(test)]
+
+use crate::two_pool::{TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
+use crate::{contracts::pool::TwoToken as Token, utils::DOUBLE_ZERO};
 
 #[test]
 #[should_panic(expected = "Context(InvalidAction)")]
 fn claim_admin_fee_no_auth() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_admin_fee(1.0));
-    let TestingEnv {
+    let testing_env =
+        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_pool_admin_fee(1.0));
+    let TwoPoolTestingEnv {
         ref pool, ref bob, ..
     } = testing_env;
 
@@ -19,12 +20,12 @@ fn claim_admin_fee_no_auth() {
 
 #[test]
 fn claim_admin_fee() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = TwoPoolTestingEnv::create(
+        TwoPoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_pool_admin_fee(1.0),
     );
-    let TestingEnv {
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -43,12 +44,12 @@ fn claim_admin_fee() {
 
 #[test]
 fn claim_rewards() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = TwoPoolTestingEnv::create(
+        TwoPoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -66,13 +67,13 @@ fn claim_rewards() {
 
 #[test]
 fn user_and_admin_claim_rewards() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = TwoPoolTestingEnv::create(
+        TwoPoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_pool_admin_fee(20.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -94,12 +95,12 @@ fn user_and_admin_claim_rewards() {
 
 #[test]
 fn get_rewards_after_second_claim() {
-    let testing_env = TestingEnv::create(
-        TestingEnvConfig::default()
+    let testing_env = TwoPoolTestingEnv::create(
+        TwoPoolTestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
-    let TestingEnv {
+    let TwoPoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,

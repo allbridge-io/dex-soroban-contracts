@@ -1,16 +1,13 @@
 pub mod contracts;
-pub mod three_pool_utils;
 pub mod utils;
 
-#[cfg(test)]
-mod factory;
+pub mod contracts_wrappers;
 
-#[cfg(test)]
-mod pool;
+mod factory_two_pool;
+
+pub mod two_pool;
 
 pub mod fuzzing;
 
 pub mod factory_three_pool;
-#[cfg(test)]
-mod three_pool;
-pub mod three_pool_fuzzing;
+pub mod three_pool;

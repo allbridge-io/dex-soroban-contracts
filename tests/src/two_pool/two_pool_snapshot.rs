@@ -2,14 +2,15 @@ use std::{cmp::Ordering, ops::Index};
 
 use color_print::cformat;
 
-use super::{int_to_float, TestingEnv, User};
+use super::TwoPoolTestingEnv;
 use crate::{
     contracts::pool::{TwoPool as PoolInfo, UserDeposit},
-    utils::format_diff,
+    contracts_wrappers::User,
+    utils::{format_diff, int_to_float},
 };
 
 #[derive(Debug, Clone)]
-pub struct Snapshot {
+pub struct TwoPoolSnapshot {
     pub pool_info: PoolInfo,
 
     pub alice_yaro_balance: u128,
@@ -37,7 +38,7 @@ pub struct Snapshot {
     pub d: u128,
 }
 
-impl Index<&String> for Snapshot {
+impl Index<&String> for TwoPoolSnapshot {
     type Output = u128;
 
     fn index(&self, string: &String) -> &Self::Output {
@@ -45,7 +46,7 @@ impl Index<&String> for Snapshot {
     }
 }
 
-impl Index<&str> for Snapshot {
+impl Index<&str> for TwoPoolSnapshot {
     type Output = u128;
 
     fn index(&self, string: &str) -> &Self::Output {
@@ -78,7 +79,7 @@ impl Index<&str> for Snapshot {
     }
 }
 
-pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
+fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
     let float_diff = int_to_float(b as i128 - a as i128, decimals as i32);
 
     let float_diff = match b.partial_cmp(&a).unwrap() {
@@ -90,7 +91,7 @@ pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, 
     (format_diff(a, b), float_diff)
 }
 
-impl Snapshot {
+impl TwoPoolSnapshot {
     pub fn get_user_balances(&self, user: &User) -> (u128, u128, u128) {
         (
             self[&format!("{}_yusd_balance", user.tag)],
@@ -110,7 +111,7 @@ impl Snapshot {
         alice_balances + bob_balances
     }
 
-    pub fn take(testing_env: &TestingEnv) -> Snapshot {
+    pub fn take(testing_env: &TwoPoolTestingEnv) -> TwoPoolSnapshot {
         let alice_address = testing_env.alice.as_address();
         let bob_address = testing_env.bob.as_address();
 
@@ -143,7 +144,7 @@ impl Snapshot {
         let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
         let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);
 
-        Snapshot {
+        TwoPoolSnapshot {
             d,
             pool_info,
             admin_yaro_balance,
@@ -164,7 +165,7 @@ impl Snapshot {
         }
     }
 
-    pub fn print_change_with(&self, other: &Snapshot, title: &str) {
+    pub fn print_change_with(&self, other: &TwoPoolSnapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
         let balances = [

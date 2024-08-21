@@ -4,26 +4,26 @@ use crate::utils::float_to_uint;
 
 use super::User;
 
-pub struct Token {
+pub struct TwoPoolToken {
     pub id: soroban_sdk::Address,
     pub client: token::Client<'static>,
     pub asset_client: token::StellarAssetClient<'static>,
     pub env: Env,
 }
 
-impl Token {
+impl TwoPoolToken {
     pub const DEFAULT_AIRDROP: f64 = 100_000_000.0;
 
     pub fn as_address(&self) -> Address {
         self.id.clone()
     }
 
-    pub fn create(env: &Env, admin: &Address) -> Token {
+    pub fn create(env: &Env, admin: &Address) -> TwoPoolToken {
         let id = env.register_stellar_asset_contract(admin.clone());
         let client = token::Client::new(env, &id);
         let asset_client = token::StellarAssetClient::new(env, &id);
 
-        Token {
+        TwoPoolToken {
             id,
             client,
             asset_client,

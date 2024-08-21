@@ -2,13 +2,16 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::three_pool::{Deposit, RewardsClaimed, Swapped, ThreeToken, Withdraw},
-    three_pool_utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, percentage_to_bp},
+    contracts_wrappers::{PoolFactory, ThreePool, ThreePoolToken, User},
+    utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, get_latest_event, TRIPLE_ZERO},
 };
 
-use super::{get_latest_event, Pool, PoolFactory, Snapshot, Token, User};
+use crate::utils::percentage_to_bp;
+
+use super::ThreePoolSnapshot;
 
 #[derive(Debug, Clone)]
-pub struct TestingEnvConfig {
+pub struct ThreePoolTestingEnvConfig {
     /// default: `0.0`, from 0.0 to 100.0
     pub pool_fee_share_percentage: f64,
     /// default: `0.0`, from 0.0 to 100.0
@@ -17,9 +20,7 @@ pub struct TestingEnvConfig {
     pub admin_init_deposit: f64,
 }
 
-pub const TRIPLE_ZERO: (f64, f64, f64) = (0.0, 0.0, 0.0);
-
-impl TestingEnvConfig {
+impl ThreePoolTestingEnvConfig {
     pub fn with_admin_init_deposit(mut self, admin_init_deposit: f64) -> Self {
         self.admin_init_deposit = admin_init_deposit;
         self
@@ -42,9 +43,9 @@ impl TestingEnvConfig {
     }
 }
 
-impl Default for TestingEnvConfig {
+impl Default for ThreePoolTestingEnvConfig {
     fn default() -> Self {
-        TestingEnvConfig {
+        ThreePoolTestingEnvConfig {
             pool_fee_share_percentage: 0.0,
             pool_admin_fee_percentage: 0.0,
             admin_init_deposit: 100_000.0,
@@ -52,37 +53,37 @@ impl Default for TestingEnvConfig {
     }
 }
 
-pub struct TestingEnv {
+pub struct ThreePoolTestingEnv {
     pub env: Env,
     pub admin: User,
-    pub native_token: Token,
+    pub native_token: ThreePoolToken,
 
     pub alice: User,
     pub bob: User,
 
-    pub token_a: Token,
-    pub token_b: Token,
-    pub token_c: Token,
+    pub token_a: ThreePoolToken,
+    pub token_b: ThreePoolToken,
+    pub token_c: ThreePoolToken,
 
-    pub pool: Pool,
+    pub pool: ThreePool,
     pub factory: PoolFactory,
 }
 
-impl Default for TestingEnv {
+impl Default for ThreePoolTestingEnv {
     fn default() -> Self {
-        Self::create(TestingEnvConfig::default())
+        Self::create(ThreePoolTestingEnvConfig::default())
     }
 }
 
-impl TestingEnv {
-    pub fn create(config: TestingEnvConfig) -> TestingEnv {
+impl ThreePoolTestingEnv {
+    pub fn create(config: ThreePoolTestingEnvConfig) -> ThreePoolTestingEnv {
         let env = Env::default();
 
         env.mock_all_auths();
         env.budget().reset_limits(u64::MAX, u64::MAX);
 
         let admin = User::generate(&env, "admin");
-        let native_token = Token::create(&env, admin.as_ref(), ThreeToken::A, "native");
+        let native_token = ThreePoolToken::create(&env, admin.as_ref(), ThreeToken::A, "native");
         let alice = User::generate(&env, "alice");
         let bob = User::generate(&env, "bob");
 
@@ -91,8 +92,9 @@ impl TestingEnv {
         native_token.default_airdrop(&alice);
         native_token.default_airdrop(&bob);
 
-        let (token_a, token_b, token_c) = TestingEnv::generate_tokens(&env, admin.as_ref());
-        let pool = TestingEnv::create_pool(
+        let (token_a, token_b, token_c) =
+            ThreePoolTestingEnv::generate_tokens(&env, admin.as_ref());
+        let pool = ThreePoolTestingEnv::create_pool(
             &env,
             &factory,
             &admin,
@@ -116,7 +118,7 @@ impl TestingEnv {
         token_b.default_airdrop(&bob);
         token_c.default_airdrop(&bob);
 
-        TestingEnv {
+        ThreePoolTestingEnv {
             env,
 
             admin,
@@ -138,7 +140,7 @@ impl TestingEnv {
         self
     }
 
-    pub fn get_token(&self, pool_token: ThreeToken) -> &Token {
+    pub fn get_token(&self, pool_token: ThreeToken) -> &ThreePoolToken {
         match pool_token {
             ThreeToken::A => &self.token_a,
             ThreeToken::B => &self.token_b,
@@ -146,10 +148,13 @@ impl TestingEnv {
         }
     }
 
-    pub fn generate_tokens(env: &Env, admin: &Address) -> (Token, Token, Token) {
-        let token_a = Token::create(env, admin, ThreeToken::A, "a");
-        let token_b = Token::create(env, admin, ThreeToken::B, "b");
-        let token_c = Token::create(env, admin, ThreeToken::C, "c");
+    pub fn generate_tokens(
+        env: &Env,
+        admin: &Address,
+    ) -> (ThreePoolToken, ThreePoolToken, ThreePoolToken) {
+        let token_a = ThreePoolToken::create(env, admin, ThreeToken::A, "a");
+        let token_b = ThreePoolToken::create(env, admin, ThreeToken::B, "b");
+        let token_c = ThreePoolToken::create(env, admin, ThreeToken::C, "c");
 
         (token_a, token_b, token_c)
     }
@@ -159,27 +164,25 @@ impl TestingEnv {
         env: &Env,
         factory: &PoolFactory,
         admin: &User,
-        token_a: &Token,
-        token_b: &Token,
-        token_c: &Token,
+        token_a: &ThreePoolToken,
+        token_b: &ThreePoolToken,
+        token_c: &ThreePoolToken,
         fee_share_percentage: f64,
         admin_fee_percentage: f64,
         admin_init_deposit: f64,
-    ) -> Pool {
+    ) -> ThreePool {
         let fee_share_bp = percentage_to_bp(fee_share_percentage);
         let admin_fee_bp = percentage_to_bp(admin_fee_percentage);
         let a = 20;
         let pool = factory.create_pool(
             admin.as_ref(),
             a,
-            &token_a.id,
-            &token_b.id,
-            &token_c.id,
+            [token_a.id.clone(), token_b.id.clone(), token_c.id.clone()],
             fee_share_bp,
             admin_fee_bp,
         );
 
-        let pool = Pool::new(env, pool);
+        let pool = ThreePool::new(env, pool);
 
         pool.assert_initialization(a, fee_share_bp, admin_fee_bp);
 
@@ -228,8 +231,8 @@ impl TestingEnv {
         &self,
         sender: &User,
         recipient: &User,
-        token_from: &Token,
-        token_to: &Token,
+        token_from: &ThreePoolToken,
+        token_to: &ThreePoolToken,
         from_amount: f64,
         expected_to_amount: f64,
         expected_fee: f64,
@@ -297,8 +300,8 @@ impl TestingEnv {
 
     pub fn assert_deposit(
         &self,
-        snapshot_before: Snapshot,
-        snapshot_after: Snapshot,
+        snapshot_before: ThreePoolSnapshot,
+        snapshot_after: ThreePoolSnapshot,
         user: &User,
         expected_deposits: (f64, f64, f64),
         expected_rewards: (f64, f64, f64),
@@ -317,8 +320,8 @@ impl TestingEnv {
 
     pub fn assert_deposit_without_event(
         &self,
-        snapshot_before: Snapshot,
-        snapshot_after: Snapshot,
+        snapshot_before: ThreePoolSnapshot,
+        snapshot_after: ThreePoolSnapshot,
         user: &User,
         (token_a, token_b, token_c): (f64, f64, f64),
         (expected_a_reward, expected_b_reward, expected_c_reward): (f64, f64, f64),
@@ -371,8 +374,8 @@ impl TestingEnv {
 
     pub fn assert_withdraw(
         &self,
-        snapshot_before: Snapshot,
-        snapshot_after: Snapshot,
+        snapshot_before: ThreePoolSnapshot,
+        snapshot_after: ThreePoolSnapshot,
         user: &User,
         (expected_a_amount, expected_b_amount, expected_c_amount): (f64, f64, f64),
         (expected_a_fee, expected_b_fee, expected_c_fee): (f64, f64, f64),
@@ -452,8 +455,8 @@ impl TestingEnv {
 
     pub fn assert_claim(
         &self,
-        snapshot_before: Snapshot,
-        snapshot_after: Snapshot,
+        snapshot_before: ThreePoolSnapshot,
+        snapshot_after: ThreePoolSnapshot,
         user: &User,
         (a_reward, b_reward, c_reward): (f64, f64, f64),
     ) {
@@ -487,8 +490,8 @@ impl TestingEnv {
     }
 
     pub fn assert_claim_admin_fee(
-        snapshot_before: Snapshot,
-        snapshot_after: Snapshot,
+        snapshot_before: ThreePoolSnapshot,
+        snapshot_after: ThreePoolSnapshot,
         (a_reward, b_reward, c_reward): (f64, f64, f64),
     ) {
         let a_reward = float_to_uint(a_reward, 7);
@@ -514,12 +517,12 @@ impl TestingEnv {
     #[allow(clippy::too_many_arguments)]
     pub fn assert_swap(
         &self,
-        snapshot_before: Snapshot,
-        snapshot_after: Snapshot,
+        snapshot_before: ThreePoolSnapshot,
+        snapshot_after: ThreePoolSnapshot,
         sender: &User,
         recipient: &User,
-        token_from: &Token,
-        token_to: &Token,
+        token_from: &ThreePoolToken,
+        token_to: &ThreePoolToken,
         amount: f64,
         expected_receive_amount: f64,
         expected_fee: f64,
@@ -583,10 +586,10 @@ impl TestingEnv {
         deposit: (f64, f64, f64),
         expected_rewards: (f64, f64, f64),
         expected_lp_amount: f64,
-    ) -> (Snapshot, Snapshot) {
-        let snapshot_before = Snapshot::take(self);
+    ) -> (ThreePoolSnapshot, ThreePoolSnapshot) {
+        let snapshot_before = ThreePoolSnapshot::take(self);
         self.pool.deposit(user, deposit, 0.0);
-        let snapshot_after = Snapshot::take(self);
+        let snapshot_after = ThreePoolSnapshot::take(self);
 
         let title = format!(
             "Deposit {} a, {} b, expected lp: {expected_lp_amount}",
@@ -616,12 +619,12 @@ impl TestingEnv {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: &Token,
-        token_to: &Token,
+        token_from: &ThreePoolToken,
+        token_to: &ThreePoolToken,
         expected_receive_amount: f64,
         expected_fee: f64,
-    ) -> (Snapshot, Snapshot) {
-        let snapshot_before = Snapshot::take(self);
+    ) -> (ThreePoolSnapshot, ThreePoolSnapshot) {
+        let snapshot_before = ThreePoolSnapshot::take(self);
         self.pool.swap(
             sender,
             recipient,
@@ -630,7 +633,7 @@ impl TestingEnv {
             token_from,
             token_to,
         );
-        let snapshot_after = Snapshot::take(self);
+        let snapshot_after = ThreePoolSnapshot::take(self);
 
         let title = format!("Swap {amount} a => {expected_receive_amount} b");
         snapshot_before.print_change_with(&snapshot_after, &title);
@@ -651,9 +654,9 @@ impl TestingEnv {
     }
 
     pub fn do_claim(&self, user: &User, expected_rewards: (f64, f64, f64)) {
-        let snapshot_before = Snapshot::take(self);
+        let snapshot_before = ThreePoolSnapshot::take(self);
         self.pool.claim_rewards(user);
-        let snapshot_after = Snapshot::take(self);
+        let snapshot_after = ThreePoolSnapshot::take(self);
 
         let title = format!("Claim rewards, expected {:?}", expected_rewards);
         snapshot_before.print_change_with(&snapshot_after, &title);
@@ -662,14 +665,18 @@ impl TestingEnv {
     }
 
     pub fn do_claim_admin_fee(&self, expected_rewards: (f64, f64, f64)) {
-        let snapshot_before = Snapshot::take(self);
+        let snapshot_before = ThreePoolSnapshot::take(self);
         self.pool.claim_admin_fee();
-        let snapshot_after = Snapshot::take(self);
+        let snapshot_after = ThreePoolSnapshot::take(self);
 
         let title = format!("Claim admin fee, expected {:?}", expected_rewards);
         snapshot_before.print_change_with(&snapshot_after, &title);
 
-        TestingEnv::assert_claim_admin_fee(snapshot_before, snapshot_after, expected_rewards);
+        ThreePoolTestingEnv::assert_claim_admin_fee(
+            snapshot_before,
+            snapshot_after,
+            expected_rewards,
+        );
     }
 
     pub fn do_withdraw(
@@ -681,10 +688,10 @@ impl TestingEnv {
         expected_rewards: (f64, f64, f64),
         expected_user_lp_diff: f64,
         expected_admin_fee: (f64, f64, f64),
-    ) -> (Snapshot, Snapshot) {
-        let snapshot_before = Snapshot::take(self);
+    ) -> (ThreePoolSnapshot, ThreePoolSnapshot) {
+        let snapshot_before = ThreePoolSnapshot::take(self);
         self.pool.withdraw(user, withdraw_amount);
-        let snapshot_after = Snapshot::take(self);
+        let snapshot_after = ThreePoolSnapshot::take(self);
         snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
         if expected_rewards != TRIPLE_ZERO {

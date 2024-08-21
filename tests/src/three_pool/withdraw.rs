@@ -1,16 +1,17 @@
+#![cfg(test)]
+
 use test_case::test_case;
 
-use crate::three_pool_utils::{
-    assert_rel_eq, float_to_uint, Snapshot, TestingEnv, TestingEnvConfig, TRIPLE_ZERO,
-};
+use crate::three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv, ThreePoolTestingEnvConfig};
+use crate::utils::{assert_rel_eq, float_to_uint, TRIPLE_ZERO};
 
 use super::{DepositArgs, DoWithdrawArgs};
 
 #[test]
 #[should_panic = "DexContract(NotEnoughAmount)"]
 fn withdraw_full_and_try_again() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
+    let testing_env = ThreePoolTestingEnv::default();
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ..
@@ -24,42 +25,46 @@ fn withdraw_full_and_try_again() {
 #[test]
 #[should_panic = "DexContract(ZeroChanges)"]
 fn withdraw_zero_change() {
-    let testing_env = TestingEnv::default();
+    let testing_env = ThreePoolTestingEnv::default();
     testing_env.pool.withdraw(&testing_env.alice, 0.0);
 }
 
 #[test_case(
-    TestingEnvConfig::default(),
+    ThreePoolTestingEnvConfig::default(),
     DepositArgs { amounts: (4_000.0, 5_000.0, 6_000.0), min_lp: 14_999.0 },
     DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_952.364, 4_999.984, 5_047.602), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: TRIPLE_ZERO }
     ; "base_withdraw"
 )]
 #[test_case(
-    TestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
+    ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
     DepositArgs { amounts: (4_000.0, 5_000.0, 6_000.0), min_lp: 14_999.0 },
     DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_947.411, 4_994.984, 5_042.554), expected_fee: (4.952_364, 4.999_984, 5.047_602), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: (0.990_472_8, 0.999_996_8, 1.009_520_4) }
     ; "withdraw_with_fee"
 )]
 #[test_case(
-    TestingEnvConfig::default(),
+    ThreePoolTestingEnvConfig::default(),
     DepositArgs { amounts: (15_000.0, 25_000.0, 20_000.0), min_lp: 59_950.0 },
     DoWithdrawArgs { amount: 0.004, expected_amounts: (0.001, 0.001, 0.002), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: TRIPLE_ZERO }
     ; "smallest_withdraw"
 )]
 #[test_case(
-    TestingEnvConfig::default().with_pool_fee_share(0.1),
+    ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1),
     DepositArgs { amounts: (15_000.0, 25_000.0, 20_000.0), min_lp: 59_950.0 },
     DoWithdrawArgs { amount: 0.007, expected_amounts: (0.001, 0.001, 0.002), expected_fee: (0.000_002, 0.000_002, 0.000_003), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.007, expected_admin_fee: TRIPLE_ZERO }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
-    TestingEnvConfig::default(),
+    ThreePoolTestingEnvConfig::default(),
     DepositArgs { amounts: (50_000_000.0, 5_000.0, 5.0), min_lp: 21_358_206.68 },
     DoWithdrawArgs { amount: 21_358_206.68, expected_amounts: (49_406_036.726, 103_545.587, 98_619.774), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 21_358_206.68, expected_admin_fee: TRIPLE_ZERO }
     ; "withdraw_disbalance"
 )]
-fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_args: DoWithdrawArgs) {
-    let testing_env = TestingEnv::create(config);
+fn withdraw(
+    config: ThreePoolTestingEnvConfig,
+    deposit_args: DepositArgs,
+    do_withdraw_args: DoWithdrawArgs,
+) {
+    let testing_env = ThreePoolTestingEnv::create(config);
     testing_env.pool.deposit(
         &testing_env.alice,
         deposit_args.amounts,
@@ -78,8 +83,9 @@ fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_arg
 
 #[test]
 fn withdraw_with_rewards() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
+    let testing_env =
+        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -115,8 +121,8 @@ fn withdraw_with_rewards() {
 
 #[test]
 fn withdraw_multiply_times() {
-    let testing_env = TestingEnv::default();
-    let TestingEnv {
+    let testing_env = ThreePoolTestingEnv::default();
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ..
@@ -128,14 +134,14 @@ fn withdraw_multiply_times() {
     pool.deposit(alice, deposit, 14_999.0);
     let total_alice_lp_amount = pool.user_lp_amount_f64(alice);
     let alice_lp_amount = total_alice_lp_amount / n as f64;
-    let snapshot_before = Snapshot::take(&testing_env);
+    let snapshot_before = ThreePoolSnapshot::take(&testing_env);
     let alice_balance_before = snapshot_before.get_user_balances_sum(alice);
 
     for _ in 0..n {
         pool.withdraw(alice, alice_lp_amount);
     }
 
-    let snapshot_after = Snapshot::take(&testing_env);
+    let snapshot_after = ThreePoolSnapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
     let alice_balance_after = snapshot_before.get_user_balances_sum(alice);
@@ -148,8 +154,9 @@ fn withdraw_multiply_times() {
 // Alice should withdraw more than she deposited
 #[test]
 fn withdraw_alice_profit_and_bob_loss() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
+    let testing_env =
+        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -170,9 +177,9 @@ fn withdraw_alice_profit_and_bob_loss() {
 
     pool.deposit(alice, deposit, 99_950.0);
 
-    let snapshot_before_swap = Snapshot::take(&testing_env);
+    let snapshot_before_swap = ThreePoolSnapshot::take(&testing_env);
     pool.swap(bob, bob, swap_amount, 98336.0, token_a, token_b);
-    let snapshot_after_swap = Snapshot::take(&testing_env);
+    let snapshot_after_swap = ThreePoolSnapshot::take(&testing_env);
 
     let (snapshot_before, snapshot_after) = testing_env.do_withdraw(
         alice,
@@ -206,8 +213,9 @@ fn withdraw_alice_profit_and_bob_loss() {
 // Alice should get less, Bob profit, should be less than Alice loss
 #[test]
 fn withdraw_alice_loss_and_bob_profit() {
-    let testing_env = TestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
-    let TestingEnv {
+    let testing_env =
+        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+    let ThreePoolTestingEnv {
         ref pool,
         ref alice,
         ref bob,
@@ -226,12 +234,12 @@ fn withdraw_alice_loss_and_bob_profit() {
     let expected_bob_profit = 253.558_088;
     let expected_fee = (79.738_958, 79.880_310, 39.940_155);
 
-    let snapshot_before_deposit = Snapshot::take(&testing_env);
+    let snapshot_before_deposit = ThreePoolSnapshot::take(&testing_env);
     pool.deposit(alice, deposit, 198_000.0);
 
-    let snapshot_before_swap = Snapshot::take(&testing_env);
+    let snapshot_before_swap = ThreePoolSnapshot::take(&testing_env);
     pool.swap(bob, bob, swap_amount, 100_000.0, token_b, token_a);
-    let snapshot_after_swap = Snapshot::take(&testing_env);
+    let snapshot_after_swap = ThreePoolSnapshot::take(&testing_env);
 
     let (_, snapshot_after) = testing_env.do_withdraw(
         alice,

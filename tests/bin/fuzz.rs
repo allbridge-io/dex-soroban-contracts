@@ -8,8 +8,8 @@ use clap::Parser;
 use clap_derive::Parser;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use tests::fuzzing::fuzz_target_operation::FuzzTargetOperation;
-use tests::utils::{Snapshot, TestingEnv, TestingEnvConfig};
+use tests::fuzzing::two_fuzz_target_operation::FuzzTargetOperation;
+use tests::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -90,12 +90,13 @@ fn main() {
         .collect::<Vec<_>>();
 
     runs.par_iter().for_each(|operations| {
-        let testing_env =
-            TestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0));
+        let testing_env = TwoPoolTestingEnv::create(
+            TwoPoolTestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
+        );
 
         let mut run_result = RunResult::default();
 
-        let users_balance_sum_before = Snapshot::take(&testing_env).get_users_balances_sum();
+        let users_balance_sum_before = TwoPoolSnapshot::take(&testing_env).get_users_balances_sum();
 
         for operation in operations.iter() {
             let operation_result = operation.execute(&testing_env);
@@ -105,7 +106,7 @@ fn main() {
             testing_env.pool.assert_total_lp_less_or_equal_d();
         }
 
-        let users_balance_sum_after = Snapshot::take(&testing_env).get_users_balances_sum();
+        let users_balance_sum_after = TwoPoolSnapshot::take(&testing_env).get_users_balances_sum();
 
         assert!(
             users_balance_sum_after <= users_balance_sum_before,
