@@ -18,9 +18,9 @@ impl From<usize> for TwoToken {
     }
 }
 
-impl Into<usize> for TwoToken {
-    fn into(self) -> usize {
-        self as usize
+impl From<TwoToken> for usize {
+    fn from(value: TwoToken) -> Self {
+        value as usize
     }
 }
 

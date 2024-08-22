@@ -25,7 +25,8 @@ impl UserDeposit {
     }
 
     pub fn get<const N: usize>(env: &Env, address: Address) -> UserDeposit {
-        UserDeposit::get_by_key(env, &address).unwrap_or(UserDeposit::default_val::<N>(env))
+        UserDeposit::get_by_key(env, &address)
+            .unwrap_or_else(|_| UserDeposit::default_val::<N>(env))
     }
 
     pub fn save(&self, env: &Env, address: Address) {

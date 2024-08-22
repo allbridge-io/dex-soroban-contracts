@@ -22,7 +22,7 @@ pub fn initialize<const N: usize, P: Pool<N>>(
     let mut decimals = [0; N];
 
     for (index, token) in tokens.iter().enumerate() {
-        let decimal = token::Client::new(&env, &token).decimals();
+        let decimal = token::Client::new(&env, token).decimals();
 
         decimals[index] = decimal;
     }

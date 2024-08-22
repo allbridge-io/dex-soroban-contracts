@@ -20,9 +20,9 @@ impl From<usize> for ThreeToken {
     }
 }
 
-impl Into<usize> for ThreeToken {
-    fn into(self) -> usize {
-        self as usize
+impl From<ThreeToken> for usize {
+    fn from(value: ThreeToken) -> Self {
+        value as usize
     }
 }
 

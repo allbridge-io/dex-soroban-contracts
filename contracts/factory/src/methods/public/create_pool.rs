@@ -53,7 +53,7 @@ pub fn create_pool<const N: usize>(
         .with_address(deployer, salt)
         .deploy(wasm_hash);
 
-    factory_info.add_pool(sorted_tokens.clone(), &deployed_pool);
+    factory_info.add_pool(sorted_tokens, &deployed_pool);
 
     let mut tokens_vals = vec![&env];
     for token in tokens.iter() {

@@ -76,8 +76,16 @@ impl<const N: usize> From<WithdrawAmount<N>> for WithdrawAmountView {
     }
 }
 
-pub trait PoolMath<const N: usize> {
-    fn get_current_d(&self) -> Result<u128, Error>;
+pub trait PoolMath<const N: usize>: PoolStorage {
+    fn get_current_d(&self) -> Result<u128, Error> {
+        let mut values = [0; N];
+        for (index, token_balance) in self.token_balances().iter().enumerate() {
+            values[index] = token_balance;
+        }
+
+        self.get_d(values)
+    }
+
     fn get_d(&self, values: [u128; N]) -> Result<u128, Error>;
     fn get_y(&self, values: [u128; N]) -> Result<u128, Error>;
 }
@@ -106,6 +114,7 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
 
     /* Methods */
 
+    #[allow(clippy::too_many_arguments)]
     fn swap(
         &mut self,
         env: &Env,
@@ -115,7 +124,37 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
         receive_amount_min: u128,
         token_from: Self::Token,
         token_to: Self::Token,
-    ) -> Result<(u128, u128), Error>;
+    ) -> Result<(u128, u128), Error> {
+        if amount == 0 {
+            return Ok((0, 0));
+        }
+
+        let current_contract = env.current_contract_address();
+        let receive_amount = self.get_receive_amount(amount, token_from, token_to)?;
+
+        self.get_token(env, token_from)
+            .transfer(&sender, &current_contract, &safe_cast(amount)?);
+
+        self.token_balances_mut()
+            .set(token_from, receive_amount.token_from_new_balance);
+        self.token_balances_mut()
+            .set(token_to, receive_amount.token_to_new_balance);
+
+        self.add_rewards(receive_amount.fee, token_to.into());
+
+        require!(
+            receive_amount.output >= receive_amount_min,
+            Error::InsufficientReceivedAmount
+        );
+
+        self.get_token(env, token_to).transfer(
+            &current_contract,
+            &recipient,
+            &safe_cast(receive_amount.output)?,
+        );
+
+        Ok((receive_amount.output, receive_amount.fee))
+    }
 
     fn deposit(
         &mut self,
@@ -124,7 +163,42 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
         sender: Address,
         user_deposit: &mut UserDeposit,
         min_lp_amount: u128,
-    ) -> Result<(SizedU128Array, u128), Error>;
+    ) -> Result<(SizedU128Array, u128), Error> {
+        let current_contract = env.current_contract_address();
+
+        if self.total_lp_amount() == 0 {
+            let first = amounts.get(0usize);
+            let is_deposit_valid = amounts.iter().all(|v| v == first);
+            require!(is_deposit_valid, Error::InvalidFirstDeposit);
+        }
+
+        let deposit_amount = self.get_deposit_amount(env, amounts.clone())?;
+        *self.token_balances_mut() = SizedU128Array::from_vec(deposit_amount.new_token_balances);
+
+        require!(deposit_amount.lp_amount >= min_lp_amount, Error::Slippage);
+
+        for (index, amount) in amounts.iter().enumerate() {
+            if amount == 0 {
+                continue;
+            }
+
+            self.get_token(env, index)
+                .transfer(&sender, &current_contract, &safe_cast(amount)?);
+        }
+
+        let rewards = self.deposit_lp(env, user_deposit, deposit_amount.lp_amount)?;
+
+        for (index, reward) in rewards.iter().enumerate() {
+            if reward == 0 {
+                continue;
+            }
+
+            self.get_token(env, index)
+                .transfer(&current_contract, &sender, &safe_cast(reward)?);
+        }
+
+        Ok((rewards, deposit_amount.lp_amount))
+    }
 
     fn withdraw(
         &mut self,
@@ -132,7 +206,36 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
         sender: Address,
         user_deposit: &mut UserDeposit,
         lp_amount: u128,
-    ) -> Result<(WithdrawAmount<N>, SizedU128Array), Error>;
+    ) -> Result<(WithdrawAmount<N>, SizedU128Array), Error> {
+        let current_contract = env.current_contract_address();
+        let d0 = self.total_lp_amount();
+        let old_balances = self.token_balances().clone();
+        let withdraw_amount = self.get_withdraw_amount(env, lp_amount)?;
+        let rewards_amounts = self.withdraw_lp(env, user_deposit, lp_amount)?;
+
+        for index in withdraw_amount.indexes {
+            let token_amount =
+                self.amount_from_system_precision(withdraw_amount.amounts.get(index), index);
+            let token_amount = token_amount + rewards_amounts.get(index);
+
+            self.add_rewards(withdraw_amount.fees.get(index), index);
+            self.get_token(env, index).transfer(
+                &current_contract,
+                &sender,
+                &safe_cast(token_amount)?,
+            );
+        }
+
+        *self.token_balances_mut() = withdraw_amount.new_token_balances.clone();
+        let d1 = self.total_lp_amount();
+
+        let zero_balances_changes =
+            (0..N).all(|index| self.token_balances().get(index) < old_balances.get(index));
+
+        require!(zero_balances_changes && d1 < d0, Error::ZeroChanges);
+
+        Ok((withdraw_amount, rewards_amounts))
+    }
 
     fn deposit_lp(
         &mut self,
@@ -197,15 +300,16 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
         Ok(pending)
     }
 
-    fn add_rewards(&mut self, mut reward_amount: u128, token: Self::Token) {
+    fn add_rewards(&mut self, mut reward_amount: u128, token_index: usize) {
         if self.total_lp_amount() > 0 {
             let admin_fee_rewards = reward_amount * self.admin_fee_share_bp() / Self::BP;
             reward_amount -= admin_fee_rewards;
 
             let total_lp_amount = self.total_lp_amount();
             self.acc_rewards_per_share_p_mut()
-                .add(token, (reward_amount << Self::P) / total_lp_amount);
-            self.admin_fee_amount_mut().add(token, admin_fee_rewards);
+                .add(token_index, (reward_amount << Self::P) / total_lp_amount);
+            self.admin_fee_amount_mut()
+                .add(token_index, admin_fee_rewards);
         }
     }
 
@@ -257,8 +361,8 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
 
         let mut amounts_sp = [0; N];
 
-        for index in 0..N {
-            amounts_sp[index] = self.amount_to_system_precision(amounts.get(index), index);
+        for (index, amounts_sp) in amounts_sp.iter_mut().enumerate() {
+            *amounts_sp = self.amount_to_system_precision(amounts.get(index), index);
         }
 
         let amounts_sp = SizedU128Array::from_array(env, amounts_sp);
@@ -278,8 +382,8 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
 
         let mut d_args = [0u128; N];
 
-        for index in 0..N {
-            d_args[index] = new_token_balances_sp.get(index);
+        for (index, d_arg) in d_args.iter_mut().enumerate() {
+            *d_arg = new_token_balances_sp.get(index);
         }
 
         let d1 = self.get_d(d_args)?;
