@@ -4,7 +4,7 @@ use test_case::test_case;
 
 use crate::contracts_wrappers::TestingEnvConfig;
 use crate::three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv};
-use crate::utils::{assert_rel_eq, float_to_uint, TRIPLE_ZERO};
+use crate::utils::{assert_rel_eq, float_to_uint};
 
 use super::{DepositArgs, DoWithdrawArgs};
 
@@ -33,31 +33,31 @@ fn withdraw_zero_change() {
 #[test_case(
     TestingEnvConfig::default(),
     DepositArgs { amounts: [4_000.0, 5_000.0, 6_000.0], min_lp: 14_999.0 },
-    DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_952.364, 4_999.984, 5_047.602), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: TRIPLE_ZERO }
+    DoWithdrawArgs { amount: 14_999.948, expected_amounts: [4_952.364, 4_999.984, 5_047.602], expected_fee: [0.0;3], expected_rewards: [0.0;3], expected_user_lp_diff: 14_999.948, expected_admin_fee: [0.0;3] }
     ; "base_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
     DepositArgs { amounts: [4_000.0, 5_000.0, 6_000.0], min_lp: 14_999.0 },
-    DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_947.411, 4_994.984, 5_042.554), expected_fee: (4.952_364, 4.999_984, 5.047_602), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: (0.990_472_8, 0.999_996_8, 1.009_520_4) }
+    DoWithdrawArgs { amount: 14_999.948, expected_amounts: [4_947.411, 4_994.984, 5_042.554], expected_fee: [4.952_364, 4.999_984, 5.047_602], expected_rewards: [0.0;3], expected_user_lp_diff: 14_999.948, expected_admin_fee: [0.990_472_8, 0.999_996_8, 1.009_520_4] }
     ; "withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
     DepositArgs { amounts: [15_000.0, 25_000.0, 20_000.0], min_lp: 59_950.0 },
-    DoWithdrawArgs { amount: 0.004, expected_amounts: (0.001, 0.001, 0.002), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: TRIPLE_ZERO }
+    DoWithdrawArgs { amount: 0.004, expected_amounts: [0.001, 0.001, 0.002], expected_fee: [0.0;3], expected_rewards: [0.0;3], expected_user_lp_diff: 0.004, expected_admin_fee: [0.0;3] }
     ; "smallest_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1),
     DepositArgs { amounts: [15_000.0, 25_000.0, 20_000.0], min_lp: 59_950.0 },
-    DoWithdrawArgs { amount: 0.007, expected_amounts: (0.001, 0.001, 0.002), expected_fee: (0.000_002, 0.000_002, 0.000_003), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.007, expected_admin_fee: TRIPLE_ZERO }
+    DoWithdrawArgs { amount: 0.007, expected_amounts: [0.001, 0.001, 0.002], expected_fee: [0.000_002, 0.000_002, 0.000_003], expected_rewards: [0.0;3], expected_user_lp_diff: 0.007, expected_admin_fee: [0.0;3] }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
     DepositArgs { amounts: [50_000_000.0, 5_000.0, 5.0], min_lp: 21_358_206.68 },
-    DoWithdrawArgs { amount: 21_358_206.68, expected_amounts: (49_406_036.726, 103_545.587, 98_619.774), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 21_358_206.68, expected_admin_fee: TRIPLE_ZERO }
+    DoWithdrawArgs { amount: 21_358_206.68, expected_amounts: [49_406_036.726, 103_545.587, 98_619.774], expected_fee: [0.0;3], expected_rewards: [0.0;3], expected_user_lp_diff: 21_358_206.68, expected_admin_fee: [0.0;3] }
     ; "withdraw_disbalance"
 )]
 fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_args: DoWithdrawArgs) {
@@ -95,10 +95,10 @@ fn withdraw_with_rewards() {
     let deposits = [4_000.0, 5_000.0, 6_000.0];
     let expected_user_lp_diff = 14_999.948;
     // Alice has around 5% of the liquidity pool, we swap 1000 USD with 0.1% fee, which is 5% of 1 USD fee total
-    let expected_rewards = (0.047_616_4, 0.047_618_8, 0.047_621_3);
+    let expected_rewards = [0.047_616_4, 0.047_618_8, 0.047_621_3];
     // Withdraw amounts sum is less than deposit amounts sum
-    let expected_withdraw_amounts = (4_947.414, 4_994.984, 5_042.551);
-    let expected_fee = (4.952_367, 4.999_984, 5.047_599);
+    let expected_withdraw_amounts = [4_947.414, 4_994.984, 5_042.551];
+    let expected_fee = [4.952_367, 4.999_984, 5.047_599];
 
     pool.deposit(alice, deposits, 14_999.0);
     pool.swap(bob, bob, 1_000.0, 998.0, token_a, token_b);
@@ -112,7 +112,7 @@ fn withdraw_with_rewards() {
         expected_fee,
         expected_rewards,
         expected_user_lp_diff,
-        TRIPLE_ZERO,
+        [0.0; 3],
     );
 }
 
@@ -165,12 +165,12 @@ fn withdraw_alice_profit_and_bob_loss() {
     let deposit = [100_000.0, 100_000.0, 100_000.0];
     let swap_amount = 200_000.;
     let expected_user_withdraw_lp_diff = 300_000.0;
-    let expected_rewards = (0.0, 94.999_999_9, 0.0);
+    let expected_rewards = [0.0, 94.999_999_9, 0.0];
     // Alice should withdraw more than she deposited
-    let expected_withdraw_amounts = (199_800.0, 4_995.0, 99_900.0);
+    let expected_withdraw_amounts = [199_800.0, 4_995.0, 99_900.0];
     let expected_alice_profit = 4_789.999_999_9;
     let expected_bob_losses = 10_190.0;
-    let expected_fee = (200.0, 5.0, 100.0);
+    let expected_fee = [200.0, 5.0, 100.0];
 
     pool.deposit(alice, deposit, 99_950.0);
 
@@ -185,7 +185,7 @@ fn withdraw_alice_profit_and_bob_loss() {
         expected_fee,
         expected_rewards,
         expected_user_withdraw_lp_diff,
-        TRIPLE_ZERO,
+        [0.0; 3],
     );
 
     let bob_b_diff = snapshot_after_swap.bob_b_balance - snapshot_before_swap.bob_b_balance;
@@ -224,12 +224,12 @@ fn withdraw_alice_loss_and_bob_profit() {
     let deposit = [200_000.0, 0.0, 0.0];
     let swap_amount = 100_000.;
     let expected_user_withdraw_lp_diff = 199_501.791;
-    let expected_rewards = (40.081_508_2, 0.0, 0.0);
+    let expected_rewards = [40.081_508_2, 0.0, 0.0];
     // Alice should withdraw less than she deposited (198_393.304)
-    let expected_withdraw_amounts = (79_659.219, 79_800.429, 39_900.214);
+    let expected_withdraw_amounts = [79_659.219, 79_800.429, 39_900.214];
     let expected_alice_loss = 600.056_491_8;
     let expected_bob_profit = 253.558_088;
-    let expected_fee = (79.738_958, 79.880_310, 39.940_155);
+    let expected_fee = [79.738_958, 79.880_310, 39.940_155];
 
     let snapshot_before_deposit = ThreePoolSnapshot::take(&testing_env);
     pool.deposit(alice, deposit, 198_000.0);
@@ -245,7 +245,7 @@ fn withdraw_alice_loss_and_bob_profit() {
         expected_fee,
         expected_rewards,
         expected_user_withdraw_lp_diff,
-        TRIPLE_ZERO,
+        [0.0; 3],
     );
 
     let bob_profit = snapshot_after_swap.get_user_balances_sum(bob)

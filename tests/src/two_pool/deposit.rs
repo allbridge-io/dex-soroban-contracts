@@ -4,7 +4,6 @@ use test_case::test_case;
 
 use crate::contracts_wrappers::TestingEnvConfig;
 use crate::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv};
-use crate::utils::DOUBLE_ZERO;
 
 #[test]
 #[should_panic = "DexContract(ZeroAmount)"]
@@ -52,12 +51,12 @@ fn deposit_invalid_first_deposit() {
         .deposit(&testing_env.alice, [100.0, 25.0], 0.0);
 }
 
-#[test_case([100.0, 50.0], DOUBLE_ZERO, 150.0 ; "base")]
-#[test_case([50_000_000.0, 5_000.0], DOUBLE_ZERO, 31_492_001.072 ; "deposit_disbalance")]
-#[test_case([0.001, 0.001], DOUBLE_ZERO, 0.002 ; "smallest_deposit")]
-#[test_case([100.0, 0.0], DOUBLE_ZERO, 99.998 ; "deposit_only_yusd")]
-#[test_case([0.0, 100.0], DOUBLE_ZERO, 99.998 ; "deposit_only_yaro")]
-fn deposit(deposit: [f64; 2], expected_rewards: (f64, f64), expected_lp: f64) {
+#[test_case([100.0, 50.0], [0.0;2], 150.0 ; "base")]
+#[test_case([50_000_000.0, 5_000.0], [0.0;2], 31_492_001.072 ; "deposit_disbalance")]
+#[test_case([0.001, 0.001], [0.0;2], 0.002 ; "smallest_deposit")]
+#[test_case([100.0, 0.0], [0.0;2], 99.998 ; "deposit_only_yusd")]
+#[test_case([0.0, 100.0], [0.0;2], 99.998 ; "deposit_only_yaro")]
+fn deposit(deposit: [f64; 2], expected_rewards: [f64; 2], expected_lp: f64) {
     let testing_env = TwoPoolTestingEnv::default();
     testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
 }
@@ -83,8 +82,8 @@ fn deposit_twice_in_different_tokens() {
         snapshot_before,
         snapshot_after,
         alice,
-        (100.0, 100.0),
-        DOUBLE_ZERO,
+        [100.0, 100.0],
+        [0.0; 2],
         expected_lp_amount,
     );
 }
@@ -106,7 +105,7 @@ fn get_reward_after_second_deposit() {
     } = testing_env;
 
     let deposit = [2_000.0, 2_000.0];
-    let expected_rewards = (1.001_219_9, 0.998_779_9);
+    let expected_rewards = [1.001_219_9, 0.998_779_9];
     let expected_lp_amount = 4_000.0;
 
     pool.deposit(alice, deposit, 4_000.0);

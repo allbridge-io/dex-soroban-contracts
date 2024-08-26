@@ -4,8 +4,8 @@ use crate::{
     contracts::two_pool::{Deposit, RewardsClaimed, Swapped, TwoToken, Withdraw},
     contracts_wrappers::{TestingEnvConfig, Token},
     utils::{
-        assert_rel_eq, float_to_uint, float_to_uint_sp, get_latest_event, percentage_to_bp,
-        DOUBLE_ZERO,
+        assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint, floats_to_uint_sp,
+        get_latest_event, percentage_to_bp,
     },
 };
 
@@ -142,23 +142,21 @@ impl TwoPoolTestingEnv {
         pool
     }
 
-    pub fn assert_claimed_reward_event(
-        &self,
-        expected_user: &User,
-        (expected_a_reward, expected_b_reward): (f64, f64),
-    ) {
+    pub fn assert_claimed_reward_event(&self, expected_user: &User, expected_rewards: [f64; 2]) {
         let rewards_claimed =
             get_latest_event::<RewardsClaimed>(&self.env).expect("Expected RewardsClaimed");
+
+        let [expected_a_reward, expected_b_reward] = floats_to_uint(expected_rewards, 7);
 
         assert_eq!(rewards_claimed.user, expected_user.as_address());
         assert_rel_eq(
             rewards_claimed.rewards.get_unchecked(0),
-            float_to_uint(expected_a_reward, 7),
+            expected_a_reward,
             1,
         );
         assert_rel_eq(
             rewards_claimed.rewards.get_unchecked(1),
-            float_to_uint(expected_b_reward, 7),
+            expected_b_reward,
             1,
         );
     }
@@ -193,46 +191,35 @@ impl TwoPoolTestingEnv {
         &self,
         expected_user: &User,
         lp_amount: f64,
-        (a_amount, b_amount): (f64, f64),
-        (a_fee, b_fee): (f64, f64),
+        amounts: [f64; 2],
+        fees: [f64; 2],
     ) {
         let withdraw = get_latest_event::<Withdraw>(&self.env).expect("Expected Withdraw");
 
         assert_eq!(withdraw.user, expected_user.as_address());
         assert_eq!(withdraw.lp_amount, float_to_uint_sp(lp_amount));
 
-        assert_rel_eq(
-            withdraw.amounts.get_unchecked(0),
-            float_to_uint_sp(a_amount),
-            1,
-        );
-        assert_rel_eq(
-            withdraw.amounts.get_unchecked(1),
-            float_to_uint_sp(b_amount),
-            1,
-        );
+        let [a_amount, b_amount] = floats_to_uint_sp(amounts);
+        assert_rel_eq(withdraw.amounts.get_unchecked(0), a_amount, 1);
+        assert_rel_eq(withdraw.amounts.get_unchecked(1), b_amount, 1);
 
-        assert_rel_eq(withdraw.fees.get_unchecked(0), float_to_uint(a_fee, 7), 1);
-        assert_rel_eq(withdraw.fees.get_unchecked(1), float_to_uint(b_fee, 7), 1);
+        let [a_fee, b_fee] = floats_to_uint(fees, 7);
+        assert_rel_eq(withdraw.fees.get_unchecked(0), a_fee, 1);
+        assert_rel_eq(withdraw.fees.get_unchecked(1), b_fee, 1);
     }
 
     pub fn assert_deposit_event(
         &self,
         expected_user: &User,
         expected_lp_amount: f64,
-        (a_deposit, b_deposit): (f64, f64),
+        deposits: [f64; 2],
     ) {
         let deposit = get_latest_event::<Deposit>(&self.env).expect("Expected Deposit");
+        let deposits = floats_to_uint(deposits, 7);
 
         assert_eq!(deposit.user, expected_user.as_address());
-        assert_eq!(
-            deposit.amounts.get_unchecked(0),
-            float_to_uint(a_deposit, 7)
-        );
-        assert_eq!(
-            deposit.amounts.get_unchecked(1),
-            float_to_uint(b_deposit, 7)
-        );
+        assert_eq!(deposit.amounts.get_unchecked(0), deposits[0]);
+        assert_eq!(deposit.amounts.get_unchecked(1), deposits[1]);
         assert_eq!(float_to_uint_sp(expected_lp_amount), deposit.lp_amount);
     }
 
@@ -241,8 +228,8 @@ impl TwoPoolTestingEnv {
         snapshot_before: TwoPoolSnapshot,
         snapshot_after: TwoPoolSnapshot,
         user: &User,
-        expected_deposits: (f64, f64),
-        expected_rewards: (f64, f64),
+        expected_deposits: [f64; 2],
+        expected_rewards: [f64; 2],
         expected_lp_amount: f64,
     ) {
         self.assert_deposit_event(user, expected_lp_amount, expected_deposits);
@@ -261,8 +248,8 @@ impl TwoPoolTestingEnv {
         snapshot_before: TwoPoolSnapshot,
         snapshot_after: TwoPoolSnapshot,
         user: &User,
-        (a_deposit, b_deposit): (f64, f64),
-        (expected_a_reward, expected_b_reward): (f64, f64),
+        deposits: [f64; 2],
+        expected_rewards: [f64; 2],
         expected_lp_amount: f64,
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
@@ -272,10 +259,9 @@ impl TwoPoolTestingEnv {
         let (user_a_after, user_b_after, user_lp_amount_after) =
             snapshot_after.get_user_balances(user);
 
-        let expected_a_reward = float_to_uint(expected_a_reward, 7);
-        let expected_b_reward = float_to_uint(expected_b_reward, 7);
-        let a_deposit = float_to_uint(a_deposit, 7);
-        let b_deposit = float_to_uint(b_deposit, 7);
+        let [expected_a_reward, expected_b_reward] = floats_to_uint(expected_rewards, 7);
+        let [a_deposit, b_deposit] = floats_to_uint(deposits, 7);
+
         let expected_lp_amount = float_to_uint_sp(expected_lp_amount);
 
         let user_lp_diff = user_lp_amount_after - user_lp_amount_before;
@@ -307,18 +293,18 @@ impl TwoPoolTestingEnv {
         snapshot_before: TwoPoolSnapshot,
         snapshot_after: TwoPoolSnapshot,
         user: &User,
-        (expected_a_amount, expected_b_amount): (f64, f64),
-        (expected_a_fee, expected_b_fee): (f64, f64),
-        (expected_a_reward, expected_b_reward): (f64, f64),
+        expected_amounts: [f64; 2],
+        expected_fees: [f64; 2],
+        expected_rewards: [f64; 2],
         expected_user_withdraw_lp_diff: f64,
-        (expected_a_admin_fee, expected_b_admin_fee): (f64, f64),
+        expected_admin_fees: [f64; 2],
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
         self.assert_withdraw_event(
             user,
             expected_user_withdraw_lp_diff,
-            (expected_a_amount, expected_b_amount),
-            (expected_a_fee, expected_b_fee),
+            expected_amounts,
+            expected_fees,
         );
 
         let (user_a_before, user_b_before, user_lp_amount_before) =
@@ -330,11 +316,15 @@ impl TwoPoolTestingEnv {
         let user_a_diff = user_a_after - user_a_before;
         let user_lp_diff = user_lp_amount_before - user_lp_amount_after;
 
-        let expected_a_diff = float_to_uint(expected_a_amount + expected_a_reward, 7);
-        let expected_b_diff = float_to_uint(expected_b_amount + expected_b_reward, 7);
+        let [expected_a_diff, expected_b_diff] = floats_to_uint(
+            [
+                expected_amounts[0] + expected_rewards[0],
+                expected_amounts[1] + expected_rewards[1],
+            ],
+            7,
+        );
 
-        let expected_a_admin_fee = float_to_uint(expected_a_admin_fee, 7);
-        let expected_b_admin_fee = float_to_uint(expected_b_admin_fee, 7);
+        let [expected_a_admin_fee, expected_b_admin_fee] = floats_to_uint(expected_admin_fees, 7);
 
         let pool_b_diff = snapshot_before.pool_b_balance - snapshot_after.pool_b_balance;
         let pool_a_diff = snapshot_before.pool_a_balance - snapshot_after.pool_a_balance;
@@ -356,7 +346,7 @@ impl TwoPoolTestingEnv {
         assert_eq!(user_lp_diff, expected_user_withdraw_lp_amount);
         assert_eq!(pool_lp_amount_diff, expected_user_withdraw_lp_amount);
 
-        if expected_a_fee != 0.0 && expected_b_fee != 0.0 {
+        if expected_fees.iter().sum::<f64>() != 0.0 {
             assert!(
                 snapshot_before.acc_reward_a_per_share_p < snapshot_after.acc_reward_a_per_share_p
             );
@@ -376,11 +366,11 @@ impl TwoPoolTestingEnv {
         snapshot_before: TwoPoolSnapshot,
         snapshot_after: TwoPoolSnapshot,
         user: &User,
-        (a_reward, b_reward): (f64, f64),
+        rewards: [f64; 2],
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
-        if a_reward + b_reward != 0.0 {
-            self.assert_claimed_reward_event(user, (a_reward, b_reward));
+        if rewards.iter().sum::<f64>() != 0.0 {
+            self.assert_claimed_reward_event(user, rewards);
         }
 
         let (user_a_before, user_b_before, _) = snapshot_before.get_user_balances(user);
@@ -392,8 +382,7 @@ impl TwoPoolTestingEnv {
         let pool_a_diff = snapshot_before.pool_a_balance - snapshot_after.pool_a_balance;
         let pool_b_diff = snapshot_before.pool_b_balance - snapshot_after.pool_b_balance;
 
-        let a_reward = float_to_uint(a_reward, 7);
-        let b_reward = float_to_uint(b_reward, 7);
+        let [a_reward, b_reward] = floats_to_uint(rewards, 7);
 
         assert_eq!(user_a_diff, a_reward);
         assert_eq!(pool_a_diff, a_reward);
@@ -404,10 +393,9 @@ impl TwoPoolTestingEnv {
     pub fn assert_claim_admin_fee(
         snapshot_before: TwoPoolSnapshot,
         snapshot_after: TwoPoolSnapshot,
-        (a_reward, b_reward): (f64, f64),
+        rewards: [f64; 2],
     ) {
-        let a_reward = float_to_uint(a_reward, 7);
-        let b_reward = float_to_uint(b_reward, 7);
+        let [a_reward, b_reward] = floats_to_uint(rewards, 7);
 
         let admin_b_diff = snapshot_after.admin_b_balance - snapshot_before.admin_b_balance;
         let admin_a_diff = snapshot_after.admin_a_balance - snapshot_before.admin_a_balance;
@@ -493,7 +481,7 @@ impl TwoPoolTestingEnv {
         &self,
         user: &User,
         deposit: [f64; 2],
-        expected_rewards: (f64, f64),
+        expected_rewards: [f64; 2],
         expected_lp_amount: f64,
     ) -> (TwoPoolSnapshot, TwoPoolSnapshot) {
         let snapshot_before = TwoPoolSnapshot::take(self);
@@ -510,12 +498,12 @@ impl TwoPoolTestingEnv {
             snapshot_before.clone(),
             snapshot_after.clone(),
             user,
-            (deposit[0], deposit[1]),
+            deposit,
             expected_rewards,
             expected_lp_amount,
         );
 
-        if expected_rewards != DOUBLE_ZERO {
+        if expected_rewards.iter().sum::<f64>() != 0.0 {
             self.assert_claimed_reward_event(user, expected_rewards);
         }
 
@@ -562,7 +550,7 @@ impl TwoPoolTestingEnv {
         (snapshot_before, snapshot_after)
     }
 
-    pub fn do_claim(&self, user: &User, expected_rewards: (f64, f64)) {
+    pub fn do_claim(&self, user: &User, expected_rewards: [f64; 2]) {
         let snapshot_before = TwoPoolSnapshot::take(self);
         self.pool.claim_rewards(user);
         let snapshot_after = TwoPoolSnapshot::take(self);
@@ -573,7 +561,7 @@ impl TwoPoolTestingEnv {
         self.assert_claim(snapshot_before, snapshot_after, user, expected_rewards);
     }
 
-    pub fn do_claim_admin_fee(&self, expected_rewards: (f64, f64)) {
+    pub fn do_claim_admin_fee(&self, expected_rewards: [f64; 2]) {
         let snapshot_before = TwoPoolSnapshot::take(self);
         self.pool.claim_admin_fee();
         let snapshot_after = TwoPoolSnapshot::take(self);
@@ -592,18 +580,18 @@ impl TwoPoolTestingEnv {
         &self,
         user: &User,
         withdraw_amount: f64,
-        expected_withdraw_amounts: (f64, f64),
-        expected_fee: (f64, f64),
-        expected_rewards: (f64, f64),
+        expected_withdraw_amounts: [f64; 2],
+        expected_fee: [f64; 2],
+        expected_rewards: [f64; 2],
         expected_user_lp_diff: f64,
-        expected_admin_fee: (f64, f64),
+        expected_admin_fee: [f64; 2],
     ) -> (TwoPoolSnapshot, TwoPoolSnapshot) {
         let snapshot_before = TwoPoolSnapshot::take(self);
         self.pool.withdraw(user, withdraw_amount);
         let snapshot_after = TwoPoolSnapshot::take(self);
         snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
-        if expected_rewards != DOUBLE_ZERO {
+        if expected_rewards.iter().sum::<f64>() != 0.0 {
             self.assert_claimed_reward_event(user, expected_rewards);
         }
 

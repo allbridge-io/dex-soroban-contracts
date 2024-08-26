@@ -5,7 +5,6 @@ use test_case::test_case;
 use crate::{
     contracts_wrappers::TestingEnvConfig,
     three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv},
-    utils::TRIPLE_ZERO,
 };
 
 #[test]
@@ -54,13 +53,13 @@ fn deposit_invalid_first_deposit(deposit: [f64; 3]) {
     testing_env.pool.deposit(&testing_env.alice, deposit, 0.0);
 }
 
-#[test_case([100.0, 50.0, 75.0], TRIPLE_ZERO, 225.0 ; "base")]
-#[test_case([50_000_000.0, 5_000.0, 5.0], TRIPLE_ZERO, 21_358_206.68 ; "deposit_disbalance")]
-#[test_case([0.001, 0.001, 0.0], TRIPLE_ZERO, 0.002 ; "smallest_deposit")]
-#[test_case([100.0, 0.0, 0.0], TRIPLE_ZERO, 100.0 ; "deposit_only_a")]
-#[test_case([0.0, 100.0, 0.0], TRIPLE_ZERO, 100.0 ; "deposit_only_b")]
-#[test_case([0.0, 0.0, 100.0], TRIPLE_ZERO, 100.0 ; "deposit_only_c")]
-fn deposit(deposit: [f64; 3], expected_rewards: (f64, f64, f64), expected_lp: f64) {
+#[test_case([100.0, 50.0, 75.0], [0.0; 3], 225.0 ; "base")]
+#[test_case([50_000_000.0, 5_000.0, 5.0], [0.0; 3], 21_358_206.68 ; "deposit_disbalance")]
+#[test_case([0.001, 0.001, 0.0], [0.0; 3], 0.002 ; "smallest_deposit")]
+#[test_case([100.0, 0.0, 0.0], [0.0; 3], 100.0 ; "deposit_only_a")]
+#[test_case([0.0, 100.0, 0.0], [0.0; 3], 100.0 ; "deposit_only_b")]
+#[test_case([0.0, 0.0, 100.0], [0.0; 3], 100.0 ; "deposit_only_c")]
+fn deposit(deposit: [f64; 3], expected_rewards: [f64; 3], expected_lp: f64) {
     let testing_env = ThreePoolTestingEnv::default();
     testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
 }
@@ -87,8 +86,8 @@ fn deposit_three_times_in_different_tokens() {
         snapshot_before,
         snapshot_after,
         alice,
-        (100.0, 100.0, 100.0),
-        TRIPLE_ZERO,
+        [100.0, 100.0, 100.0],
+        [0.0; 3],
         expected_lp_amount,
     );
 }
@@ -111,7 +110,7 @@ fn get_reward_after_third_deposit() {
     } = testing_env;
 
     let deposit = [2_000.0, 2_000.0, 2_000.0];
-    let expected_rewards = (1.000_269_9, 0.999_729_9, 0.999_999_9);
+    let expected_rewards = [1.000_269_9, 0.999_729_9, 0.999_999_9];
     let expected_lp_amount = 6_000.0;
 
     pool.deposit(alice, deposit, 4_000.0);

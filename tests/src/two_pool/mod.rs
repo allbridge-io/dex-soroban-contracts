@@ -19,9 +19,9 @@ pub struct DepositArgs {
 #[cfg(test)]
 pub struct DoWithdrawArgs {
     amount: f64,
-    expected_amounts: (f64, f64),
-    expected_fee: (f64, f64),
-    expected_rewards: (f64, f64),
+    expected_amounts: [f64; 2],
+    expected_fee: [f64; 2],
+    expected_rewards: [f64; 2],
     expected_user_lp_diff: f64,
-    expected_admin_fee: (f64, f64),
+    expected_admin_fee: [f64; 2],
 }

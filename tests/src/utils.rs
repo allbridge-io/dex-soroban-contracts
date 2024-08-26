@@ -16,9 +16,6 @@ use soroban_sdk::xdr::ScAddress;
 
 pub const SYSTEM_PRECISION: u32 = 3;
 
-pub const TRIPLE_ZERO: (f64, f64, f64) = (0.0, 0.0, 0.0);
-pub const DOUBLE_ZERO: (f64, f64) = (0.0, 0.0);
-
 pub fn error_code_to_error(v: u32) -> shared::Error {
     // don't try this at home
     unsafe { std::mem::transmute(v) }
@@ -55,6 +52,20 @@ pub fn int_to_float(amount: i128, decimals: i32) -> f64 {
 pub fn float_to_uint(amount: f64, decimals: u32) -> u128 {
     assert!(amount >= 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
+}
+
+pub fn floats_to_uint<const N: usize>(amounts: [f64; N], decimals: u32) -> [u128; N] {
+    let mut v = [0; N];
+
+    for (i, x) in amounts.iter().enumerate() {
+        v[i] = float_to_uint(*x, decimals);
+    }
+
+    v
+}
+
+pub fn floats_to_uint_sp<const N: usize>(amounts: [f64; N]) -> [u128; N] {
+    floats_to_uint(amounts, SYSTEM_PRECISION)
 }
 
 pub fn uint_to_float(amount: u128, decimals: u32) -> f64 {
