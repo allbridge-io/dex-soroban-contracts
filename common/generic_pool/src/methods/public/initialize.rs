@@ -4,7 +4,6 @@ use storage::Admin;
 
 use crate::pool::Pool;
 
-#[allow(clippy::too_many_arguments)]
 pub fn initialize<const N: usize, P: Pool<N>>(
     env: Env,
     admin: Address,

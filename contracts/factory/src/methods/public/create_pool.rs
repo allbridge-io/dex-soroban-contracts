@@ -4,7 +4,6 @@ use storage::Admin;
 
 use crate::storage::factory_info::{FactoryInfo, MAX_PAIRS_NUM};
 
-#[allow(clippy::too_many_arguments)]
 pub fn create_pool(
     env: Env,
     deployer: Address,

@@ -21,7 +21,6 @@ impl FactoryContract {
         initialize(env, two_pool_wasm_hash, three_pool_wasm_hash, admin)
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn create_pool(
         env: Env,
         deployer: Address,

@@ -116,7 +116,6 @@ impl ThreePoolTestingEnv {
         (token_a, token_b, token_c)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn create_pool(
         env: &Env,
         factory: &PoolFactory,
@@ -471,7 +470,6 @@ impl ThreePoolTestingEnv {
         assert_rel_eq(pool_c_diff, c_reward, 2);
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn assert_swap(
         &self,
         snapshot_before: ThreePoolSnapshot,

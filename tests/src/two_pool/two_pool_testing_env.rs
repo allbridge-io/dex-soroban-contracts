@@ -107,7 +107,6 @@ impl TwoPoolTestingEnv {
         (token_a, token_b)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn create_pool(
         env: &Env,
         factory: &PoolFactory,
@@ -422,7 +421,6 @@ impl TwoPoolTestingEnv {
         assert_rel_eq(pool_a_diff, a_reward, 1);
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn assert_swap(
         &self,
         snapshot_before: TwoPoolSnapshot,
