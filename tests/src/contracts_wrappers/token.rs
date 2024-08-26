@@ -1,34 +1,53 @@
 use soroban_sdk::{token, Address, Env};
 
-use crate::utils::float_to_uint;
+use crate::{
+    contracts::{pool::TwoToken, three_pool::ThreeToken},
+    utils::float_to_uint,
+};
 
 use super::User;
 
-pub struct TwoPoolToken {
+impl From<TwoToken> for usize {
+    fn from(value: TwoToken) -> Self {
+        value as usize
+    }
+}
+
+impl From<ThreeToken> for usize {
+    fn from(value: ThreeToken) -> Self {
+        value as usize
+    }
+}
+
+pub struct Token<T: Into<usize>> {
     pub id: soroban_sdk::Address,
+    pub tag: String,
     pub client: token::Client<'static>,
+    pub pool_token: T,
     pub asset_client: token::StellarAssetClient<'static>,
     pub env: Env,
 }
 
-impl TwoPoolToken {
+impl<T: Into<usize>> Token<T> {
     pub const DEFAULT_AIRDROP: f64 = 100_000_000.0;
 
     pub fn as_address(&self) -> Address {
         self.id.clone()
     }
 
-    pub fn create(env: &Env, admin: &Address) -> TwoPoolToken {
+    pub fn create(env: &Env, admin: &Address, pool_token: T, tag: &str) -> Token<T> {
         #[allow(deprecated)]
         let id = env.register_stellar_asset_contract(admin.clone());
         let client = token::Client::new(env, &id);
         let asset_client = token::StellarAssetClient::new(env, &id);
 
-        TwoPoolToken {
+        Token {
             id,
             client,
             asset_client,
             env: env.clone(),
+            pool_token,
+            tag: tag.into(),
         }
     }
 

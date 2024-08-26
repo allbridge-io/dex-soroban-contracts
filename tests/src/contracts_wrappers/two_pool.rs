@@ -1,6 +1,6 @@
 use soroban_sdk::{Address, Env, Vec};
 
-use super::User;
+use super::{Token, User};
 use crate::{
     contracts::pool::{self, TwoToken, UserDeposit},
     utils::{
@@ -217,8 +217,8 @@ impl TwoPool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: TwoToken,
-        token_to: TwoToken,
+        token_from: &Token<TwoToken>,
+        token_to: &Token<TwoToken>,
     ) {
         unwrap_call_result(
             &self.env,
@@ -227,8 +227,8 @@ impl TwoPool {
                 recipient,
                 amount,
                 receive_amount_min,
-                &token_from,
-                &token_to,
+                &token_from.pool_token,
+                &token_to.pool_token,
             ),
         );
     }

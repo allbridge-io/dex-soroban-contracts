@@ -4,7 +4,8 @@ use test_case::test_case;
 
 use crate::{
     contracts::pool::TwoToken as Token,
-    two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv, TwoPoolTestingEnvConfig},
+    contracts_wrappers::TestingEnvConfig,
+    two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv},
 };
 
 use super::DepositArgs;
@@ -13,14 +14,14 @@ use super::DepositArgs;
 #[should_panic = "DexContract(InsufficientReceivedAmount)"]
 fn swap_insufficient_received_amount() {
     let testing_env =
-        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+        TwoPoolTestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     testing_env.pool.swap(
         &testing_env.alice,
         &testing_env.alice,
         1000.0,
         1000.0,
-        Token::A,
-        Token::B,
+        &testing_env.token_a,
+        &testing_env.token_b,
     );
 }
 
@@ -37,7 +38,7 @@ fn simple_swaps(
     expected_fee: f64,
 ) {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(0.1)
             .with_admin_init_deposit(400_000.0),
     );
@@ -47,8 +48,8 @@ fn simple_swaps(
         &testing_env.alice,
         amount,
         receive_amount_min,
-        from_token,
-        to_token,
+        testing_env.get_token(from_token),
+        testing_env.get_token(to_token),
         expected_receive_amount,
         expected_fee,
     );
@@ -66,7 +67,7 @@ fn swap_disbalance(
     expected_fee: f64,
 ) {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(0.1)
             .with_admin_init_deposit(500_000.0),
     );
@@ -82,8 +83,8 @@ fn swap_disbalance(
         &testing_env.alice,
         amount,
         receive_amount_min,
-        from_token,
-        to_token,
+        testing_env.get_token(from_token),
+        testing_env.get_token(to_token),
         expected_receive_amount,
         expected_fee,
     );
@@ -92,9 +93,8 @@ fn swap_disbalance(
 #[test_case(Token::A, Token::B ; "swap_more_than_pool_balance")]
 #[test_case(Token::B, Token::A ; "swap_more_than_pool_balance_b2a")]
 fn swap_more_than_pool_balance(from_token: Token, to_token: Token) {
-    let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default().with_admin_init_deposit(500_000.0),
-    );
+    let testing_env =
+        TwoPoolTestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(500_000.0));
     let TwoPoolTestingEnv {
         ref pool,
         ref alice,
@@ -107,9 +107,23 @@ fn swap_more_than_pool_balance(from_token: Token, to_token: Token) {
     let snapshot_before = TwoPoolSnapshot::take(&testing_env);
 
     pool.deposit(alice, deposit, 1_000_000.0);
-    pool.swap(alice, alice, amount, 500_000.0, from_token, to_token);
+    pool.swap(
+        alice,
+        alice,
+        amount,
+        500_000.0,
+        testing_env.get_token(from_token),
+        testing_env.get_token(to_token),
+    );
     // Bring pool back to balance by Alice
-    pool.swap(alice, alice, amount, 500_000.0, to_token, from_token);
+    pool.swap(
+        alice,
+        alice,
+        amount,
+        500_000.0,
+        testing_env.get_token(to_token),
+        testing_env.get_token(from_token),
+    );
     pool.withdraw(alice, pool.user_lp_amount_f64(alice));
 
     let snapshot_after = TwoPoolSnapshot::take(&testing_env);

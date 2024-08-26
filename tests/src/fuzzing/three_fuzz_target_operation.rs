@@ -4,7 +4,8 @@ use rand_derive2::RandGen;
 use serde_derive::Serialize;
 use std::fmt::Display;
 
-use crate::contracts_wrappers::{ThreePoolToken, User};
+use crate::contracts::three_pool::ThreeToken;
+use crate::contracts_wrappers::{Token, User};
 use crate::three_pool::ThreePoolTestingEnv;
 use crate::utils::CallResult;
 
@@ -48,7 +49,7 @@ impl SwapDirection {
     pub fn get_token_pair<'a>(
         &self,
         testing_env: &'a ThreePoolTestingEnv,
-    ) -> (&'a ThreePoolToken, &'a ThreePoolToken) {
+    ) -> (&'a Token<ThreeToken>, &'a Token<ThreeToken>) {
         match self {
             SwapDirection::A2B => (&testing_env.token_a, &testing_env.token_b),
             SwapDirection::A2C => (&testing_env.token_a, &testing_env.token_c),

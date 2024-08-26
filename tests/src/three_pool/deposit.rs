@@ -3,7 +3,8 @@
 use test_case::test_case;
 
 use crate::{
-    three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv, ThreePoolTestingEnvConfig},
+    contracts_wrappers::TestingEnvConfig,
+    three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv},
     utils::TRIPLE_ZERO,
 };
 
@@ -48,9 +49,8 @@ fn deposit_with_overflow() {
 #[test_case((100.0, 99.0, 100.0); "invalid_b")]
 #[test_case((100.0, 100.0, 99.0); "invalid_c")]
 fn deposit_invalid_first_deposit(deposit: (f64, f64, f64)) {
-    let testing_env = ThreePoolTestingEnv::create(
-        ThreePoolTestingEnvConfig::default().with_admin_init_deposit(0.0),
-    );
+    let testing_env =
+        ThreePoolTestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
     testing_env.pool.deposit(&testing_env.alice, deposit, 0.0);
 }
 
@@ -96,7 +96,7 @@ fn deposit_three_times_in_different_tokens() {
 #[test]
 fn get_reward_after_third_deposit() {
     let testing_env = ThreePoolTestingEnv::create(
-        ThreePoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );

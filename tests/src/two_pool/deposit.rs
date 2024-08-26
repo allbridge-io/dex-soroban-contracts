@@ -2,8 +2,9 @@
 
 use test_case::test_case;
 
-use crate::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
-use crate::{contracts::pool::TwoToken as Token, utils::DOUBLE_ZERO};
+use crate::contracts_wrappers::TestingEnvConfig;
+use crate::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv};
+use crate::utils::DOUBLE_ZERO;
 
 #[test]
 #[should_panic = "DexContract(ZeroAmount)"]
@@ -30,8 +31,8 @@ fn deposit_with_overflow() {
     let TwoPoolTestingEnv {
         ref pool,
         ref alice,
-        ref yaro_token,
-        ref yusd_token,
+        token_b: ref yaro_token,
+        token_a: ref yusd_token,
         ..
     } = testing_env;
 
@@ -45,7 +46,7 @@ fn deposit_with_overflow() {
 #[should_panic = "DexContract(InvalidFirstDeposit)"]
 fn deposit_invalid_first_deposit() {
     let testing_env =
-        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_admin_init_deposit(0.0));
+        TwoPoolTestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
     testing_env
         .pool
         .deposit(&testing_env.alice, (100.0, 25.0), 0.0);
@@ -91,7 +92,7 @@ fn deposit_twice_in_different_tokens() {
 #[test]
 fn get_reward_after_second_deposit() {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
@@ -99,6 +100,8 @@ fn get_reward_after_second_deposit() {
         ref pool,
         ref alice,
         ref bob,
+        token_a: ref yusd_token,
+        token_b: ref yaro_token,
         ..
     } = testing_env;
 
@@ -107,8 +110,8 @@ fn get_reward_after_second_deposit() {
     let expected_lp_amount = 4_000.0;
 
     pool.deposit(alice, deposit, 4_000.0);
-    pool.swap(alice, bob, 100.0, 98.0, Token::A, Token::B);
-    pool.swap(bob, alice, 100.0, 99.0, Token::B, Token::A);
+    pool.swap(alice, bob, 100.0, 98.0, yusd_token, yaro_token);
+    pool.swap(bob, alice, 100.0, 99.0, yaro_token, yusd_token);
 
     testing_env.do_deposit(
         &testing_env.alice,

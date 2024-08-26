@@ -4,7 +4,8 @@ use test_case::test_case;
 
 use crate::{
     contracts::three_pool::ThreeToken as Token,
-    three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv, ThreePoolTestingEnvConfig},
+    contracts_wrappers::TestingEnvConfig,
+    three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv},
 };
 
 use super::DepositArgs;
@@ -13,7 +14,7 @@ use super::DepositArgs;
 #[should_panic = "DexContract(InsufficientReceivedAmount)"]
 fn swap_insufficient_received_amount() {
     let testing_env =
-        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+        ThreePoolTestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     testing_env.pool.swap(
         &testing_env.alice,
         &testing_env.alice,
@@ -41,7 +42,7 @@ fn simple_swaps(
     expected_fee: f64,
 ) {
     let testing_env = ThreePoolTestingEnv::create(
-        ThreePoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(0.1)
             .with_admin_init_deposit(400_000.0),
     );
@@ -83,7 +84,7 @@ fn swap_disbalance(
     expected_fee: f64,
 ) {
     let testing_env = ThreePoolTestingEnv::create(
-        ThreePoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(0.1)
             .with_admin_init_deposit(500_000.0),
     );
@@ -113,9 +114,8 @@ fn swap_disbalance(
 #[test_case(Token::C, Token::A; "swap_more_than_pool_balance_c2a")]
 #[test_case(Token::C, Token::B; "swap_more_than_pool_balance_c2b")]
 fn swap_more_than_pool_balance(token_from: Token, token_to: Token) {
-    let testing_env = ThreePoolTestingEnv::create(
-        ThreePoolTestingEnvConfig::default().with_admin_init_deposit(500_000.0),
-    );
+    let testing_env =
+        ThreePoolTestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(500_000.0));
     let ThreePoolTestingEnv {
         ref pool,
         ref alice,

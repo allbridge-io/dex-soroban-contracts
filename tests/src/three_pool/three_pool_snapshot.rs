@@ -2,7 +2,7 @@ use std::{cmp::Ordering, ops::Index};
 
 use color_print::cformat;
 
-use crate::contracts::three_pool::{ThreePool as PoolInfo, UserDeposit};
+use crate::contracts::three_pool::UserDeposit;
 use crate::contracts_wrappers::User;
 use crate::utils::{format_diff, int_to_float};
 
@@ -10,8 +10,6 @@ use super::ThreePoolTestingEnv;
 
 #[derive(Debug, Clone)]
 pub struct ThreePoolSnapshot {
-    pub pool_info: PoolInfo,
-
     pub alice_a_balance: u128,
     pub alice_b_balance: u128,
     pub alice_c_balance: u128,
@@ -160,7 +158,6 @@ impl ThreePoolSnapshot {
 
         ThreePoolSnapshot {
             d,
-            pool_info,
             admin_a_balance,
             admin_b_balance,
             admin_c_balance,

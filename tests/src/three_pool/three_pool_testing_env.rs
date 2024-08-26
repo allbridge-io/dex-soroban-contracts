@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::three_pool::{Deposit, RewardsClaimed, Swapped, ThreeToken, Withdraw},
-    contracts_wrappers::{PoolFactory, ThreePool, ThreePoolToken, User},
+    contracts_wrappers::{PoolFactory, TestingEnvConfig, ThreePool, Token, User},
     utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, get_latest_event, TRIPLE_ZERO},
 };
 
@@ -10,60 +10,17 @@ use crate::utils::percentage_to_bp;
 
 use super::ThreePoolSnapshot;
 
-#[derive(Debug, Clone)]
-pub struct ThreePoolTestingEnvConfig {
-    /// default: `0.0`, from 0.0 to 100.0
-    pub pool_fee_share_percentage: f64,
-    /// default: `0.0`, from 0.0 to 100.0
-    pub pool_admin_fee_percentage: f64,
-    /// default: `100_000.0`
-    pub admin_init_deposit: f64,
-}
-
-impl ThreePoolTestingEnvConfig {
-    pub fn with_admin_init_deposit(mut self, admin_init_deposit: f64) -> Self {
-        self.admin_init_deposit = admin_init_deposit;
-        self
-    }
-
-    // from 0.0 to 100.0
-    pub fn with_pool_admin_fee(mut self, pool_admin_fee_percentage: f64) -> Self {
-        assert!((0.0..100.0).contains(&pool_admin_fee_percentage));
-
-        self.pool_admin_fee_percentage = pool_admin_fee_percentage;
-        self
-    }
-
-    // from 0.0 to 100.0
-    pub fn with_pool_fee_share(mut self, fee_share_percentage: f64) -> Self {
-        assert!((0.0..=100.0).contains(&fee_share_percentage));
-
-        self.pool_fee_share_percentage = fee_share_percentage;
-        self
-    }
-}
-
-impl Default for ThreePoolTestingEnvConfig {
-    fn default() -> Self {
-        ThreePoolTestingEnvConfig {
-            pool_fee_share_percentage: 0.0,
-            pool_admin_fee_percentage: 0.0,
-            admin_init_deposit: 100_000.0,
-        }
-    }
-}
-
 pub struct ThreePoolTestingEnv {
     pub env: Env,
     pub admin: User,
-    pub native_token: ThreePoolToken,
+    pub native_token: Token<ThreeToken>,
 
     pub alice: User,
     pub bob: User,
 
-    pub token_a: ThreePoolToken,
-    pub token_b: ThreePoolToken,
-    pub token_c: ThreePoolToken,
+    pub token_a: Token<ThreeToken>,
+    pub token_b: Token<ThreeToken>,
+    pub token_c: Token<ThreeToken>,
 
     pub pool: ThreePool,
     pub factory: PoolFactory,
@@ -71,19 +28,19 @@ pub struct ThreePoolTestingEnv {
 
 impl Default for ThreePoolTestingEnv {
     fn default() -> Self {
-        Self::create(ThreePoolTestingEnvConfig::default())
+        Self::create(TestingEnvConfig::default())
     }
 }
 
 impl ThreePoolTestingEnv {
-    pub fn create(config: ThreePoolTestingEnvConfig) -> ThreePoolTestingEnv {
+    pub fn create(config: TestingEnvConfig) -> ThreePoolTestingEnv {
         let env = Env::default();
 
         env.mock_all_auths();
         env.budget().reset_limits(u64::MAX, u64::MAX);
 
         let admin = User::generate(&env, "admin");
-        let native_token = ThreePoolToken::create(&env, admin.as_ref(), ThreeToken::A, "native");
+        let native_token = Token::create(&env, admin.as_ref(), ThreeToken::A, "native");
         let alice = User::generate(&env, "alice");
         let bob = User::generate(&env, "bob");
 
@@ -140,7 +97,7 @@ impl ThreePoolTestingEnv {
         self
     }
 
-    pub fn get_token(&self, pool_token: ThreeToken) -> &ThreePoolToken {
+    pub fn get_token(&self, pool_token: ThreeToken) -> &Token<ThreeToken> {
         match pool_token {
             ThreeToken::A => &self.token_a,
             ThreeToken::B => &self.token_b,
@@ -151,10 +108,10 @@ impl ThreePoolTestingEnv {
     pub fn generate_tokens(
         env: &Env,
         admin: &Address,
-    ) -> (ThreePoolToken, ThreePoolToken, ThreePoolToken) {
-        let token_a = ThreePoolToken::create(env, admin, ThreeToken::A, "a");
-        let token_b = ThreePoolToken::create(env, admin, ThreeToken::B, "b");
-        let token_c = ThreePoolToken::create(env, admin, ThreeToken::C, "c");
+    ) -> (Token<ThreeToken>, Token<ThreeToken>, Token<ThreeToken>) {
+        let token_a = Token::create(env, admin, ThreeToken::A, "a");
+        let token_b = Token::create(env, admin, ThreeToken::B, "b");
+        let token_c = Token::create(env, admin, ThreeToken::C, "c");
 
         (token_a, token_b, token_c)
     }
@@ -164,9 +121,9 @@ impl ThreePoolTestingEnv {
         env: &Env,
         factory: &PoolFactory,
         admin: &User,
-        token_a: &ThreePoolToken,
-        token_b: &ThreePoolToken,
-        token_c: &ThreePoolToken,
+        token_a: &Token<ThreeToken>,
+        token_b: &Token<ThreeToken>,
+        token_c: &Token<ThreeToken>,
         fee_share_percentage: f64,
         admin_fee_percentage: f64,
         admin_init_deposit: f64,
@@ -231,8 +188,8 @@ impl ThreePoolTestingEnv {
         &self,
         sender: &User,
         recipient: &User,
-        token_from: &ThreePoolToken,
-        token_to: &ThreePoolToken,
+        token_from: &Token<ThreeToken>,
+        token_to: &Token<ThreeToken>,
         from_amount: f64,
         expected_to_amount: f64,
         expected_fee: f64,
@@ -521,8 +478,8 @@ impl ThreePoolTestingEnv {
         snapshot_after: ThreePoolSnapshot,
         sender: &User,
         recipient: &User,
-        token_from: &ThreePoolToken,
-        token_to: &ThreePoolToken,
+        token_from: &Token<ThreeToken>,
+        token_to: &Token<ThreeToken>,
         amount: f64,
         expected_receive_amount: f64,
         expected_fee: f64,
@@ -619,8 +576,8 @@ impl ThreePoolTestingEnv {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: &ThreePoolToken,
-        token_to: &ThreePoolToken,
+        token_from: &Token<ThreeToken>,
+        token_to: &Token<ThreeToken>,
         expected_receive_amount: f64,
         expected_fee: f64,
     ) -> (ThreePoolSnapshot, ThreePoolSnapshot) {

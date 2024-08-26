@@ -2,7 +2,8 @@
 
 use test_case::test_case;
 
-use crate::three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv, ThreePoolTestingEnvConfig};
+use crate::contracts_wrappers::TestingEnvConfig;
+use crate::three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv};
 use crate::utils::{assert_rel_eq, float_to_uint, TRIPLE_ZERO};
 
 use super::{DepositArgs, DoWithdrawArgs};
@@ -30,40 +31,36 @@ fn withdraw_zero_change() {
 }
 
 #[test_case(
-    ThreePoolTestingEnvConfig::default(),
+    TestingEnvConfig::default(),
     DepositArgs { amounts: (4_000.0, 5_000.0, 6_000.0), min_lp: 14_999.0 },
     DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_952.364, 4_999.984, 5_047.602), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: TRIPLE_ZERO }
     ; "base_withdraw"
 )]
 #[test_case(
-    ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
+    TestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
     DepositArgs { amounts: (4_000.0, 5_000.0, 6_000.0), min_lp: 14_999.0 },
     DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_947.411, 4_994.984, 5_042.554), expected_fee: (4.952_364, 4.999_984, 5.047_602), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: (0.990_472_8, 0.999_996_8, 1.009_520_4) }
     ; "withdraw_with_fee"
 )]
 #[test_case(
-    ThreePoolTestingEnvConfig::default(),
+    TestingEnvConfig::default(),
     DepositArgs { amounts: (15_000.0, 25_000.0, 20_000.0), min_lp: 59_950.0 },
     DoWithdrawArgs { amount: 0.004, expected_amounts: (0.001, 0.001, 0.002), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: TRIPLE_ZERO }
     ; "smallest_withdraw"
 )]
 #[test_case(
-    ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1),
+    TestingEnvConfig::default().with_pool_fee_share(0.1),
     DepositArgs { amounts: (15_000.0, 25_000.0, 20_000.0), min_lp: 59_950.0 },
     DoWithdrawArgs { amount: 0.007, expected_amounts: (0.001, 0.001, 0.002), expected_fee: (0.000_002, 0.000_002, 0.000_003), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.007, expected_admin_fee: TRIPLE_ZERO }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
-    ThreePoolTestingEnvConfig::default(),
+    TestingEnvConfig::default(),
     DepositArgs { amounts: (50_000_000.0, 5_000.0, 5.0), min_lp: 21_358_206.68 },
     DoWithdrawArgs { amount: 21_358_206.68, expected_amounts: (49_406_036.726, 103_545.587, 98_619.774), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 21_358_206.68, expected_admin_fee: TRIPLE_ZERO }
     ; "withdraw_disbalance"
 )]
-fn withdraw(
-    config: ThreePoolTestingEnvConfig,
-    deposit_args: DepositArgs,
-    do_withdraw_args: DoWithdrawArgs,
-) {
+fn withdraw(config: TestingEnvConfig, deposit_args: DepositArgs, do_withdraw_args: DoWithdrawArgs) {
     let testing_env = ThreePoolTestingEnv::create(config);
     testing_env.pool.deposit(
         &testing_env.alice,
@@ -84,7 +81,7 @@ fn withdraw(
 #[test]
 fn withdraw_with_rewards() {
     let testing_env =
-        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+        ThreePoolTestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     let ThreePoolTestingEnv {
         ref pool,
         ref alice,
@@ -155,7 +152,7 @@ fn withdraw_multiply_times() {
 #[test]
 fn withdraw_alice_profit_and_bob_loss() {
     let testing_env =
-        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+        ThreePoolTestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     let ThreePoolTestingEnv {
         ref pool,
         ref alice,
@@ -214,7 +211,7 @@ fn withdraw_alice_profit_and_bob_loss() {
 #[test]
 fn withdraw_alice_loss_and_bob_profit() {
     let testing_env =
-        ThreePoolTestingEnv::create(ThreePoolTestingEnvConfig::default().with_pool_fee_share(0.1));
+        ThreePoolTestingEnv::create(TestingEnvConfig::default().with_pool_fee_share(0.1));
     let ThreePoolTestingEnv {
         ref pool,
         ref alice,

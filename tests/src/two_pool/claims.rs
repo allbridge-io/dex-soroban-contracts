@@ -1,19 +1,24 @@
 #![cfg(test)]
 
-use crate::two_pool::{TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
-use crate::{contracts::pool::TwoToken as Token, utils::DOUBLE_ZERO};
+use crate::contracts_wrappers::TestingEnvConfig;
+use crate::two_pool::TwoPoolTestingEnv;
+use crate::utils::DOUBLE_ZERO;
 
 #[test]
 #[should_panic(expected = "Context(InvalidAction)")]
 fn claim_admin_fee_no_auth() {
     let testing_env =
-        TwoPoolTestingEnv::create(TwoPoolTestingEnvConfig::default().with_pool_admin_fee(1.0));
+        TwoPoolTestingEnv::create(TestingEnvConfig::default().with_pool_admin_fee(1.0));
     let TwoPoolTestingEnv {
-        ref pool, ref bob, ..
+        ref pool,
+        ref bob,
+        token_a: ref yusd_token,
+        token_b: ref yaro_token,
+        ..
     } = testing_env;
 
-    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
-    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
+    pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);
+    pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
 
     testing_env.clear_mock_auth().pool.claim_admin_fee();
 }
@@ -21,7 +26,7 @@ fn claim_admin_fee_no_auth() {
 #[test]
 fn claim_admin_fee() {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_pool_admin_fee(1.0),
     );
@@ -29,14 +34,16 @@ fn claim_admin_fee() {
         ref pool,
         ref alice,
         ref bob,
+        token_a: ref yusd_token,
+        token_b: ref yaro_token,
         ..
     } = testing_env;
 
     // Expected is 1% of 1% of 100 USD, which is around 1 cent
     let expected_admin_fees = (0.009_999_7, 0.010_000_2);
 
-    pool.swap(alice, bob, 100.0, 98.0, Token::B, Token::A);
-    pool.swap(alice, bob, 100.0, 99.0, Token::A, Token::B);
+    pool.swap(alice, bob, 100.0, 98.0, yaro_token, yusd_token);
+    pool.swap(alice, bob, 100.0, 99.0, yusd_token, yaro_token);
 
     testing_env.do_claim_admin_fee(expected_admin_fees);
     testing_env.do_claim_admin_fee(DOUBLE_ZERO);
@@ -45,7 +52,7 @@ fn claim_admin_fee() {
 #[test]
 fn claim_rewards() {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
@@ -53,12 +60,14 @@ fn claim_rewards() {
         ref pool,
         ref alice,
         ref bob,
+        token_a: ref yusd_token,
+        token_b: ref yaro_token,
         ..
     } = testing_env;
     pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
 
-    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
-    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
+    pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
+    pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);
 
     // Expected 1% of 100 USD, which is around 1%
     testing_env.do_claim(alice, (1.001_219_9, 0.998_779_9));
@@ -68,7 +77,7 @@ fn claim_rewards() {
 #[test]
 fn user_and_admin_claim_rewards() {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_pool_admin_fee(20.0)
             .with_admin_init_deposit(0.0),
@@ -77,6 +86,8 @@ fn user_and_admin_claim_rewards() {
         ref pool,
         ref alice,
         ref bob,
+        token_a: ref yusd_token,
+        token_b: ref yaro_token,
         ..
     } = testing_env;
 
@@ -86,8 +97,8 @@ fn user_and_admin_claim_rewards() {
     let expected_user_rewards = (0.800_975_92, 0.799_023_92);
 
     pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
-    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
-    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
+    pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
+    pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);
 
     testing_env.do_claim(alice, expected_user_rewards);
     testing_env.do_claim_admin_fee(expected_admin_fees);
@@ -96,7 +107,7 @@ fn user_and_admin_claim_rewards() {
 #[test]
 fn get_rewards_after_second_claim() {
     let testing_env = TwoPoolTestingEnv::create(
-        TwoPoolTestingEnvConfig::default()
+        TestingEnvConfig::default()
             .with_pool_fee_share(1.0)
             .with_admin_init_deposit(0.0),
     );
@@ -104,6 +115,8 @@ fn get_rewards_after_second_claim() {
         ref pool,
         ref alice,
         ref bob,
+        token_a: ref yusd_token,
+        token_b: ref yaro_token,
         ..
     } = testing_env;
 
@@ -112,8 +125,8 @@ fn get_rewards_after_second_claim() {
     let yusd_expected_reward = 1.001_219_9;
 
     pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
-    pool.swap(bob, bob, 100.0, 98.0, Token::A, Token::B);
+    pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
     testing_env.do_claim(alice, (0.0, yaro_expected_reward));
-    pool.swap(bob, bob, 100.0, 98.0, Token::B, Token::A);
+    pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);
     testing_env.do_claim(alice, (yusd_expected_reward, 0.0));
 }

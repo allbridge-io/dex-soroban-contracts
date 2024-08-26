@@ -1,9 +1,8 @@
 use soroban_sdk::{Address, Env, Vec};
 
-use super::User;
+use super::{Token, User};
 use crate::{
-    contracts::three_pool::{self, UserDeposit},
-    contracts_wrappers::ThreePoolToken,
+    contracts::three_pool::{self, ThreeToken, UserDeposit},
     utils::{
         desoroban_result, float_to_uint, float_to_uint_sp, percentage_to_bp, uint_to_float_sp,
         unwrap_call_result, CallResult,
@@ -24,19 +23,6 @@ impl ThreePool {
             client,
             env: env.clone(),
         }
-    }
-
-    pub fn receive_amount(
-        &self,
-        amount: f64,
-        token_from: &ThreePoolToken,
-        token_to: &ThreePoolToken,
-    ) -> (u128, u128) {
-        self.client.get_receive_amount(
-            &float_to_uint(amount, 7),
-            &token_from.pool_token,
-            &token_to.pool_token,
-        )
     }
 
     pub fn assert_total_lp_less_or_equal_d(&self) {
@@ -199,8 +185,8 @@ impl ThreePool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: &ThreePoolToken,
-        token_to: &ThreePoolToken,
+        token_from: &Token<ThreeToken>,
+        token_to: &Token<ThreeToken>,
     ) -> CallResult<u128> {
         desoroban_result(self.client.try_swap(
             &sender.as_address(),
@@ -218,8 +204,8 @@ impl ThreePool {
         recipient: &User,
         amount: f64,
         receive_amount_min: f64,
-        token_from: &ThreePoolToken,
-        token_to: &ThreePoolToken,
+        token_from: &Token<ThreeToken>,
+        token_to: &Token<ThreeToken>,
     ) {
         unwrap_call_result(
             &self.env,

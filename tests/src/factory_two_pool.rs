@@ -73,8 +73,8 @@ fn identical_addresses() {
         testing_env.admin.as_ref(),
         10,
         [
-            testing_env.yaro_token.id.clone(),
-            testing_env.yaro_token.id.clone(),
+            testing_env.token_b.id.clone(),
+            testing_env.token_b.id.clone(),
         ],
         10,
         10,
@@ -137,7 +137,7 @@ fn pair_exist() {
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        [testing_env.yaro_token.id, testing_env.yusd_token.id],
+        [testing_env.token_b.id, testing_env.token_a.id],
         10,
         10,
     );
@@ -150,7 +150,7 @@ fn pair_exist_reverse() {
     testing_env.factory.create_pool(
         testing_env.admin.as_ref(),
         10,
-        [testing_env.yusd_token.id, testing_env.yaro_token.id],
+        [testing_env.token_a.id, testing_env.token_b.id],
         10,
         10,
     );
@@ -181,8 +181,8 @@ fn add_new_pair() {
 fn get_pool() {
     let testing_env = TwoPoolTestingEnv::default();
     let TwoPoolTestingEnv {
-        ref yaro_token,
-        ref yusd_token,
+        token_b: ref yaro_token,
+        token_a: ref yusd_token,
         ..
     } = testing_env;
 

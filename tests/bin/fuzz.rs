@@ -8,8 +8,9 @@ use clap::Parser;
 use clap_derive::Parser;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
+use tests::contracts_wrappers::TestingEnvConfig;
 use tests::fuzzing::two_fuzz_target_operation::FuzzTargetOperation;
-use tests::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv, TwoPoolTestingEnvConfig};
+use tests::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -91,7 +92,7 @@ fn main() {
 
     runs.par_iter().for_each(|operations| {
         let testing_env = TwoPoolTestingEnv::create(
-            TwoPoolTestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
+            TestingEnvConfig::default().with_admin_init_deposit(1_250_000.0),
         );
 
         let mut run_result = RunResult::default();
