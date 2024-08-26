@@ -20,7 +20,7 @@ fn withdraw_full_and_try_again() {
         ..
     } = testing_env;
 
-    pool.deposit(alice, (4_000.0, 5_000.0), 8_999.0);
+    pool.deposit(alice, [4_000.0, 5_000.0], 8_999.0);
     pool.withdraw(alice, pool.user_lp_amount_f64(alice));
     pool.withdraw(alice, 0.001);
 }
@@ -34,31 +34,31 @@ fn withdraw_zero_change() {
 
 #[test_case(
     TestingEnvConfig::default(),
-    DepositArgs { amounts: (4_000.0, 5_000.0), min_lp: 8_999.0 },
+    DepositArgs { amounts: [4_000.0, 5_000.0], min_lp: 8_999.0 },
     DoWithdrawArgs { amount: 8999.942, expected_amounts: (4_478.442, 4_521.503), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 8_999.942, expected_admin_fee: DOUBLE_ZERO }
     ; "base_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
-    DepositArgs { amounts: (4_000.0, 5_000.0), min_lp: 8_999.0 },
+    DepositArgs { amounts: [4_000.0, 5_000.0], min_lp: 8_999.0 },
     DoWithdrawArgs { amount: 8999.942, expected_amounts: (4_473.963, 4_516.981), expected_fee: (4.478_442, 4.521_503), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 8_999.942, expected_admin_fee: (0.895_688_4, 0.904_300_6) }
     ; "withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
-    DepositArgs { amounts: (15_000.0, 25_000.0), min_lp: 39_950.0 },
+    DepositArgs { amounts: [15_000.0, 25_000.0], min_lp: 39_950.0 },
     DoWithdrawArgs { amount: 0.002, expected_amounts: (0.002, 0.001), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.002, expected_admin_fee: DOUBLE_ZERO }
     ; "smallest_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1),
-    DepositArgs { amounts: (15_000.0, 25_000.0), min_lp: 39_950.0 },
+    DepositArgs { amounts: [15_000.0, 25_000.0], min_lp: 39_950.0 },
     DoWithdrawArgs { amount: 0.004, expected_amounts: (0.002, 0.001), expected_fee: (0.000_003, 0.000_002), expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: DOUBLE_ZERO }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
-    DepositArgs { amounts: (50_000_000.0, 5_000.0), min_lp: 31_250_000.0 },
+    DepositArgs { amounts: [50_000_000.0, 5_000.0], min_lp: 31_250_000.0 },
     DoWithdrawArgs { amount: 31_492_001.072, expected_amounts: (49_783_831.892, 104_337.373), expected_fee: DOUBLE_ZERO, expected_rewards: DOUBLE_ZERO, expected_user_lp_diff: 31_492_001.072, expected_admin_fee: DOUBLE_ZERO }
     ; "withdraw_disbalance"
 )]
@@ -93,7 +93,7 @@ fn withdraw_with_rewards() {
         ..
     } = testing_env;
 
-    let deposits = (4_000.0, 5_000.0);
+    let deposits = [4_000.0, 5_000.0];
     let expected_user_lp_diff = 8_999.942;
     // Alice has around 5% of the liquidity pool, we swap 1000 USD with 0.1% fee, which is 5% of 1 USD fee total
     let expected_rewards = (0.0430_620, 0.0430_619);
@@ -125,7 +125,7 @@ fn withdraw_multiply_times() {
         ..
     } = testing_env;
 
-    let deposit = (4_000.0, 5_000.0);
+    let deposit = [4_000.0, 5_000.0];
     let n = 4usize;
 
     pool.deposit(alice, deposit, 8_999.0);
@@ -162,7 +162,7 @@ fn withdraw_alice_profit_and_bob_loss() {
         ..
     } = testing_env;
 
-    let deposit = (100_000.0, 100_000.0);
+    let deposit = [100_000.0, 100_000.0];
     let swap_amount = 100_000.;
     let expected_user_withdraw_lp_diff = 200_000.0;
     let expected_rewards = (0.0, 49.217_997_4);
@@ -215,7 +215,7 @@ fn withdraw_alice_loss_and_bob_profit() {
         ..
     } = testing_env;
 
-    let deposit = (200_000.0, 0.0);
+    let deposit = [200_000.0, 0.0];
     let swap_amount = 100_000.;
     let expected_user_withdraw_lp_diff = 198_393.264;
     let expected_rewards = (50.598_436_60, 0.0);

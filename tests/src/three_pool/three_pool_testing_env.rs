@@ -150,7 +150,7 @@ impl ThreePoolTestingEnv {
         if admin_init_deposit > 0.0 {
             pool.deposit(
                 admin,
-                (admin_init_deposit, admin_init_deposit, admin_init_deposit),
+                [admin_init_deposit, admin_init_deposit, admin_init_deposit],
                 0.0,
             );
         }
@@ -540,7 +540,7 @@ impl ThreePoolTestingEnv {
     pub fn do_deposit(
         &self,
         user: &User,
-        deposit: (f64, f64, f64),
+        deposit: [f64; 3],
         expected_rewards: (f64, f64, f64),
         expected_lp_amount: f64,
     ) -> (ThreePoolSnapshot, ThreePoolSnapshot) {
@@ -550,7 +550,7 @@ impl ThreePoolTestingEnv {
 
         let title = format!(
             "Deposit {} a, {} b, expected lp: {expected_lp_amount}",
-            deposit.0, deposit.1
+            deposit[0], deposit[1]
         );
         snapshot_before.print_change_with(&snapshot_after, &title);
 
@@ -558,7 +558,7 @@ impl ThreePoolTestingEnv {
             snapshot_before.clone(),
             snapshot_after.clone(),
             user,
-            deposit,
+            (deposit[0], deposit[1], deposit[2]),
             expected_rewards,
             expected_lp_amount,
         );

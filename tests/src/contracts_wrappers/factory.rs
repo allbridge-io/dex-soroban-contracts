@@ -1,7 +1,7 @@
 use soroban_sdk::{vec, Address, BytesN, Env, Vec};
 
 use crate::{
-    contracts::{factory, pool, three_pool},
+    contracts::{factory, two_pool, three_pool},
     utils::{desoroban_result, unwrap_call_result},
 };
 
@@ -14,7 +14,7 @@ pub struct PoolFactory {
 impl PoolFactory {
     pub fn create(env: &Env, admin: &Address) -> PoolFactory {
         let three_pool_wasm_hash = env.deployer().upload_contract_wasm(three_pool::WASM);
-        let two_pool_wasm_hash = env.deployer().upload_contract_wasm(pool::WASM);
+        let two_pool_wasm_hash = env.deployer().upload_contract_wasm(two_pool::WASM);
         let id = env.register_contract_wasm(None, factory::WASM);
         let client = factory::Client::new(env, &id);
 

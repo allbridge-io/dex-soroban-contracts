@@ -67,7 +67,7 @@ fn claim_rewards() {
         ref token_c,
         ..
     } = testing_env;
-    pool.deposit(alice, (2_000.0, 2_000.0, 2_000.0), 0.0);
+    pool.deposit(alice, [2_000.0, 2_000.0, 2_000.0], 0.0);
 
     pool.swap(bob, bob, 100.0, 98.0, token_a, token_b);
     pool.swap(bob, bob, 100.0, 98.0, token_b, token_c);
@@ -100,7 +100,7 @@ fn user_and_admin_claim_rewards() {
     let expected_admin_fees = (0.200_054, 0.199_946, 0.2);
     let expected_user_rewards = (0.800_215_9, 0.799_783_9, 0.799_999_9);
 
-    pool.deposit(alice, (2_000.0, 2_000.0, 2_000.0), 0.0);
+    pool.deposit(alice, [2_000.0, 2_000.0, 2_000.0], 0.0);
     pool.swap(bob, bob, 100.0, 98.0, token_a, token_b);
     pool.swap(bob, bob, 100.0, 98.0, token_b, token_c);
     pool.swap(bob, bob, 100.0, 98.0, token_c, token_a);
@@ -131,7 +131,7 @@ fn get_rewards_after_second_claim() {
     let a_expected_reward = 1.000_269_9;
     let c_expected_reward = 0.999_999_9;
 
-    pool.deposit(alice, (2_000.0, 2_000.0, 2_000.0), 0.0);
+    pool.deposit(alice, [2_000.0, 2_000.0, 2_000.0], 0.0);
     pool.swap(bob, bob, 100.0, 98.0, token_a, token_b);
     testing_env.do_claim(alice, (0.0, b_expected_reward, 0.0));
     pool.swap(bob, bob, 100.0, 98.0, token_b, token_c);

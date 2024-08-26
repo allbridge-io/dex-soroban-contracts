@@ -12,7 +12,7 @@ fn deposit_zero_amount() {
     let testing_env = TwoPoolTestingEnv::default();
     testing_env
         .pool
-        .deposit(&testing_env.alice, (0.0, 0.0), 0.0);
+        .deposit(&testing_env.alice, [0.0, 0.0], 0.0);
 }
 
 #[test]
@@ -21,7 +21,7 @@ fn deposit_slippage() {
     let testing_env = TwoPoolTestingEnv::default();
     testing_env
         .pool
-        .deposit(&testing_env.alice, (100.0, 0.0), 100.0);
+        .deposit(&testing_env.alice, [100.0, 0.0], 100.0);
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn deposit_with_overflow() {
     yusd_token.airdrop(alice, 10_000_000_000.0);
     yaro_token.airdrop(alice, 10_000_000_000.0);
 
-    pool.deposit(alice, (600_000_000.0, 600_000_000.0), 0.0);
+    pool.deposit(alice, [600_000_000.0, 600_000_000.0], 0.0);
 }
 
 #[test]
@@ -49,15 +49,15 @@ fn deposit_invalid_first_deposit() {
         TwoPoolTestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
     testing_env
         .pool
-        .deposit(&testing_env.alice, (100.0, 25.0), 0.0);
+        .deposit(&testing_env.alice, [100.0, 25.0], 0.0);
 }
 
-#[test_case((100.0, 50.0), DOUBLE_ZERO, 150.0 ; "base")]
-#[test_case((50_000_000.0, 5_000.0), DOUBLE_ZERO, 31_492_001.072 ; "deposit_disbalance")]
-#[test_case((0.001, 0.001), DOUBLE_ZERO, 0.002 ; "smallest_deposit")]
-#[test_case((100.0, 0.0), DOUBLE_ZERO, 99.998 ; "deposit_only_yusd")]
-#[test_case((0.0, 100.0), DOUBLE_ZERO, 99.998 ; "deposit_only_yaro")]
-fn deposit(deposit: (f64, f64), expected_rewards: (f64, f64), expected_lp: f64) {
+#[test_case([100.0, 50.0], DOUBLE_ZERO, 150.0 ; "base")]
+#[test_case([50_000_000.0, 5_000.0], DOUBLE_ZERO, 31_492_001.072 ; "deposit_disbalance")]
+#[test_case([0.001, 0.001], DOUBLE_ZERO, 0.002 ; "smallest_deposit")]
+#[test_case([100.0, 0.0], DOUBLE_ZERO, 99.998 ; "deposit_only_yusd")]
+#[test_case([0.0, 100.0], DOUBLE_ZERO, 99.998 ; "deposit_only_yaro")]
+fn deposit(deposit: [f64; 2], expected_rewards: (f64, f64), expected_lp: f64) {
     let testing_env = TwoPoolTestingEnv::default();
     testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
 }
@@ -74,8 +74,8 @@ fn deposit_twice_in_different_tokens() {
     let expected_lp_amount = 200.0;
 
     let snapshot_before = TwoPoolSnapshot::take(&testing_env);
-    pool.deposit(alice, (100.0, 0.0), 99.0);
-    pool.deposit(alice, (0.0, 100.0), 99.0);
+    pool.deposit(alice, [100.0, 0.0], 99.0);
+    pool.deposit(alice, [0.0, 100.0], 99.0);
     let snapshot_after = TwoPoolSnapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 yusd, 100 yaro");
 
@@ -105,7 +105,7 @@ fn get_reward_after_second_deposit() {
         ..
     } = testing_env;
 
-    let deposit = (2_000.0, 2_000.0);
+    let deposit = [2_000.0, 2_000.0];
     let expected_rewards = (1.001_219_9, 0.998_779_9);
     let expected_lp_amount = 4_000.0;
 

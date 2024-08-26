@@ -60,19 +60,19 @@ fn simple_swaps(
 }
 
 #[test_case(
-    DepositArgs { amounts: (250_000.0, 0.0, 0.0), min_lp: 249_000.0 }, 10_000.0, 995.0, Token::A, Token::B, 9_966.249_774, 9.976_226; "swap_more_a"
+    DepositArgs { amounts: [250_000.0, 0.0, 0.0], min_lp: 249_000.0 }, 10_000.0, 995.0, Token::A, Token::B, 9_966.249_774, 9.976_226; "swap_more_a"
 )]
 #[test_case(
-    DepositArgs { amounts: (0.0, 250_000.0, 0.0), min_lp: 249_000.0 }, 10_000.0, 10010.0, Token::A, Token::B, 10_011.687_291, 10.021_709; "swap_more_b"
+    DepositArgs { amounts: [0.0, 250_000.0, 0.0], min_lp: 249_000.0 }, 10_000.0, 10010.0, Token::A, Token::B, 10_011.687_291, 10.021_709; "swap_more_b"
 )]
 #[test_case(
-    DepositArgs { amounts: (0.0, 0.0, 250_000.0), min_lp: 249_000.0 }, 10_000.0, 10010.0, Token::A, Token::C, 10_011.687_291, 10.021_709; "swap_more_c_a2c"
+    DepositArgs { amounts: [0.0, 0.0, 250_000.0], min_lp: 249_000.0 }, 10_000.0, 10010.0, Token::A, Token::C, 10_011.687_291, 10.021_709; "swap_more_c_a2c"
 )]
 #[test_case(
-    DepositArgs { amounts: (0.0, 0.0, 250_000.0), min_lp: 249_000.0 }, 10_000.0, 995.0, Token::C, Token::A, 9_966.249_774, 9.976_226; "swap_more_c_c2a"
+    DepositArgs { amounts: [0.0, 0.0, 250_000.0], min_lp: 249_000.0 }, 10_000.0, 995.0, Token::C, Token::A, 9_966.249_774, 9.976_226; "swap_more_c_c2a"
 )]
 #[test_case(
-    DepositArgs { amounts: (0.0, 0.0, 250_000.0), min_lp: 249_000.0 }, 10_000.0, 995.0, Token::A, Token::B, 9_988.639_362, 9.998_638; "swap_more_c_a2b"
+    DepositArgs { amounts: [0.0, 0.0, 250_000.0], min_lp: 249_000.0 }, 10_000.0, 995.0, Token::A, Token::B, 9_988.639_362, 9.998_638; "swap_more_c_a2b"
 )]
 fn swap_disbalance(
     deposit_args: DepositArgs,
@@ -123,7 +123,7 @@ fn swap_more_than_pool_balance(token_from: Token, token_to: Token) {
     } = testing_env;
 
     let amount = 1_000_000.0;
-    let deposit = (500_000.0, 500_000.0, 500_000.0);
+    let deposit = [500_000.0, 500_000.0, 500_000.0];
 
     let snapshot_before = ThreePoolSnapshot::take(&testing_env);
 

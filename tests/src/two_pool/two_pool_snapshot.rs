@@ -1,12 +1,10 @@
-use std::{cmp::Ordering, ops::Index};
-
-use color_print::cformat;
+use std::ops::Index;
 
 use super::TwoPoolTestingEnv;
 use crate::{
-    contracts::pool::UserDeposit,
+    contracts::two_pool::UserDeposit,
     contracts_wrappers::User,
-    utils::{format_diff, int_to_float},
+    utils::{format_diff, format_diff_with_float_diff},
 };
 
 #[derive(Debug, Clone)]
@@ -75,18 +73,6 @@ impl Index<&str> for TwoPoolSnapshot {
             _ => panic!("BalancesSnapshot: unknown field: {}", string),
         }
     }
-}
-
-fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
-    let float_diff = int_to_float(b as i128 - a as i128, decimals as i32);
-
-    let float_diff = match b.partial_cmp(&a).unwrap() {
-        Ordering::Equal => String::new(),
-        Ordering::Greater => cformat!("<bright-green>+{float_diff}</bright-green>"),
-        Ordering::Less => cformat!("<bright-red>{float_diff}</bright-red>"),
-    };
-
-    (format_diff(a, b), float_diff)
 }
 
 impl TwoPoolSnapshot {

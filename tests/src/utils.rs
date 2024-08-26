@@ -134,3 +134,15 @@ pub fn percentage_to_bp(percentage: f64) -> u128 {
 
     (percentage * 100.0) as u128
 }
+
+pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
+    let float_diff = int_to_float(b as i128 - a as i128, decimals as i32);
+
+    let float_diff = match b.partial_cmp(&a).unwrap() {
+        Ordering::Equal => String::new(),
+        Ordering::Greater => cformat!("<bright-green>+{float_diff}</bright-green>"),
+        Ordering::Less => cformat!("<bright-red>{float_diff}</bright-red>"),
+    };
+
+    (format_diff(a, b), float_diff)
+}

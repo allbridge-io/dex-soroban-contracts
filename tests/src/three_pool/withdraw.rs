@@ -18,7 +18,7 @@ fn withdraw_full_and_try_again() {
         ..
     } = testing_env;
 
-    pool.deposit(alice, (4_000.0, 5_000.0, 6_000.0), 8_999.0);
+    pool.deposit(alice, [4_000.0, 5_000.0, 6_000.0], 8_999.0);
     pool.withdraw(alice, pool.user_lp_amount_f64(alice));
     pool.withdraw(alice, 0.001);
 }
@@ -32,31 +32,31 @@ fn withdraw_zero_change() {
 
 #[test_case(
     TestingEnvConfig::default(),
-    DepositArgs { amounts: (4_000.0, 5_000.0, 6_000.0), min_lp: 14_999.0 },
+    DepositArgs { amounts: [4_000.0, 5_000.0, 6_000.0], min_lp: 14_999.0 },
     DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_952.364, 4_999.984, 5_047.602), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: TRIPLE_ZERO }
     ; "base_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1).with_pool_admin_fee(20.0),
-    DepositArgs { amounts: (4_000.0, 5_000.0, 6_000.0), min_lp: 14_999.0 },
+    DepositArgs { amounts: [4_000.0, 5_000.0, 6_000.0], min_lp: 14_999.0 },
     DoWithdrawArgs { amount: 14_999.948, expected_amounts: (4_947.411, 4_994.984, 5_042.554), expected_fee: (4.952_364, 4.999_984, 5.047_602), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 14_999.948, expected_admin_fee: (0.990_472_8, 0.999_996_8, 1.009_520_4) }
     ; "withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
-    DepositArgs { amounts: (15_000.0, 25_000.0, 20_000.0), min_lp: 59_950.0 },
+    DepositArgs { amounts: [15_000.0, 25_000.0, 20_000.0], min_lp: 59_950.0 },
     DoWithdrawArgs { amount: 0.004, expected_amounts: (0.001, 0.001, 0.002), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.004, expected_admin_fee: TRIPLE_ZERO }
     ; "smallest_withdraw"
 )]
 #[test_case(
     TestingEnvConfig::default().with_pool_fee_share(0.1),
-    DepositArgs { amounts: (15_000.0, 25_000.0, 20_000.0), min_lp: 59_950.0 },
+    DepositArgs { amounts: [15_000.0, 25_000.0, 20_000.0], min_lp: 59_950.0 },
     DoWithdrawArgs { amount: 0.007, expected_amounts: (0.001, 0.001, 0.002), expected_fee: (0.000_002, 0.000_002, 0.000_003), expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 0.007, expected_admin_fee: TRIPLE_ZERO }
     ; "smallest_withdraw_with_fee"
 )]
 #[test_case(
     TestingEnvConfig::default(),
-    DepositArgs { amounts: (50_000_000.0, 5_000.0, 5.0), min_lp: 21_358_206.68 },
+    DepositArgs { amounts: [50_000_000.0, 5_000.0, 5.0], min_lp: 21_358_206.68 },
     DoWithdrawArgs { amount: 21_358_206.68, expected_amounts: (49_406_036.726, 103_545.587, 98_619.774), expected_fee: TRIPLE_ZERO, expected_rewards: TRIPLE_ZERO, expected_user_lp_diff: 21_358_206.68, expected_admin_fee: TRIPLE_ZERO }
     ; "withdraw_disbalance"
 )]
@@ -92,7 +92,7 @@ fn withdraw_with_rewards() {
         ..
     } = testing_env;
 
-    let deposits = (4_000.0, 5_000.0, 6_000.0);
+    let deposits = [4_000.0, 5_000.0, 6_000.0];
     let expected_user_lp_diff = 14_999.948;
     // Alice has around 5% of the liquidity pool, we swap 1000 USD with 0.1% fee, which is 5% of 1 USD fee total
     let expected_rewards = (0.047_616_4, 0.047_618_8, 0.047_621_3);
@@ -125,7 +125,7 @@ fn withdraw_multiply_times() {
         ..
     } = testing_env;
 
-    let deposit = (4_000.0, 5_000.0, 6_000.0);
+    let deposit = [4_000.0, 5_000.0, 6_000.0];
     let n = 4usize;
 
     pool.deposit(alice, deposit, 14_999.0);
@@ -162,7 +162,7 @@ fn withdraw_alice_profit_and_bob_loss() {
         ..
     } = testing_env;
 
-    let deposit = (100_000.0, 100_000.0, 100_000.0);
+    let deposit = [100_000.0, 100_000.0, 100_000.0];
     let swap_amount = 200_000.;
     let expected_user_withdraw_lp_diff = 300_000.0;
     let expected_rewards = (0.0, 94.999_999_9, 0.0);
@@ -221,7 +221,7 @@ fn withdraw_alice_loss_and_bob_profit() {
         ..
     } = testing_env;
 
-    let deposit = (200_000.0, 0.0, 0.0);
+    let deposit = [200_000.0, 0.0, 0.0];
     let swap_amount = 100_000.;
     let expected_user_withdraw_lp_diff = 199_501.791;
     let expected_rewards = (40.081_508_2, 0.0, 0.0);

@@ -3,7 +3,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts::pool::TwoToken as Token,
+    contracts::two_pool::TwoToken as Token,
     contracts_wrappers::TestingEnvConfig,
     two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv},
 };
@@ -55,8 +55,8 @@ fn simple_swaps(
     );
 }
 
-#[test_case(DepositArgs { amounts: (0.0, 250_000.0), min_lp: 249_000.0 }, 10_000.0, 10090.0, Token::A, Token::B, 10_091.038_86, 10.101_140 ; "swap_more_yaro")]
-#[test_case(DepositArgs { amounts: (250_000.0, 0.0), min_lp: 249_000.0 }, 10_000.0, 995.0, Token::A, Token::B, 9_880.313_796, 9.890_204 ; "swap_more_yusd")]
+#[test_case(DepositArgs { amounts: [0.0, 250_000.0], min_lp: 249_000.0 }, 10_000.0, 10090.0, Token::A, Token::B, 10_091.038_86, 10.101_140 ; "swap_more_yaro")]
+#[test_case(DepositArgs { amounts: [250_000.0, 0.0], min_lp: 249_000.0 }, 10_000.0, 995.0, Token::A, Token::B, 9_880.313_796, 9.890_204 ; "swap_more_yusd")]
 fn swap_disbalance(
     deposit_args: DepositArgs,
     amount: f64,
@@ -102,7 +102,7 @@ fn swap_more_than_pool_balance(from_token: Token, to_token: Token) {
     } = testing_env;
 
     let amount = 1_000_000.0;
-    let deposit = (500_000.0, 500_000.0);
+    let deposit = [500_000.0, 500_000.0];
 
     let snapshot_before = TwoPoolSnapshot::take(&testing_env);
 

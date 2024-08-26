@@ -7,7 +7,7 @@ use serde_derive::Serialize;
 use std::fmt::Display;
 
 use crate::{
-    contracts::pool::TwoToken, contracts_wrappers::User, two_pool::TwoPoolTestingEnv,
+    contracts::two_pool::TwoToken, contracts_wrappers::User, two_pool::TwoPoolTestingEnv,
     utils::CallResult,
 };
 
@@ -152,9 +152,14 @@ impl FuzzTargetOperation {
                     SwapDirection::YaroToYusd => (TwoToken::B, TwoToken::A),
                 };
 
-                testing_env
-                    .pool
-                    .swap_checked(sender, recipient, amount.0, 0.0, &from, &to)?;
+                testing_env.pool.swap_checked(
+                    sender,
+                    recipient,
+                    amount.0,
+                    0.0,
+                    &testing_env.get_token(from),
+                    &testing_env.get_token(to),
+                )?;
 
                 Ok(())
             }
@@ -165,7 +170,7 @@ impl FuzzTargetOperation {
                 user,
             } => testing_env.pool.deposit_checked(
                 user.get_user(testing_env),
-                (yusd_amount.0, yaro_amount.0),
+                [yusd_amount.0, yaro_amount.0],
                 0.0,
             ),
 

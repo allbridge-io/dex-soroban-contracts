@@ -172,7 +172,7 @@ impl FuzzTargetOperation {
                 user,
             } => testing_env.pool.deposit_checked(
                 user.get_user(testing_env),
-                (a_amount.0, b_amount.0, c_amount.0),
+                [a_amount.0, b_amount.0, c_amount.0],
                 0.0,
             ),
 

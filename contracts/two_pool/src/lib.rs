@@ -4,7 +4,7 @@ mod pool;
 mod token;
 mod unit_tests;
 
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Vec};
 
 use generic_pool::prelude::*;
 use shared::{utils::extend_ttl_instance, Error};
@@ -43,12 +43,12 @@ impl TwoPoolContract {
     pub fn deposit(
         env: Env,
         sender: Address,
-        amounts: (u128, u128),
+        amounts: Vec<u128>,
         min_lp_amount: u128,
     ) -> Result<(), Error> {
         extend_ttl_instance(&env);
 
-        deposit::<POOL_SIZE, TwoPool>(env, sender, [amounts.0, amounts.1], min_lp_amount)
+        deposit::<POOL_SIZE, TwoPool>(env, sender, amounts, min_lp_amount)
     }
 
     pub fn withdraw(env: Env, sender: Address, lp_amount: u128) -> Result<(), Error> {
@@ -151,7 +151,7 @@ impl TwoPoolContract {
         get_withdraw_amount::<POOL_SIZE, TwoPool>(env, lp_amount)
     }
 
-    pub fn get_deposit_amount(env: Env, amounts: (u128, u128, u128)) -> Result<u128, Error> {
+    pub fn get_deposit_amount(env: Env, amounts: Vec<u128>) -> Result<u128, Error> {
         get_deposit_amount::<POOL_SIZE, TwoPool>(env, amounts)
     }
 

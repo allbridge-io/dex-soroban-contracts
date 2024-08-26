@@ -1,4 +1,4 @@
-pub mod pool {
+pub mod two_pool {
     soroban_sdk::contractimport!(file = "../target/wasm32-unknown-unknown/release/two_pool.wasm");
 }
 

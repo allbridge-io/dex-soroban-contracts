@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::pool::{Deposit, RewardsClaimed, Swapped, TwoToken, Withdraw},
+    contracts::two_pool::{Deposit, RewardsClaimed, Swapped, TwoToken, Withdraw},
     contracts_wrappers::{TestingEnvConfig, Token},
     utils::{
         assert_rel_eq, float_to_uint, float_to_uint_sp, get_latest_event, percentage_to_bp,
@@ -137,7 +137,7 @@ impl TwoPoolTestingEnv {
         token_b.airdrop(admin, admin_init_deposit * 2.0);
 
         if admin_init_deposit > 0.0 {
-            pool.deposit(admin, (admin_init_deposit, admin_init_deposit), 0.0);
+            pool.deposit(admin, [admin_init_deposit, admin_init_deposit], 0.0);
         }
 
         pool
@@ -494,7 +494,7 @@ impl TwoPoolTestingEnv {
     pub fn do_deposit(
         &self,
         user: &User,
-        deposit: (f64, f64),
+        deposit: [f64; 2],
         expected_rewards: (f64, f64),
         expected_lp_amount: f64,
     ) -> (TwoPoolSnapshot, TwoPoolSnapshot) {
@@ -504,7 +504,7 @@ impl TwoPoolTestingEnv {
 
         let title = format!(
             "Deposit {} a, {} b, expected lp: {expected_lp_amount}",
-            deposit.0, deposit.1
+            deposit[0], deposit[1]
         );
         snapshot_before.print_change_with(&snapshot_after, &title);
 
@@ -512,7 +512,7 @@ impl TwoPoolTestingEnv {
             snapshot_before.clone(),
             snapshot_after.clone(),
             user,
-            deposit,
+            (deposit[0], deposit[1]),
             expected_rewards,
             expected_lp_amount,
         );

@@ -1,7 +1,7 @@
 use soroban_sdk::{token, Address, Env};
 
 use crate::{
-    contracts::{pool::TwoToken, three_pool::ThreeToken},
+    contracts::{three_pool::ThreeToken, two_pool::TwoToken},
     utils::float_to_uint,
 };
 

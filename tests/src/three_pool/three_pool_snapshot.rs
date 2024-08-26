@@ -1,10 +1,10 @@
-use std::{cmp::Ordering, ops::Index};
+use std::ops::Index;
 
-use color_print::cformat;
-
-use crate::contracts::three_pool::UserDeposit;
-use crate::contracts_wrappers::User;
-use crate::utils::{format_diff, int_to_float};
+use crate::{
+    contracts::three_pool::UserDeposit,
+    contracts_wrappers::User,
+    utils::{format_diff, format_diff_with_float_diff},
+};
 
 use super::ThreePoolTestingEnv;
 
@@ -86,18 +86,6 @@ impl Index<&str> for ThreePoolSnapshot {
             _ => panic!("BalancesSnapshot: unknown field: {}", string),
         }
     }
-}
-
-fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
-    let float_diff = int_to_float(b as i128 - a as i128, decimals as i32);
-
-    let float_diff = match b.partial_cmp(&a).unwrap() {
-        Ordering::Equal => String::new(),
-        Ordering::Greater => cformat!("<bright-green>+{float_diff}</bright-green>"),
-        Ordering::Less => cformat!("<bright-red>{float_diff}</bright-red>"),
-    };
-
-    (format_diff(a, b), float_diff)
 }
 
 impl ThreePoolSnapshot {

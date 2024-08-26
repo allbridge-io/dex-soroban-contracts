@@ -64,7 +64,7 @@ fn claim_rewards() {
         token_b: ref yaro_token,
         ..
     } = testing_env;
-    pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
+    pool.deposit(alice, [2_000.0, 2_000.0], 0.0);
 
     pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
     pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);
@@ -96,7 +96,7 @@ fn user_and_admin_claim_rewards() {
     let expected_admin_fees = (0.200_243_98, 0.199_755_98);
     let expected_user_rewards = (0.800_975_92, 0.799_023_92);
 
-    pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
+    pool.deposit(alice, [2_000.0, 2_000.0], 0.0);
     pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
     pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);
 
@@ -124,7 +124,7 @@ fn get_rewards_after_second_claim() {
     let yaro_expected_reward = 0.998_779_9;
     let yusd_expected_reward = 1.001_219_9;
 
-    pool.deposit(alice, (2_000.0, 2_000.0), 0.0);
+    pool.deposit(alice, [2_000.0, 2_000.0], 0.0);
     pool.swap(bob, bob, 100.0, 98.0, yusd_token, yaro_token);
     testing_env.do_claim(alice, (0.0, yaro_expected_reward));
     pool.swap(bob, bob, 100.0, 98.0, yaro_token, yusd_token);

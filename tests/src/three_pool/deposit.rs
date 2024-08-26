@@ -14,7 +14,7 @@ fn deposit_zero_amount() {
     let testing_env = ThreePoolTestingEnv::default();
     testing_env
         .pool
-        .deposit(&testing_env.alice, (0.0, 0.0, 0.0), 0.0);
+        .deposit(&testing_env.alice, [0.0, 0.0, 0.0], 0.0);
 }
 
 #[test]
@@ -23,7 +23,7 @@ fn deposit_slippage() {
     let testing_env = ThreePoolTestingEnv::default();
     testing_env
         .pool
-        .deposit(&testing_env.alice, (100.0, 0.0, 0.0), 100.1);
+        .deposit(&testing_env.alice, [100.0, 0.0, 0.0], 100.1);
 }
 
 #[test]
@@ -41,26 +41,26 @@ fn deposit_with_overflow() {
     a_token.airdrop(alice, 10_000_000_000.0);
     b_token.airdrop(alice, 10_000_000_000.0);
 
-    pool.deposit(alice, (600_000_000.0, 600_000_000.0, 600_000_000.0), 0.0);
+    pool.deposit(alice, [600_000_000.0, 600_000_000.0, 600_000_000.0], 0.0);
 }
 
 #[should_panic = "DexContract(InvalidFirstDeposit)"]
-#[test_case((99.0, 100.0, 100.0); "invalid_a")]
-#[test_case((100.0, 99.0, 100.0); "invalid_b")]
-#[test_case((100.0, 100.0, 99.0); "invalid_c")]
-fn deposit_invalid_first_deposit(deposit: (f64, f64, f64)) {
+#[test_case([99.0, 100.0, 100.0]; "invalid_a")]
+#[test_case([100.0, 99.0, 100.0]; "invalid_b")]
+#[test_case([100.0, 100.0, 99.0]; "invalid_c")]
+fn deposit_invalid_first_deposit(deposit: [f64; 3]) {
     let testing_env =
         ThreePoolTestingEnv::create(TestingEnvConfig::default().with_admin_init_deposit(0.0));
     testing_env.pool.deposit(&testing_env.alice, deposit, 0.0);
 }
 
-#[test_case((100.0, 50.0, 75.0), TRIPLE_ZERO, 225.0 ; "base")]
-#[test_case((50_000_000.0, 5_000.0, 5.0), TRIPLE_ZERO, 21_358_206.68 ; "deposit_disbalance")]
-#[test_case((0.001, 0.001, 0.0), TRIPLE_ZERO, 0.002 ; "smallest_deposit")]
-#[test_case((100.0, 0.0, 0.0), TRIPLE_ZERO, 100.0 ; "deposit_only_a")]
-#[test_case((0.0, 100.0, 0.0), TRIPLE_ZERO, 100.0 ; "deposit_only_b")]
-#[test_case((0.0, 0.0, 100.0), TRIPLE_ZERO, 100.0 ; "deposit_only_c")]
-fn deposit(deposit: (f64, f64, f64), expected_rewards: (f64, f64, f64), expected_lp: f64) {
+#[test_case([100.0, 50.0, 75.0], TRIPLE_ZERO, 225.0 ; "base")]
+#[test_case([50_000_000.0, 5_000.0, 5.0], TRIPLE_ZERO, 21_358_206.68 ; "deposit_disbalance")]
+#[test_case([0.001, 0.001, 0.0], TRIPLE_ZERO, 0.002 ; "smallest_deposit")]
+#[test_case([100.0, 0.0, 0.0], TRIPLE_ZERO, 100.0 ; "deposit_only_a")]
+#[test_case([0.0, 100.0, 0.0], TRIPLE_ZERO, 100.0 ; "deposit_only_b")]
+#[test_case([0.0, 0.0, 100.0], TRIPLE_ZERO, 100.0 ; "deposit_only_c")]
+fn deposit(deposit: [f64; 3], expected_rewards: (f64, f64, f64), expected_lp: f64) {
     let testing_env = ThreePoolTestingEnv::default();
     testing_env.do_deposit(&testing_env.alice, deposit, expected_rewards, expected_lp);
 }
@@ -77,9 +77,9 @@ fn deposit_three_times_in_different_tokens() {
     let expected_lp_amount = 300.0;
 
     let snapshot_before = ThreePoolSnapshot::take(&testing_env);
-    pool.deposit(alice, (100.0, 0.0, 0.0), 99.0);
-    pool.deposit(alice, (0.0, 100.0, 0.0), 99.0);
-    pool.deposit(alice, (0.0, 0.0, 100.0), 99.0);
+    pool.deposit(alice, [100.0, 0.0, 0.0], 99.0);
+    pool.deposit(alice, [0.0, 100.0, 0.0], 99.0);
+    pool.deposit(alice, [0.0, 0.0, 100.0], 99.0);
     let snapshot_after = ThreePoolSnapshot::take(&testing_env);
     snapshot_before.print_change_with(&snapshot_after, "Deposit: 100 a, 100 b, 100 c");
 
@@ -110,7 +110,7 @@ fn get_reward_after_third_deposit() {
         ..
     } = testing_env;
 
-    let deposit = (2_000.0, 2_000.0, 2_000.0);
+    let deposit = [2_000.0, 2_000.0, 2_000.0];
     let expected_rewards = (1.000_269_9, 0.999_729_9, 0.999_999_9);
     let expected_lp_amount = 6_000.0;
 

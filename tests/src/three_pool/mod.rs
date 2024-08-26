@@ -12,7 +12,7 @@ pub use three_pool_testing_env::*;
 
 #[cfg(test)]
 pub struct DepositArgs {
-    amounts: (f64, f64, f64),
+    amounts: [f64; 3],
     min_lp: f64,
 }
 
