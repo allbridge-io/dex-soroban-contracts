@@ -170,9 +170,7 @@ fn add_new_pair() {
         10,
     );
 
-    let pool = testing_env
-        .factory
-        .pool([yellow_token.id.clone(), duck_token.id.clone()]);
+    let pool = testing_env.factory.pool([yellow_token.id, duck_token.id]);
 
     assert_eq!(deployed_pool, pool);
 }

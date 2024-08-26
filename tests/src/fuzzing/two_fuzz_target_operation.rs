@@ -157,8 +157,8 @@ impl FuzzTargetOperation {
                     recipient,
                     amount.0,
                     0.0,
-                    &testing_env.get_token(from),
-                    &testing_env.get_token(to),
+                    testing_env.get_token(from),
+                    testing_env.get_token(to),
                 )?;
 
                 Ok(())

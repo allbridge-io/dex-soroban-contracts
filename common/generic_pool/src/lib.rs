@@ -17,7 +17,6 @@ macro_rules! generate_pool_contract {
 
         #[soroban_sdk::contractimpl]
         impl $pool_contract_name {
-            #[allow(clippy::too_many_arguments)]
             pub fn initialize(
                 env: soroban_sdk::Env,
                 admin: soroban_sdk::Address,
