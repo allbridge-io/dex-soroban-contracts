@@ -1,6 +1,6 @@
 use ethnum::I256;
 use shared::{utils::num::*, Error};
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, Vec};
 
 use generic_pool::prelude::*;
 
@@ -49,7 +49,7 @@ impl Pool<POOL_SIZE> for ThreePool {
     fn from_init_params(
         env: &Env,
         a: u128,
-        tokens: [Address; POOL_SIZE],
+        tokens: Vec<Address>,
         decimals: [u32; POOL_SIZE],
         fee_share_bp: u128,
         admin_fee_share_bp: u128,
@@ -61,7 +61,7 @@ impl Pool<POOL_SIZE> for ThreePool {
             admin_fee_share_bp,
             total_lp_amount: 0,
 
-            tokens: SizedAddressArray::from_array(env, tokens),
+            tokens: SizedAddressArray::from_vec(tokens),
             tokens_decimals: SizedDecimalsArray::from_array(env, decimals),
             token_balances: SizedU128Array::default_val::<POOL_SIZE>(env),
             acc_rewards_per_share_p: SizedU128Array::default_val::<POOL_SIZE>(env),

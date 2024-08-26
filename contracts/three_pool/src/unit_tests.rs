@@ -7,7 +7,7 @@ use std::println;
 
 use generic_pool::prelude::*;
 use shared::{soroban_data::SimpleSorobanData, Error};
-use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
+use soroban_sdk::{contract, contractimpl, testutils::Address as _, vec, Address, Env};
 
 use crate::{pool::ThreePool, token::ThreeToken};
 
@@ -20,8 +20,15 @@ impl TestPool {
         let token_a = Address::generate(&env);
         let token_b = Address::generate(&env);
         let token_c = Address::generate(&env);
-        ThreePool::from_init_params(&env, 20, [token_a, token_b, token_c], [7, 7, 7], 100, 1)
-            .save(&env);
+        ThreePool::from_init_params(
+            &env,
+            20,
+            vec![&env, token_a, token_b, token_c],
+            [7, 7, 7],
+            100,
+            1,
+        )
+        .save(&env);
     }
 
     pub fn set_balances(env: Env, new_balances: (u128, u128, u128)) -> Result<(), Error> {

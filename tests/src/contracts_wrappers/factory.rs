@@ -1,7 +1,7 @@
 use soroban_sdk::{vec, Address, BytesN, Env, Vec};
 
 use crate::{
-    contracts::{factory, two_pool, three_pool},
+    contracts::{factory, three_pool, two_pool},
     utils::{desoroban_result, unwrap_call_result},
 };
 

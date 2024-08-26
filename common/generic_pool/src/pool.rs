@@ -106,7 +106,7 @@ pub trait Pool<const N: usize>: PoolStorage + SimpleSorobanData + PoolMath<N> {
     fn from_init_params(
         env: &Env,
         a: u128,
-        tokens: [Address; N],
+        tokens: Vec<Address>,
         decimals: [u32; N],
         fee_share_bp: u128,
         admin_fee_share_bp: u128,

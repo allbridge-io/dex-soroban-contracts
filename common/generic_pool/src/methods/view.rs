@@ -61,7 +61,7 @@ pub fn get_deposit_amount<const N: usize, P: Pool<N>>(
     env: Env,
     amounts: Vec<u128>,
 ) -> Result<u128, Error> {
-    require!(amounts.len() as usize == N, Error::VecOutOfLimit);
+    require!(amounts.len() as usize == N, Error::UnexpectedVecSize);
     let deposit_amount =
         P::get(&env)?.get_deposit_amount(&env, SizedU128Array::from_vec(amounts))?;
 

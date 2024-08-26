@@ -13,7 +13,7 @@ pub fn deposit<const N: usize, P: Pool<N>>(
     amounts: Vec<u128>,
     min_lp_amount: u128,
 ) -> Result<(), Error> {
-    require!(amounts.len() as usize == N, Error::VecOutOfLimit);
+    require!(amounts.len() as usize == N, Error::UnexpectedVecSize);
 
     sender.require_auth();
     let mut pool = P::get(&env)?;

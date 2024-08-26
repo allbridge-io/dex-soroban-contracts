@@ -61,9 +61,9 @@ pub fn create_pool<const N: usize>(
     }
 
     let mut args = vec![&env, *pool_admin.as_val(), a.into_val(&env)];
-    args.append(&tokens_vals);
     args.append(&vec![
         &env,
+        tokens_vals.as_val().clone(),
         fee_share_bp.into_val(&env),
         admin_fee_share_bp.into_val(&env),
     ]);
