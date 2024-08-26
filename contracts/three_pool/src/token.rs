@@ -29,12 +29,9 @@ impl From<ThreeToken> for usize {
 impl ThreeToken {
     pub fn third(&self, second: ThreeToken) -> ThreeToken {
         match (self, second) {
-            (ThreeToken::A, ThreeToken::B) => ThreeToken::C,
-            (ThreeToken::A, ThreeToken::C) => ThreeToken::B,
-            (ThreeToken::B, ThreeToken::A) => ThreeToken::C,
-            (ThreeToken::B, ThreeToken::C) => ThreeToken::A,
-            (ThreeToken::C, ThreeToken::A) => ThreeToken::B,
-            (ThreeToken::C, ThreeToken::B) => ThreeToken::A,
+            (ThreeToken::A, ThreeToken::B) | (ThreeToken::B, ThreeToken::A) => ThreeToken::C,
+            (ThreeToken::A, ThreeToken::C) | (ThreeToken::C, ThreeToken::A) => ThreeToken::B,
+            (ThreeToken::B, ThreeToken::C) | (ThreeToken::C, ThreeToken::B) => ThreeToken::A,
             _ => panic!("The same token"),
         }
     }
