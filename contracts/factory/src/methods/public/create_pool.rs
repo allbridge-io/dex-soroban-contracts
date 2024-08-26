@@ -5,7 +5,7 @@ use storage::Admin;
 use crate::storage::factory_info::{FactoryInfo, MAX_PAIRS_NUM};
 
 #[allow(clippy::too_many_arguments)]
-pub fn create_pool<const N: usize>(
+pub fn create_pool(
     env: Env,
     deployer: Address,
     pool_admin: Address,
@@ -26,7 +26,11 @@ pub fn create_pool<const N: usize>(
         factory_info.pools.len() < MAX_PAIRS_NUM,
         Error::MaxPoolsNumReached
     );
-    require!(tokens.len() as usize == N, Error::InvalidNumberOfTokens);
+
+    require!(
+        tokens.len() == 2 || tokens.len() == 3,
+        Error::InvalidNumberOfTokens
+    );
 
     require!(
         factory_info.get_pool(tokens.clone()).is_err(),
@@ -46,7 +50,7 @@ pub fn create_pool<const N: usize>(
     let bytes = FactoryInfo::merge_addresses(tokens_with_address)?;
     let salt = env.crypto().keccak256(&bytes);
 
-    let wasm_hash = factory_info.get_pool_wasm_hash::<N>();
+    let wasm_hash = factory_info.get_pool_wasm_hash(tokens.len() as usize);
 
     let deployed_pool = env
         .deployer()

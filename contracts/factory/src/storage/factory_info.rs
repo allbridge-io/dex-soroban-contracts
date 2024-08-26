@@ -67,8 +67,8 @@ impl FactoryInfo {
         Ok(map)
     }
 
-    pub fn get_pool_wasm_hash<const N: usize>(&self) -> BytesN<32> {
-        if N == 2 {
+    pub fn get_pool_wasm_hash(&self, pool_size: usize) -> BytesN<32> {
+        if pool_size == 2 {
             self.two_pool_wasm_hash.clone()
         } else {
             self.three_pool_wasm_hash.clone()

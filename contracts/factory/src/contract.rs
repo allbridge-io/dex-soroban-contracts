@@ -33,27 +33,15 @@ impl FactoryContract {
     ) -> Result<Address, Error> {
         extend_ttl_instance(&env);
 
-        match tokens.len() {
-            2 => create_pool::<2>(
-                env,
-                deployer,
-                pool_admin,
-                a,
-                tokens,
-                fee_share_bp,
-                admin_fee_share_bp,
-            ),
-            3 => create_pool::<3>(
-                env,
-                deployer,
-                pool_admin,
-                a,
-                tokens,
-                fee_share_bp,
-                admin_fee_share_bp,
-            ),
-            _ => Err(Error::InvalidNumberOfTokens),
-        }
+        create_pool(
+            env,
+            deployer,
+            pool_admin,
+            a,
+            tokens,
+            fee_share_bp,
+            admin_fee_share_bp,
+        )
     }
     // ----------- Admin -----------
 
@@ -78,6 +66,7 @@ impl FactoryContract {
     pub fn get_two_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
         get_pool_wasm_hash::<2>(env)
     }
+
     pub fn get_three_pool_wasm_hash(env: Env) -> Result<BytesN<32>, Error> {
         get_pool_wasm_hash::<3>(env)
     }

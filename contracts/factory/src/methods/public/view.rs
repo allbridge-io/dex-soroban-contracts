@@ -13,7 +13,7 @@ pub fn get_pools(env: &Env) -> Result<Map<Address, Vec<Address>>, Error> {
 }
 
 pub fn get_pool_wasm_hash<const N: usize>(env: Env) -> Result<BytesN<32>, Error> {
-    Ok(FactoryInfo::get(&env)?.get_pool_wasm_hash::<N>())
+    Ok(FactoryInfo::get(&env)?.get_pool_wasm_hash(N))
 }
 
 pub fn get_admin(env: Env) -> Result<Address, Error> {
