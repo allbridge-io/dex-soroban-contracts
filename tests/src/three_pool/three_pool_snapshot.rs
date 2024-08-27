@@ -1,9 +1,6 @@
 use std::ops::Index;
 
-use crate::{
-    contracts_wrappers::{Snapshot, TestingEnv, User, UserBalance},
-    utils::{format_diff, format_diff_with_float_diff},
-};
+use crate::utils::{PoolClient, Snapshot, TestingEnv, User, UserBalance, UserDeposit};
 
 use super::ThreePoolTestingEnv;
 
@@ -34,8 +31,8 @@ pub struct ThreePoolSnapshot {
     pub admin_b_fee_rewards: u128,
     pub admin_c_fee_rewards: u128,
 
-    pub alice_deposit: crate::contracts_wrappers::UserDeposit,
-    pub bob_deposit: crate::contracts_wrappers::UserDeposit,
+    pub alice_deposit: UserDeposit,
+    pub bob_deposit: UserDeposit,
 
     pub d: u128,
 }
@@ -98,7 +95,7 @@ impl Index<&str> for ThreePoolSnapshot {
 impl Snapshot<3> for ThreePoolSnapshot {
     type TestingEnv = ThreePoolTestingEnv;
 
-    fn get_user_balances(&self, user: &User) -> crate::contracts_wrappers::UserBalance<3> {
+    fn get_user_balances(&self, user: &User) -> crate::utils::UserBalance<3> {
         UserBalance {
             balances: [
                 self[&format!("{}_a_balance", user.tag)],
@@ -112,7 +109,7 @@ impl Snapshot<3> for ThreePoolSnapshot {
     fn print_change_with(&self, other: &ThreePoolSnapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
-        let balances = [
+        let balances = vec![
             ("Alice a balance change", "alice_a_balance", Some(7)),
             ("Alice b balance change", "alice_b_balance", Some(7)),
             ("Alice c balance change", "alice_c_balance", Some(7)),
@@ -149,21 +146,7 @@ impl Snapshot<3> for ThreePoolSnapshot {
             ("Pool d", "d", Some(3)),
         ];
 
-        for (title, value_key, use_float_diff) in balances {
-            let (before, after) = (self[value_key], other[value_key]);
-
-            match use_float_diff {
-                Some(decimals) => {
-                    let (balance_diff, diff) = format_diff_with_float_diff(before, after, decimals);
-                    if diff.is_empty() {
-                        println!("{}: {}", title, &balance_diff);
-                    } else {
-                        println!("{}: {} ({})", title, &balance_diff, &diff);
-                    }
-                }
-                None => println!("{}: {}", title, format_diff(before, after)),
-            }
-        }
+        self.print_changes(&balances, other);
     }
 
     fn take(testing_env: &impl TestingEnv<3>) -> ThreePoolSnapshot {
@@ -185,7 +168,7 @@ impl Snapshot<3> for ThreePoolSnapshot {
         let bob_b_balance = token_b.balance_of(&bob_address);
         let bob_c_balance = token_c.balance_of(&bob_address);
 
-        let pool_info = testing_env.pool_info();
+        let pool_info = testing_env.pool_client().pool_info();
 
         let pool_a_balance = token_a.balance_of(&pool_info.id);
         let pool_b_balance = token_b.balance_of(&pool_info.id);
@@ -202,8 +185,12 @@ impl Snapshot<3> for ThreePoolSnapshot {
         let admin_b_fee_rewards = pool_info.admin_fee_amount.get_unchecked(1);
         let admin_c_fee_rewards = pool_info.admin_fee_amount.get_unchecked(2);
 
-        let alice_deposit = testing_env.get_user_deposit(&alice_address);
-        let bob_deposit = testing_env.get_user_deposit(&bob_address);
+        let alice_deposit = testing_env
+            .pool_client()
+            .user_deposit_by_address(&alice_address);
+        let bob_deposit = testing_env
+            .pool_client()
+            .user_deposit_by_address(&bob_address);
 
         ThreePoolSnapshot {
             d,

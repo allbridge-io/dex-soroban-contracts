@@ -2,9 +2,9 @@
 
 use test_case::test_case;
 
-use crate::contracts_wrappers::{Snapshot, TestingEnv, TestingEnvConfig};
-use crate::three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv};
 use crate::utils::{assert_rel_eq, float_to_uint};
+use crate::utils::{PoolClient, Snapshot, TestingEnv, TestingEnvConfig};
+use crate::three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv};
 
 use super::{DepositArgs, DoWithdrawArgs};
 

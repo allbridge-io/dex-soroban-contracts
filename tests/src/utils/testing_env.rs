@@ -1,15 +1,10 @@
-use std::ops::Index;
+use soroban_sdk::{Address, Env};
 
-use soroban_sdk::Address;
+use crate::utils::{
+    assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint, percentage_to_bp, UserBalance,
+};
 
-use crate::utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint};
-
-use super::{EventAsserts, Token, User};
-
-pub struct UserBalance<const N: usize> {
-    pub balances: [u128; N],
-    pub lp_amount: u128,
-}
+use super::{EventAsserts, PoolClient, PoolFactory, Snapshot, Token, User};
 
 #[derive(Debug, Clone)]
 pub struct PoolInfo {
@@ -32,48 +27,49 @@ pub struct UserDeposit {
     pub reward_debts: soroban_sdk::Vec<u128>,
 }
 
-pub trait Snapshot<const N: usize>:
-    Index<String, Output = u128> + Index<&'static str, Output = u128> + Clone
-{
-    type TestingEnv: TestingEnv<N>;
-
-    fn get_user_balances(&self, user: &User) -> UserBalance<N>;
-    fn take(testing_env: &impl TestingEnv<N>) -> Self;
-    fn print_change_with(&self, other: &Self, title: &str);
-
-    fn get_user_balances_sum(&self, user: &User) -> u128 {
-        let user_balance = self.get_user_balances(user);
-        user_balance.balances.iter().sum::<u128>()
-    }
-}
-
 pub trait TestingEnv<const N: usize>: Sized {
     type Snapshot: Snapshot<N>;
 
     const TOKENS: [&'static str; N];
 
     fn event_asserts(&self) -> &EventAsserts<N>;
-    fn assert_total_lp_less_or_equal_d(&self);
 
-    fn withdraw(&self, user: &User, withdraw_amount: f64);
-    fn deposit(&self, user: &User, deposit_amounts: [f64; N], min_lp_amount: f64);
-    fn claim_rewards(&self, user: &User);
-    fn claim_admin_fee(&self);
-    fn swap<T: Into<usize> + Copy>(
-        &self,
-        sender: &User,
-        recipient: &User,
-        amount: f64,
-        receive_amount_min: f64,
-        token_from: &Token<T>,
-        token_to: &Token<T>,
-    );
+    fn pool_client(&self) -> &impl PoolClient<N>;
 
     fn users(&self) -> (&User, &User, &User);
     fn tokens(&self) -> [&Token<impl Into<usize>>; N];
 
-    fn pool_info(&self) -> PoolInfo;
-    fn get_user_deposit(&self, user_address: &Address) -> UserDeposit;
+    fn create_pool<P: PoolClient<N>, T: Into<usize> + Copy>(
+        env: &Env,
+        factory: &PoolFactory,
+        admin: &User,
+        tokens: Vec<&Token<T>>,
+        fee_share_percentage: f64,
+        admin_fee_percentage: f64,
+        admin_init_deposit: f64,
+    ) -> P {
+        let fee_share_bp = percentage_to_bp(fee_share_percentage);
+        let admin_fee_bp = percentage_to_bp(admin_fee_percentage);
+        let a = 20;
+        let tokens_args: [Address; N] = core::array::from_fn(|i| tokens[i].id.clone());
+        let pool = factory.create_pool(admin.as_ref(), a, tokens_args, fee_share_bp, admin_fee_bp);
+
+        let pool = P::new(env, pool);
+
+        pool.assert_initialization(a, fee_share_bp, admin_fee_bp);
+
+        for token in tokens {
+            token.airdrop(admin, admin_init_deposit * 2.0);
+        }
+
+        let init_admin_deposits: [f64; N] = core::array::from_fn(|_| admin_init_deposit);
+
+        if admin_init_deposit > 0.0 {
+            pool.deposit(admin, init_admin_deposits, 0.0);
+        }
+
+        pool
+    }
 
     /* -------- Asserts ----------- */
 
@@ -164,7 +160,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_user_withdraw_lp_diff: f64,
         expected_admin_fees: [f64; N],
     ) {
-        self.assert_total_lp_less_or_equal_d();
+        self.pool_client().assert_total_lp_less_or_equal_d();
         self.event_asserts().assert_withdraw_event(
             user,
             expected_user_withdraw_lp_diff,
@@ -211,7 +207,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         user: &User,
         rewards: [f64; N],
     ) {
-        self.assert_total_lp_less_or_equal_d();
+        self.pool_client().assert_total_lp_less_or_equal_d();
         if rewards.iter().sum::<f64>() != 0.0 {
             self.event_asserts()
                 .assert_claimed_reward_event(user, rewards);
@@ -251,7 +247,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_receive_amount: f64,
         expected_fee: f64,
     ) {
-        self.assert_total_lp_less_or_equal_d();
+        self.pool_client().assert_total_lp_less_or_equal_d();
 
         self.event_asserts().assert_swapped_event(
             sender,
@@ -334,7 +330,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_rewards: [f64; N],
         expected_lp_amount: f64,
     ) {
-        self.assert_total_lp_less_or_equal_d();
+        self.pool_client().assert_total_lp_less_or_equal_d();
 
         let UserBalance {
             balances: user_before,
@@ -380,7 +376,7 @@ pub trait TestingEnv<const N: usize>: Sized {
 
     fn do_claim(&self, user: &User, expected_rewards: [f64; N]) {
         let snapshot_before = Self::Snapshot::take(self);
-        self.claim_rewards(user);
+        self.pool_client().claim_rewards(user);
         let snapshot_after = Self::Snapshot::take(self);
 
         let title = format!("Claim rewards, expected {:?}", expected_rewards);
@@ -400,7 +396,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_admin_fee: [f64; N],
     ) -> (Self::Snapshot, Self::Snapshot) {
         let snapshot_before = Self::Snapshot::take(self);
-        self.withdraw(user, withdraw_amount);
+        self.pool_client().withdraw(user, withdraw_amount);
         let snapshot_after = Self::Snapshot::take(self);
         snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
@@ -431,7 +427,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_lp_amount: f64,
     ) -> (Self::Snapshot, Self::Snapshot) {
         let snapshot_before = Self::Snapshot::take(self);
-        self.deposit(user, deposit, 0.0);
+        self.pool_client().deposit(user, deposit, 0.0);
         let snapshot_after = Self::Snapshot::take(self);
 
         let title = format!(
@@ -469,7 +465,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_fee: f64,
     ) -> (Self::Snapshot, Self::Snapshot) {
         let snapshot_before = Self::Snapshot::take(self);
-        self.swap(
+        self.pool_client().swap(
             sender,
             recipient,
             amount,
@@ -499,7 +495,7 @@ pub trait TestingEnv<const N: usize>: Sized {
 
     fn do_claim_admin_fee(&self, expected_rewards: [f64; N]) {
         let snapshot_before = Self::Snapshot::take(self);
-        self.claim_admin_fee();
+        self.pool_client().claim_admin_fee();
         let snapshot_after = Self::Snapshot::take(self);
 
         let title = format!("Claim admin fee, expected {:?}", expected_rewards);

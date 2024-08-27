@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{
-    contracts_wrappers::{TestingEnv, TestingEnvConfig},
+    utils::{PoolClient, TestingEnv, TestingEnvConfig},
     three_pool::ThreePoolTestingEnv,
 };
 

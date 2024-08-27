@@ -1,10 +1,7 @@
 use std::ops::Index;
 
 use super::TwoPoolTestingEnv;
-use crate::{
-    contracts_wrappers::{Snapshot, TestingEnv, User, UserBalance},
-    utils::{format_diff, format_diff_with_float_diff},
-};
+use crate::utils::{PoolClient, Snapshot, TestingEnv, User, UserBalance, UserDeposit};
 
 #[derive(Debug, Clone)]
 pub struct TwoPoolSnapshot {
@@ -27,8 +24,8 @@ pub struct TwoPoolSnapshot {
     pub admin_a_fee_rewards: u128,
     pub admin_b_fee_rewards: u128,
 
-    pub alice_deposit: crate::contracts_wrappers::UserDeposit,
-    pub bob_deposit: crate::contracts_wrappers::UserDeposit,
+    pub alice_deposit: UserDeposit,
+    pub bob_deposit: UserDeposit,
 
     pub d: u128,
 }
@@ -111,7 +108,7 @@ impl Snapshot<2> for TwoPoolSnapshot {
         let bob_b_balance = token_b.balance_of(&bob_address);
         let bob_a_balance = token_a.balance_of(&bob_address);
 
-        let pool_info = testing_env.pool_info();
+        let pool_info = testing_env.pool_client().pool_info();
 
         let pool_b_balance = token_b.balance_of(&pool_info.id);
         let pool_a_balance = token_a.balance_of(&pool_info.id);
@@ -125,8 +122,12 @@ impl Snapshot<2> for TwoPoolSnapshot {
         let admin_a_fee_rewards = pool_info.admin_fee_amount.get_unchecked(0);
         let admin_b_fee_rewards = pool_info.admin_fee_amount.get_unchecked(1);
 
-        let alice_deposit = testing_env.get_user_deposit(&alice_address);
-        let bob_deposit = testing_env.get_user_deposit(&bob_address);
+        let alice_deposit = testing_env
+            .pool_client()
+            .user_deposit_by_address(&alice_address);
+        let bob_deposit = testing_env
+            .pool_client()
+            .user_deposit_by_address(&bob_address);
 
         TwoPoolSnapshot {
             d,
@@ -151,7 +152,7 @@ impl Snapshot<2> for TwoPoolSnapshot {
     fn print_change_with(&self, other: &TwoPoolSnapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
-        let balances = [
+        let balances = vec![
             ("Alice b balance change", "alice_b_balance", Some(7)),
             ("Alice a balance change", "alice_a_balance", Some(7)),
             ("Alice lp change", "alice_deposit_lp", Some(3)),
@@ -178,21 +179,7 @@ impl Snapshot<2> for TwoPoolSnapshot {
             ("Pool d", "d", Some(3)),
         ];
 
-        for (title, value_key, use_float_diff) in balances {
-            let (before, after) = (self[value_key], other[value_key]);
-
-            match use_float_diff {
-                Some(decimals) => {
-                    let (balance_diff, diff) = format_diff_with_float_diff(before, after, decimals);
-                    if diff.is_empty() {
-                        println!("{}: {}", title, &balance_diff);
-                    } else {
-                        println!("{}: {} ({})", title, &balance_diff, &diff);
-                    }
-                }
-                None => println!("{}: {}", title, format_diff(before, after)),
-            }
-        }
+        self.print_changes(&balances, other);
     }
 }
 

@@ -2,7 +2,10 @@
 
 use soroban_sdk::{testutils::Address as _, Address};
 
-use crate::{three_pool::ThreePoolTestingEnv, utils::percentage_to_bp};
+use crate::{
+    utils::percentage_to_bp, utils::PoolClient,
+    three_pool::ThreePoolTestingEnv,
+};
 
 #[test]
 #[should_panic = "DexContract(InvalidArg)"]

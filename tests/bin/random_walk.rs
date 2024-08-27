@@ -2,7 +2,7 @@ use clap::Parser;
 use clap_derive::Parser;
 use csv::Writer;
 use std::fmt::Display;
-use tests::contracts_wrappers::TestingEnvConfig;
+use tests::utils::{PoolClient, TestingEnvConfig};
 use tests::fuzzing::two_fuzz_target_operation::{ActionPoolChange, FuzzTargetOperation};
 use tests::two_pool::TwoPoolTestingEnv;
 

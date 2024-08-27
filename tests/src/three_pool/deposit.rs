@@ -3,7 +3,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts_wrappers::{Snapshot, TestingEnv, TestingEnvConfig},
+    utils::{PoolClient, Snapshot, TestingEnv, TestingEnvConfig},
     three_pool::{ThreePoolSnapshot, ThreePoolTestingEnv},
 };
 

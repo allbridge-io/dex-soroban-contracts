@@ -1,28 +1,103 @@
 use soroban_sdk::{Address, Env, Vec};
 
-use super::{Token, User};
+use super::{PoolInfo, Token, User, UserDeposit};
 use crate::{
-    contracts::three_pool::{
-        Client as ThreePoolClient, ThreeToken, UserDeposit as ThreeUserDeposit,
-    },
-    contracts::two_pool::{Client as TwoPoolClient, TwoToken, UserDeposit as TwoUserDeposit},
+    contracts::three_pool::{Client as ThreePoolClient, ThreeToken},
+    contracts::two_pool::{Client as TwoPoolClient, TwoToken},
     utils::{
         desoroban_result, float_to_uint, float_to_uint_sp, percentage_to_bp, uint_to_float_sp,
         unwrap_call_result, CallResult,
     },
 };
 
+pub trait PoolClient<const N: usize> {
+    fn new(env: &Env, id: Address) -> Self;
+    fn assert_initialization(
+        &self,
+        expected_a: u128,
+        expected_fee_share_bp: u128,
+        expected_admin_fee_share_bp: u128,
+    );
+    fn deposit(&self, user: &User, deposit_amounts: [f64; N], min_lp_amount: f64);
+
+    fn assert_total_lp_less_or_equal_d(&self);
+
+    fn total_lp(&self) -> u128;
+
+    fn d(&self) -> u128;
+
+    fn user_lp_amount_f64(&self, user: &User) -> f64;
+
+    fn fee_share_bp(&self) -> u128;
+
+    fn admin_fee_share_bp(&self) -> u128;
+
+    fn user_deposit(&self, user: &User) -> UserDeposit;
+    fn user_deposit_by_address(&self, user: &Address) -> UserDeposit;
+
+    fn set_admin_fee_share(&self, admin_fee: f64);
+    fn set_admin(&self, admin: Address);
+
+    fn set_fee_share(&self, fee_share: f64);
+
+    fn claim_rewards(&self, user: &User);
+
+    fn claim_admin_fee(&self);
+
+    fn withdraw_checked(&self, user: &User, withdraw_amount: f64) -> CallResult;
+
+    fn withdraw(&self, user: &User, withdraw_amount: f64);
+
+    fn deposit_with_address_checked(
+        &self,
+        user: &Address,
+        deposit_amounts: [f64; N],
+        min_lp_amount: f64,
+    ) -> CallResult;
+
+    fn deposit_with_address(&self, user: &Address, deposit_amounts: [f64; N], min_lp_amount: f64);
+
+    fn deposit_checked(
+        &self,
+        user: &User,
+        deposit_amounts: [f64; N],
+        min_lp_amount: f64,
+    ) -> CallResult;
+
+    fn swap_checked<T: Into<usize> + Copy>(
+        &self,
+        sender: &User,
+        recipient: &User,
+        amount: f64,
+        receive_amount_min: f64,
+        token_from: &Token<T>,
+        token_to: &Token<T>,
+    ) -> CallResult<u128>;
+
+    fn swap<T: Into<usize> + Copy>(
+        &self,
+        sender: &User,
+        recipient: &User,
+        amount: f64,
+        receive_amount_min: f64,
+        token_from: &Token<T>,
+        token_to: &Token<T>,
+    );
+
+    fn pool_info(&self) -> PoolInfo;
+}
+
 #[macro_export]
 macro_rules! generate_pool_client {
-    ($name:ident, $client_path:ident, $token:tt, $user_deposit:ty, $pool_size:literal) => {
+    ($name:ident, $client_path:ident, $token:tt,  $pool_size:literal) => {
         pub struct $name {
             pub id: soroban_sdk::Address,
             pub client: $client_path<'static>,
             pub env: Env,
         }
 
-        impl $name {
-            pub fn new(env: &Env, id: Address) -> $name {
+        impl PoolClient<$pool_size> for $name {
+            fn new(env: &Env, id: Address) -> Self {
                 let client = $client_path::new(env, &id);
                 $name {
                     id,
@@ -31,19 +106,7 @@ macro_rules! generate_pool_client {
                 }
             }
 
-            pub fn assert_total_lp_less_or_equal_d(&self) {
-                let allowed_range = 0..2;
-                let total_lp_amount = self.total_lp() as i128;
-                let d = self.d() as i128;
-                let diff = total_lp_amount.abs_diff(d);
-
-                assert!(
-                    allowed_range.contains(&diff),
-                    "InvariantFailed: Total lp amount  must be less or equal to D"
-                );
-            }
-
-            pub fn assert_initialization(
+            fn assert_initialization(
                 &self,
                 expected_a: u128,
                 expected_fee_share_bp: u128,
@@ -70,31 +133,55 @@ macro_rules! generate_pool_client {
                 );
             }
 
-            pub fn total_lp(&self) -> u128 {
+            fn deposit(&self, user: &User, deposit_amounts: [f64; $pool_size], min_lp_amount: f64) {
+                self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
+            }
+
+            fn assert_total_lp_less_or_equal_d(&self) {
+                let allowed_range = 0..2;
+                let total_lp_amount = self.total_lp() as i128;
+                let d = self.d() as i128;
+                let diff = total_lp_amount.abs_diff(d);
+
+                assert!(
+                    allowed_range.contains(&diff),
+                    "InvariantFailed: Total lp amount  must be less or equal to D"
+                );
+            }
+
+            fn total_lp(&self) -> u128 {
                 self.client.get_pool().total_lp_amount
             }
 
-            pub fn d(&self) -> u128 {
+            fn d(&self) -> u128 {
                 self.client.get_d()
             }
 
-            pub fn user_lp_amount_f64(&self, user: &User) -> f64 {
+            fn user_lp_amount_f64(&self, user: &User) -> f64 {
                 uint_to_float_sp(self.user_deposit(user).lp_amount)
             }
 
-            pub fn fee_share_bp(&self) -> u128 {
+            fn fee_share_bp(&self) -> u128 {
                 self.client.get_pool().fee_share_bp
             }
 
-            pub fn admin_fee_share_bp(&self) -> u128 {
+            fn admin_fee_share_bp(&self) -> u128 {
                 self.client.get_pool().admin_fee_share_bp
             }
 
-            pub fn user_deposit(&self, user: &User) -> $user_deposit {
-                self.client.get_user_deposit(user.as_ref())
+            fn user_deposit(&self, user: &User) -> UserDeposit {
+                self.user_deposit_by_address(user.as_ref())
             }
 
-            pub fn set_admin_fee_share(&self, admin_fee: f64) {
+            fn user_deposit_by_address(&self, address: &Address) -> UserDeposit {
+                let deposit = self.client.get_user_deposit(address);
+                UserDeposit {
+                    reward_debts: deposit.reward_debts.0,
+                    lp_amount: deposit.lp_amount,
+                }
+            }
+
+            fn set_admin_fee_share(&self, admin_fee: f64) {
                 unwrap_call_result(
                     &self.env,
                     desoroban_result(
@@ -104,46 +191,46 @@ macro_rules! generate_pool_client {
                 );
             }
 
-            pub fn set_admin(&self, admin: Address) {
+            fn set_admin(&self, admin: Address) {
                 unwrap_call_result(
                     &self.env,
                     desoroban_result(self.client.try_set_admin(&admin)),
                 );
             }
 
-            pub fn set_fee_share(&self, fee_share: f64) {
+            fn set_fee_share(&self, fee_share: f64) {
                 unwrap_call_result(
                     &self.env,
                     desoroban_result(self.client.try_set_fee_share(&percentage_to_bp(fee_share))),
                 );
             }
 
-            pub fn claim_rewards(&self, user: &User) {
+            fn claim_rewards(&self, user: &User) {
                 unwrap_call_result(
                     &self.env,
                     desoroban_result(self.client.try_claim_rewards(&user.as_address())),
                 );
             }
 
-            pub fn claim_admin_fee(&self) {
+            fn claim_admin_fee(&self) {
                 unwrap_call_result(
                     &self.env,
                     desoroban_result(self.client.try_claim_admin_fee()),
                 );
             }
 
-            pub fn withdraw_checked(&self, user: &User, withdraw_amount: f64) -> CallResult {
+            fn withdraw_checked(&self, user: &User, withdraw_amount: f64) -> CallResult {
                 desoroban_result(
                     self.client
                         .try_withdraw(&user.as_address(), &float_to_uint_sp(withdraw_amount)),
                 )
             }
 
-            pub fn withdraw(&self, user: &User, withdraw_amount: f64) {
+            fn withdraw(&self, user: &User, withdraw_amount: f64) {
                 unwrap_call_result(&self.env, self.withdraw_checked(user, withdraw_amount));
             }
 
-            pub fn deposit_with_address_checked(
+            fn deposit_with_address_checked(
                 &self,
                 user: &Address,
                 deposit_amounts: [f64; $pool_size],
@@ -162,7 +249,7 @@ macro_rules! generate_pool_client {
                 ))
             }
 
-            pub fn deposit_with_address(
+            fn deposit_with_address(
                 &self,
                 user: &Address,
                 deposit_amounts: [f64; $pool_size],
@@ -174,7 +261,7 @@ macro_rules! generate_pool_client {
                 );
             }
 
-            pub fn deposit_checked(
+            fn deposit_checked(
                 &self,
                 user: &User,
                 deposit_amounts: [f64; $pool_size],
@@ -187,16 +274,7 @@ macro_rules! generate_pool_client {
                 )
             }
 
-            pub fn deposit(
-                &self,
-                user: &User,
-                deposit_amounts: [f64; $pool_size],
-                min_lp_amount: f64,
-            ) {
-                self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
-            }
-
-            pub fn swap_checked<T: Into<usize> + Copy>(
+            fn swap_checked<T: Into<usize> + Copy>(
                 &self,
                 sender: &User,
                 recipient: &User,
@@ -218,7 +296,7 @@ macro_rules! generate_pool_client {
                 ))
             }
 
-            pub fn swap<T: Into<usize> + Copy>(
+            fn swap<T: Into<usize> + Copy>(
                 &self,
                 sender: &User,
                 recipient: &User,
@@ -239,9 +317,27 @@ macro_rules! generate_pool_client {
                     ),
                 );
             }
+
+            fn pool_info(&self) -> PoolInfo {
+                let info = self.client.get_pool();
+
+                PoolInfo {
+                    id: self.id.clone(),
+                    d: self.client.get_d(),
+                    a: info.a,
+                    acc_rewards_per_share_p: info.acc_rewards_per_share_p.0,
+                    admin_fee_amount: info.admin_fee_amount.0,
+                    admin_fee_share_bp: info.admin_fee_share_bp,
+                    fee_share_bp: info.fee_share_bp,
+                    token_balances: info.token_balances.0,
+                    tokens: info.tokens.0,
+                    tokens_decimals: info.tokens_decimals.0,
+                    total_lp_amount: info.total_lp_amount,
+                }
+            }
         }
     };
 }
 
-generate_pool_client!(TwoPool, TwoPoolClient, TwoToken, TwoUserDeposit, 2);
-generate_pool_client!(ThreePool, ThreePoolClient, ThreeToken, ThreeUserDeposit, 3);
+generate_pool_client!(TwoPool, TwoPoolClient, TwoToken, 2);
+generate_pool_client!(ThreePool, ThreePoolClient, ThreeToken, 3);

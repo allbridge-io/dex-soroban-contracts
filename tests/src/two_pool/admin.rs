@@ -2,7 +2,7 @@
 
 use soroban_sdk::{testutils::Address as _, Address};
 
-use crate::utils::percentage_to_bp;
+use crate::{utils::percentage_to_bp, utils::PoolClient};
 
 use super::TwoPoolTestingEnv;
 

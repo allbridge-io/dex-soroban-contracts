@@ -5,9 +5,9 @@ use serde_derive::Serialize;
 use std::fmt::Display;
 
 use crate::contracts::three_pool::ThreeToken;
-use crate::contracts_wrappers::{Token, User};
 use crate::three_pool::ThreePoolTestingEnv;
 use crate::utils::CallResult;
+use crate::utils::{PoolClient, Token, User};
 
 #[derive(Debug, Clone, Default)]
 pub struct Action {

@@ -7,8 +7,10 @@ use serde_derive::Serialize;
 use std::fmt::Display;
 
 use crate::{
-    contracts::two_pool::TwoToken, contracts_wrappers::User, two_pool::TwoPoolTestingEnv,
+    contracts::two_pool::TwoToken,
     utils::CallResult,
+    utils::{PoolClient, User},
+    two_pool::TwoPoolTestingEnv,
 };
 
 #[derive(Debug, Clone, Default)]
