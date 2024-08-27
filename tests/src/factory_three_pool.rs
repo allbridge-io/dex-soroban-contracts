@@ -8,7 +8,7 @@ use crate::three_pool::ThreePoolTestingEnv;
 #[should_panic = "Context(InvalidAction)"]
 fn add_new_pool_no_auth() {
     let testing_env = ThreePoolTestingEnv::default();
-    let (token_a, token_b, token_c) =
+    let [token_a, token_b, token_c] =
         ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.clear_mock_auth().factory.create_pool(
@@ -86,7 +86,7 @@ fn identical_addresses() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_fee_share() {
     let testing_env = ThreePoolTestingEnv::default();
-    let (token_a, token_b, token_c) =
+    let [token_a, token_b, token_c] =
         ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pool(
@@ -102,7 +102,7 @@ fn invalid_fee_share() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_a() {
     let testing_env = ThreePoolTestingEnv::default();
-    let (token_a, token_b, token_c) =
+    let [token_a, token_b, token_c] =
         ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pool(
@@ -118,7 +118,7 @@ fn invalid_a() {
 #[should_panic = "DexContract(InvalidArg)"]
 fn invalid_admin_fee_share() {
     let testing_env = ThreePoolTestingEnv::default();
-    let (token_a, token_b, token_c) =
+    let [token_a, token_b, token_c] =
         ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
     testing_env.factory.create_pool(
@@ -168,7 +168,7 @@ fn pair_exist_reverse() {
 #[test]
 fn add_new_pair() {
     let testing_env = ThreePoolTestingEnv::default();
-    let (token_a, token_b, token_c) =
+    let [token_a, token_b, token_c] =
         ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
     let deployed_pool = testing_env.factory.create_pool(
@@ -215,7 +215,7 @@ fn add_new_pools() {
     let testing_env = ThreePoolTestingEnv::default();
 
     for _ in 0..20 {
-        let (token_a, token_b, token_c) =
+        let [token_a, token_b, token_c] =
             ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
         let _ = testing_env.factory.create_pool(
@@ -227,7 +227,7 @@ fn add_new_pools() {
         );
     }
 
-    let (token_a, token_b, token_c) =
+    let [token_a, token_b, token_c] =
         ThreePoolTestingEnv::generate_tokens(&testing_env.env, testing_env.admin.as_ref());
 
     let _ = testing_env.factory.create_pool(

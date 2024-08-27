@@ -43,7 +43,7 @@ pub trait TestingEnv<const N: usize>: Sized {
         env: &Env,
         factory: &PoolFactory,
         admin: &User,
-        tokens: Vec<&Token<T>>,
+        tokens: &[Token<T>; N],
         fee_share_percentage: f64,
         admin_fee_percentage: f64,
         admin_init_deposit: f64,

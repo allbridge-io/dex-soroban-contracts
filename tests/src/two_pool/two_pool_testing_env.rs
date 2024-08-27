@@ -71,23 +71,24 @@ impl TwoPoolTestingEnv {
         native_token.default_airdrop(&alice);
         native_token.default_airdrop(&bob);
 
-        let (token_a, token_b) = TwoPoolTestingEnv::generate_token_pair(&env, admin.as_ref());
-        let tokens = vec![&token_a, &token_b];
+        let tokens = TwoPoolTestingEnv::generate_token_pair(&env, admin.as_ref());
         let pool = TwoPoolTestingEnv::create_pool(
             &env,
             &factory,
             &admin,
-            vec![&token_a, &token_b],
+            &tokens,
             config.pool_fee_share_percentage,
             config.pool_admin_fee_percentage,
             config.admin_init_deposit,
         );
 
-        for token in tokens {
+        for token in tokens.iter() {
             token.default_airdrop(&admin);
             token.default_airdrop(&alice);
             token.default_airdrop(&bob);
         }
+
+        let [token_a, token_b] = tokens;
 
         TwoPoolTestingEnv {
             event_asserts: EventAsserts(env.clone()),
@@ -99,8 +100,8 @@ impl TwoPoolTestingEnv {
             alice,
             bob,
 
-            token_b,
             token_a,
+            token_b,
             pool,
             factory,
         }
@@ -118,10 +119,10 @@ impl TwoPoolTestingEnv {
         self
     }
 
-    pub fn generate_token_pair(env: &Env, admin: &Address) -> (Token<TwoToken>, Token<TwoToken>) {
+    pub fn generate_token_pair(env: &Env, admin: &Address) -> [Token<TwoToken>; 2] {
         let token_a = Token::create(env, admin, TwoToken::A, "a");
         let token_b = Token::create(env, admin, TwoToken::B, "b");
 
-        (token_a, token_b)
+        [token_a, token_b]
     }
 }

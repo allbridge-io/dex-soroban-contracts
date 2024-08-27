@@ -72,26 +72,25 @@ impl ThreePoolTestingEnv {
         native_token.default_airdrop(&alice);
         native_token.default_airdrop(&bob);
 
-        let (token_a, token_b, token_c) =
-            ThreePoolTestingEnv::generate_tokens(&env, admin.as_ref());
-
-        let tokens = vec![&token_a, &token_b, &token_c];
+        let tokens = ThreePoolTestingEnv::generate_tokens(&env, admin.as_ref());
 
         let pool = ThreePoolTestingEnv::create_pool(
             &env,
             &factory,
             &admin,
-            vec![&token_a, &token_b, &token_c],
+            &tokens,
             config.pool_fee_share_percentage,
             config.pool_admin_fee_percentage,
             config.admin_init_deposit,
         );
 
-        for token in tokens {
+        for token in tokens.iter() {
             token.default_airdrop(&admin);
             token.default_airdrop(&alice);
             token.default_airdrop(&bob);
         }
+
+        let [token_a, token_b, token_c] = tokens;
 
         ThreePoolTestingEnv {
             event_asserts: EventAsserts(env.clone()),
@@ -103,8 +102,8 @@ impl ThreePoolTestingEnv {
             alice,
             bob,
 
-            token_b,
             token_a,
+            token_b,
             token_c,
             pool,
             factory,
@@ -124,14 +123,11 @@ impl ThreePoolTestingEnv {
         }
     }
 
-    pub fn generate_tokens(
-        env: &Env,
-        admin: &Address,
-    ) -> (Token<ThreeToken>, Token<ThreeToken>, Token<ThreeToken>) {
+    pub fn generate_tokens(env: &Env, admin: &Address) -> [Token<ThreeToken>; 3] {
         let token_a = Token::create(env, admin, ThreeToken::A, "a");
         let token_b = Token::create(env, admin, ThreeToken::B, "b");
         let token_c = Token::create(env, admin, ThreeToken::C, "c");
 
-        (token_a, token_b, token_c)
+        [token_a, token_b, token_c]
     }
 }
