@@ -2,7 +2,7 @@
 
 use test_case::test_case;
 
-use crate::contracts_wrappers::TestingEnvConfig;
+use crate::contracts_wrappers::{Snapshot, TestingEnv, TestingEnvConfig};
 use crate::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv};
 
 #[test]

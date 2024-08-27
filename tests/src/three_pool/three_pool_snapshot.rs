@@ -1,8 +1,7 @@
 use std::ops::Index;
 
 use crate::{
-    contracts::three_pool::UserDeposit,
-    contracts_wrappers::User,
+    contracts_wrappers::{Snapshot, TestingEnv, User, UserBalance},
     utils::{format_diff, format_diff_with_float_diff},
 };
 
@@ -35,8 +34,8 @@ pub struct ThreePoolSnapshot {
     pub admin_b_fee_rewards: u128,
     pub admin_c_fee_rewards: u128,
 
-    pub alice_deposit: UserDeposit,
-    pub bob_deposit: UserDeposit,
+    pub alice_deposit: crate::contracts_wrappers::UserDeposit,
+    pub bob_deposit: crate::contracts_wrappers::UserDeposit,
 
     pub d: u128,
 }
@@ -45,6 +44,14 @@ impl Index<&String> for ThreePoolSnapshot {
     type Output = u128;
 
     fn index(&self, string: &String) -> &Self::Output {
+        self.index(string.as_str())
+    }
+}
+
+impl Index<String> for ThreePoolSnapshot {
+    type Output = u128;
+
+    fn index(&self, string: String) -> &Self::Output {
         self.index(string.as_str())
     }
 }
@@ -88,89 +95,21 @@ impl Index<&str> for ThreePoolSnapshot {
     }
 }
 
-impl ThreePoolSnapshot {
-    pub fn get_user_balances(&self, user: &User) -> (u128, u128, u128, u128) {
-        (
-            self[&format!("{}_a_balance", user.tag)],
-            self[&format!("{}_b_balance", user.tag)],
-            self[&format!("{}_c_balance", user.tag)],
-            self[&format!("{}_deposit_lp", user.tag)],
-        )
-    }
+impl Snapshot<3> for ThreePoolSnapshot {
+    type TestingEnv = ThreePoolTestingEnv;
 
-    pub fn get_user_balances_sum(&self, user: &User) -> u128 {
-        let (a, b, c, _) = self.get_user_balances(user);
-        a + b + c
-    }
-
-    pub fn get_users_balances_sum(&self) -> u128 {
-        let alice_balances = self.alice_b_balance + self.alice_a_balance;
-        let bob_balances = self.bob_b_balance + self.bob_a_balance;
-        alice_balances + bob_balances
-    }
-
-    pub fn take(testing_env: &ThreePoolTestingEnv) -> ThreePoolSnapshot {
-        let alice_address = testing_env.alice.as_address();
-        let bob_address = testing_env.bob.as_address();
-
-        let alice_a_balance = testing_env.token_a.balance_of(&alice_address);
-        let alice_b_balance = testing_env.token_b.balance_of(&alice_address);
-        let alice_c_balance = testing_env.token_c.balance_of(&alice_address);
-
-        let admin_a_balance = testing_env.token_a.balance_of(testing_env.admin.as_ref());
-        let admin_b_balance = testing_env.token_b.balance_of(testing_env.admin.as_ref());
-        let admin_c_balance = testing_env.token_c.balance_of(testing_env.admin.as_ref());
-
-        let bob_a_balance = testing_env.token_a.balance_of(&bob_address);
-        let bob_b_balance = testing_env.token_b.balance_of(&bob_address);
-        let bob_c_balance = testing_env.token_c.balance_of(&bob_address);
-
-        let pool_a_balance = testing_env.token_a.balance_of(&testing_env.pool.id);
-        let pool_b_balance = testing_env.token_b.balance_of(&testing_env.pool.id);
-        let pool_c_balance = testing_env.token_c.balance_of(&testing_env.pool.id);
-
-        let pool_info = testing_env.pool.client.get_pool();
-        let d = testing_env.pool.client.get_d();
-        let total_lp_amount = pool_info.total_lp_amount;
-
-        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(0);
-        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(1);
-        let acc_reward_c_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(2);
-
-        let admin_a_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(0);
-        let admin_b_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(1);
-        let admin_c_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(2);
-
-        let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
-        let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);
-
-        ThreePoolSnapshot {
-            d,
-            admin_a_balance,
-            admin_b_balance,
-            admin_c_balance,
-            alice_a_balance,
-            alice_b_balance,
-            alice_c_balance,
-            pool_a_balance,
-            pool_b_balance,
-            pool_c_balance,
-            bob_a_balance,
-            bob_b_balance,
-            bob_c_balance,
-            total_lp_amount,
-            acc_reward_a_per_share_p,
-            acc_reward_b_per_share_p,
-            acc_reward_c_per_share_p,
-            admin_a_fee_rewards,
-            admin_b_fee_rewards,
-            admin_c_fee_rewards,
-            alice_deposit,
-            bob_deposit,
+    fn get_user_balances(&self, user: &User) -> crate::contracts_wrappers::UserBalance<3> {
+        UserBalance {
+            balances: [
+                self[&format!("{}_a_balance", user.tag)],
+                self[&format!("{}_b_balance", user.tag)],
+                self[&format!("{}_c_balance", user.tag)],
+            ],
+            lp_amount: self[&format!("{}_deposit_lp", user.tag)],
         }
     }
 
-    pub fn print_change_with(&self, other: &ThreePoolSnapshot, title: &str) {
+    fn print_change_with(&self, other: &ThreePoolSnapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
         let balances = [
@@ -225,5 +164,78 @@ impl ThreePoolSnapshot {
                 None => println!("{}: {}", title, format_diff(before, after)),
             }
         }
+    }
+
+    fn take(testing_env: &impl TestingEnv<3>) -> ThreePoolSnapshot {
+        let (alice, bob, admin) = testing_env.users();
+        let [token_a, token_b, token_c] = testing_env.tokens();
+
+        let alice_address = alice.as_address();
+        let bob_address = bob.as_address();
+
+        let alice_a_balance = token_a.balance_of(&alice_address);
+        let alice_b_balance = token_b.balance_of(&alice_address);
+        let alice_c_balance = token_c.balance_of(&alice_address);
+
+        let admin_a_balance = token_a.balance_of(admin.as_ref());
+        let admin_b_balance = token_b.balance_of(admin.as_ref());
+        let admin_c_balance = token_c.balance_of(admin.as_ref());
+
+        let bob_a_balance = token_a.balance_of(&bob_address);
+        let bob_b_balance = token_b.balance_of(&bob_address);
+        let bob_c_balance = token_c.balance_of(&bob_address);
+
+        let pool_info = testing_env.pool_info();
+
+        let pool_a_balance = token_a.balance_of(&pool_info.id);
+        let pool_b_balance = token_b.balance_of(&pool_info.id);
+        let pool_c_balance = token_c.balance_of(&pool_info.id);
+
+        let d = pool_info.d;
+        let total_lp_amount = pool_info.total_lp_amount;
+
+        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.get_unchecked(0);
+        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.get_unchecked(1);
+        let acc_reward_c_per_share_p = pool_info.acc_rewards_per_share_p.get_unchecked(2);
+
+        let admin_a_fee_rewards = pool_info.admin_fee_amount.get_unchecked(0);
+        let admin_b_fee_rewards = pool_info.admin_fee_amount.get_unchecked(1);
+        let admin_c_fee_rewards = pool_info.admin_fee_amount.get_unchecked(2);
+
+        let alice_deposit = testing_env.get_user_deposit(&alice_address);
+        let bob_deposit = testing_env.get_user_deposit(&bob_address);
+
+        ThreePoolSnapshot {
+            d,
+            admin_a_balance,
+            admin_b_balance,
+            admin_c_balance,
+            alice_a_balance,
+            alice_b_balance,
+            alice_c_balance,
+            pool_a_balance,
+            pool_b_balance,
+            pool_c_balance,
+            bob_a_balance,
+            bob_b_balance,
+            bob_c_balance,
+            total_lp_amount,
+            acc_reward_a_per_share_p,
+            acc_reward_b_per_share_p,
+            acc_reward_c_per_share_p,
+            admin_a_fee_rewards,
+            admin_b_fee_rewards,
+            admin_c_fee_rewards,
+            alice_deposit,
+            bob_deposit,
+        }
+    }
+}
+
+impl ThreePoolSnapshot {
+    pub fn get_users_balances_sum(&self) -> u128 {
+        let alice_balances = self.alice_b_balance + self.alice_a_balance;
+        let bob_balances = self.bob_b_balance + self.bob_a_balance;
+        alice_balances + bob_balances
     }
 }

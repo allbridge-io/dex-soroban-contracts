@@ -14,7 +14,7 @@ use crate::{
 
 #[macro_export]
 macro_rules! generate_pool_client {
-    ($name:ident, $client_path:ident, $token:ty, $user_deposit:ty, $pool_size:literal) => {
+    ($name:ident, $client_path:ident, $token:tt, $user_deposit:ty, $pool_size:literal) => {
         pub struct $name {
             pub id: soroban_sdk::Address,
             pub client: $client_path<'static>,
@@ -196,33 +196,36 @@ macro_rules! generate_pool_client {
                 self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
             }
 
-            pub fn swap_checked(
+            pub fn swap_checked<T: Into<usize> + Copy>(
                 &self,
                 sender: &User,
                 recipient: &User,
                 amount: f64,
                 receive_amount_min: f64,
-                token_from: &$token,
-                token_to: &$token,
+                token_from: &Token<T>,
+                token_to: &Token<T>,
             ) -> CallResult<u128> {
+                let token_from: usize = token_from.pool_token.into();
+                let token_to: usize = token_to.pool_token.into();
+
                 desoroban_result(self.client.try_swap(
                     &sender.as_address(),
                     &recipient.as_address(),
                     &float_to_uint(amount, 7),
                     &float_to_uint(receive_amount_min, 7),
-                    &token_from.pool_token,
-                    &token_to.pool_token,
+                    &$token::from(token_from),
+                    &$token::from(token_to),
                 ))
             }
 
-            pub fn swap(
+            pub fn swap<T: Into<usize> + Copy>(
                 &self,
                 sender: &User,
                 recipient: &User,
                 amount: f64,
                 receive_amount_min: f64,
-                token_from: &$token,
-                token_to: &$token,
+                token_from: &Token<T>,
+                token_to: &Token<T>,
             ) {
                 unwrap_call_result(
                     &self.env,
@@ -240,11 +243,5 @@ macro_rules! generate_pool_client {
     };
 }
 
-generate_pool_client!(TwoPool, TwoPoolClient, Token<TwoToken>, TwoUserDeposit, 2);
-generate_pool_client!(
-    ThreePool,
-    ThreePoolClient,
-    Token<ThreeToken>,
-    ThreeUserDeposit,
-    3
-);
+generate_pool_client!(TwoPool, TwoPoolClient, TwoToken, TwoUserDeposit, 2);
+generate_pool_client!(ThreePool, ThreePoolClient, ThreeToken, ThreeUserDeposit, 3);

@@ -8,7 +8,7 @@ use clap::Parser;
 use clap_derive::Parser;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use tests::contracts_wrappers::TestingEnvConfig;
+use tests::contracts_wrappers::{Snapshot, TestingEnvConfig};
 use tests::fuzzing::two_fuzz_target_operation::FuzzTargetOperation;
 use tests::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv};
 

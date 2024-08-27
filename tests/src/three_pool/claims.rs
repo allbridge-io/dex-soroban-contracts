@@ -1,6 +1,9 @@
 #![cfg(test)]
 
-use crate::{contracts_wrappers::TestingEnvConfig, three_pool::ThreePoolTestingEnv};
+use crate::{
+    contracts_wrappers::{TestingEnv, TestingEnvConfig},
+    three_pool::ThreePoolTestingEnv,
+};
 
 #[test]
 #[should_panic(expected = "Context(InvalidAction)")]

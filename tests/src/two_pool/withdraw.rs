@@ -3,7 +3,7 @@
 use test_case::test_case;
 
 use crate::{
-    contracts_wrappers::TestingEnvConfig,
+    contracts_wrappers::{Snapshot, TestingEnv, TestingEnvConfig},
     two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv},
     utils::{assert_rel_eq, float_to_uint},
 };

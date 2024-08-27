@@ -2,8 +2,7 @@ use std::ops::Index;
 
 use super::TwoPoolTestingEnv;
 use crate::{
-    contracts::two_pool::UserDeposit,
-    contracts_wrappers::User,
+    contracts_wrappers::{Snapshot, TestingEnv, User, UserBalance},
     utils::{format_diff, format_diff_with_float_diff},
 };
 
@@ -28,8 +27,8 @@ pub struct TwoPoolSnapshot {
     pub admin_a_fee_rewards: u128,
     pub admin_b_fee_rewards: u128,
 
-    pub alice_deposit: UserDeposit,
-    pub bob_deposit: UserDeposit,
+    pub alice_deposit: crate::contracts_wrappers::UserDeposit,
+    pub bob_deposit: crate::contracts_wrappers::UserDeposit,
 
     pub d: u128,
 }
@@ -38,6 +37,14 @@ impl Index<&String> for TwoPoolSnapshot {
     type Output = u128;
 
     fn index(&self, string: &String) -> &Self::Output {
+        self.index(string.as_str())
+    }
+}
+
+impl Index<String> for TwoPoolSnapshot {
+    type Output = u128;
+
+    fn index(&self, string: String) -> &Self::Output {
         self.index(string.as_str())
     }
 }
@@ -75,54 +82,51 @@ impl Index<&str> for TwoPoolSnapshot {
     }
 }
 
-impl TwoPoolSnapshot {
-    pub fn get_user_balances(&self, user: &User) -> (u128, u128, u128) {
-        (
-            self[&format!("{}_a_balance", user.tag)],
-            self[&format!("{}_b_balance", user.tag)],
-            self[&format!("{}_deposit_lp", user.tag)],
-        )
+impl Snapshot<2> for TwoPoolSnapshot {
+    type TestingEnv = TwoPoolTestingEnv;
+
+    fn get_user_balances(&self, user: &User) -> UserBalance<2> {
+        UserBalance {
+            balances: [
+                self[&format!("{}_a_balance", user.tag)],
+                self[&format!("{}_b_balance", user.tag)],
+            ],
+            lp_amount: self[&format!("{}_deposit_lp", user.tag)],
+        }
     }
 
-    pub fn get_user_balances_sum(&self, user: &User) -> u128 {
-        let (a, b, _) = self.get_user_balances(user);
-        a + b
-    }
+    fn take(testing_env: &impl TestingEnv<2>) -> TwoPoolSnapshot {
+        let (alice, bob, admin) = testing_env.users();
+        let [token_a, token_b] = testing_env.tokens();
 
-    pub fn get_users_balances_sum(&self) -> u128 {
-        let alice_balances = self.alice_b_balance + self.alice_a_balance;
-        let bob_balances = self.bob_b_balance + self.bob_a_balance;
-        alice_balances + bob_balances
-    }
+        let alice_address = alice.as_address();
+        let bob_address = bob.as_address();
 
-    pub fn take(testing_env: &TwoPoolTestingEnv) -> TwoPoolSnapshot {
-        let alice_address = testing_env.alice.as_address();
-        let bob_address = testing_env.bob.as_address();
+        let alice_b_balance = token_b.balance_of(&alice_address);
+        let alice_a_balance = token_a.balance_of(&alice_address);
 
-        let alice_b_balance = testing_env.token_b.balance_of(&alice_address);
-        let alice_a_balance = testing_env.token_a.balance_of(&alice_address);
+        let admin_b_balance = token_b.balance_of(admin.as_ref());
+        let admin_a_balance = token_a.balance_of(admin.as_ref());
 
-        let admin_b_balance = testing_env.token_b.balance_of(testing_env.admin.as_ref());
-        let admin_a_balance = testing_env.token_a.balance_of(testing_env.admin.as_ref());
+        let bob_b_balance = token_b.balance_of(&bob_address);
+        let bob_a_balance = token_a.balance_of(&bob_address);
 
-        let bob_b_balance = testing_env.token_b.balance_of(&bob_address);
-        let bob_a_balance = testing_env.token_a.balance_of(&bob_address);
+        let pool_info = testing_env.pool_info();
 
-        let pool_b_balance = testing_env.token_b.balance_of(&testing_env.pool.id);
-        let pool_a_balance = testing_env.token_a.balance_of(&testing_env.pool.id);
+        let pool_b_balance = token_b.balance_of(&pool_info.id);
+        let pool_a_balance = token_a.balance_of(&pool_info.id);
 
-        let pool_info = testing_env.pool.client.get_pool();
-        let d = testing_env.pool.client.get_d();
+        let d = pool_info.d;
         let total_lp_amount = pool_info.total_lp_amount;
 
-        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(0);
-        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.0.get_unchecked(1);
+        let acc_reward_a_per_share_p = pool_info.acc_rewards_per_share_p.get_unchecked(0);
+        let acc_reward_b_per_share_p = pool_info.acc_rewards_per_share_p.get_unchecked(1);
 
-        let admin_a_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(0);
-        let admin_b_fee_rewards = pool_info.admin_fee_amount.0.get_unchecked(1);
+        let admin_a_fee_rewards = pool_info.admin_fee_amount.get_unchecked(0);
+        let admin_b_fee_rewards = pool_info.admin_fee_amount.get_unchecked(1);
 
-        let alice_deposit = testing_env.pool.client.get_user_deposit(&alice_address);
-        let bob_deposit = testing_env.pool.client.get_user_deposit(&bob_address);
+        let alice_deposit = testing_env.get_user_deposit(&alice_address);
+        let bob_deposit = testing_env.get_user_deposit(&bob_address);
 
         TwoPoolSnapshot {
             d,
@@ -144,7 +148,7 @@ impl TwoPoolSnapshot {
         }
     }
 
-    pub fn print_change_with(&self, other: &TwoPoolSnapshot, title: &str) {
+    fn print_change_with(&self, other: &TwoPoolSnapshot, title: &str) {
         println!("----------------------| {title} |----------------------");
 
         let balances = [
@@ -189,5 +193,13 @@ impl TwoPoolSnapshot {
                 None => println!("{}: {}", title, format_diff(before, after)),
             }
         }
+    }
+}
+
+impl TwoPoolSnapshot {
+    pub fn get_users_balances_sum(&self) -> u128 {
+        let alice_balances = self.alice_b_balance + self.alice_a_balance;
+        let bob_balances = self.bob_b_balance + self.bob_a_balance;
+        alice_balances + bob_balances
     }
 }

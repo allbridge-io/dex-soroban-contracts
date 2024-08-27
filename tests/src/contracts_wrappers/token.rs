@@ -19,6 +19,18 @@ impl From<ThreeToken> for usize {
     }
 }
 
+impl From<usize> for TwoToken {
+    fn from(value: usize) -> Self {
+        unsafe { std::mem::transmute(value as u8) }
+    }
+}
+
+impl From<usize> for ThreeToken {
+    fn from(value: usize) -> Self {
+        unsafe { std::mem::transmute(value as u8) }
+    }
+}
+
 pub struct Token<T: Into<usize>> {
     pub id: soroban_sdk::Address,
     pub tag: String,

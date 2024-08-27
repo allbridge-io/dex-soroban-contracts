@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::contracts_wrappers::TestingEnvConfig;
+use crate::contracts_wrappers::{TestingEnv, TestingEnvConfig};
 use crate::two_pool::TwoPoolTestingEnv;
 
 #[test]
