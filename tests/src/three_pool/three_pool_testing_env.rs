@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     contracts::three_pool::{Deposit, RewardsClaimed, Swapped, ThreeToken, Withdraw},
-    contracts_wrappers::{PoolFactory, TestingEnvConfig, ThreePool, Token, User},
+    contracts_wrappers::{EventAsserts, PoolFactory, TestingEnvConfig, ThreePool, Token, User},
     utils::{assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint, get_latest_event},
 };
 
@@ -12,6 +12,8 @@ use super::ThreePoolSnapshot;
 
 pub struct ThreePoolTestingEnv {
     pub env: Env,
+    pub event_asserts: EventAsserts<3>,
+
     pub admin: User,
     pub native_token: Token<ThreeToken>,
 
@@ -76,6 +78,7 @@ impl ThreePoolTestingEnv {
         token_c.default_airdrop(&bob);
 
         ThreePoolTestingEnv {
+            event_asserts: EventAsserts(env.clone()),
             env,
 
             admin,
@@ -157,88 +160,6 @@ impl ThreePoolTestingEnv {
         pool
     }
 
-    pub fn assert_claimed_reward_event(&self, expected_user: &User, expected_rewards: [f64; 3]) {
-        let rewards_claimed =
-            get_latest_event::<RewardsClaimed>(&self.env).expect("Expected RewardsClaimed");
-
-        assert_eq!(rewards_claimed.user, expected_user.as_address());
-
-        for (i, reward) in rewards_claimed.rewards.iter().enumerate() {
-            assert_rel_eq(reward, float_to_uint(expected_rewards[i], 7), 1);
-        }
-    }
-
-    pub fn assert_swapped_event(
-        &self,
-        sender: &User,
-        recipient: &User,
-        token_from: &Token<ThreeToken>,
-        token_to: &Token<ThreeToken>,
-        from_amount: f64,
-        expected_to_amount: f64,
-        expected_fee: f64,
-    ) {
-        let swapped = get_latest_event::<Swapped>(&self.env).expect("Expected Swapped");
-
-        assert_eq!(swapped.sender, sender.as_address());
-        assert_eq!(swapped.recipient, recipient.as_address());
-
-        assert_eq!(swapped.from_amount, float_to_uint(from_amount, 7));
-        assert_eq!(swapped.to_amount, float_to_uint(expected_to_amount, 7));
-        assert_rel_eq(swapped.fee, float_to_uint(expected_fee, 7), 1);
-
-        assert_eq!(swapped.from_token, token_from.id);
-        assert_eq!(swapped.to_token, token_to.id);
-    }
-
-    pub fn assert_withdraw_event(
-        &self,
-        expected_user: &User,
-        lp_amount: f64,
-        amounts: [f64; 3],
-        fees: [f64; 3],
-    ) {
-        let withdraw = get_latest_event::<Withdraw>(&self.env).expect("Expected Withdraw");
-
-        assert_eq!(withdraw.user, expected_user.as_address());
-        assert_eq!(withdraw.lp_amount, float_to_uint_sp(lp_amount));
-
-        for (index, amount) in amounts.iter().enumerate() {
-            assert_rel_eq(
-                withdraw.amounts.get_unchecked(index as u32),
-                float_to_uint_sp(*amount),
-                1,
-            );
-        }
-
-        for (index, fee) in fees.iter().enumerate() {
-            assert_rel_eq(
-                withdraw.fees.get_unchecked(index as u32),
-                float_to_uint(*fee, 7),
-                1,
-            );
-        }
-    }
-
-    pub fn assert_deposit_event(
-        &self,
-        expected_user: &User,
-        expected_lp_amount: f64,
-        tokens: [f64; 3],
-    ) {
-        let deposit = get_latest_event::<Deposit>(&self.env).expect("Expected Deposit");
-
-        for (index, token) in tokens.iter().enumerate() {
-            assert_eq!(
-                deposit.amounts.get_unchecked(index as u32),
-                float_to_uint(*token, 7)
-            );
-        }
-
-        assert_eq!(deposit.user, expected_user.as_address());
-        assert_eq!(float_to_uint_sp(expected_lp_amount), deposit.lp_amount);
-    }
-
     pub fn assert_deposit(
         &self,
         snapshot_before: ThreePoolSnapshot,
@@ -248,7 +169,8 @@ impl ThreePoolTestingEnv {
         expected_rewards: [f64; 3],
         expected_lp_amount: f64,
     ) {
-        self.assert_deposit_event(user, expected_lp_amount, expected_deposits);
+        self.event_asserts
+            .assert_deposit_event(user, expected_lp_amount, expected_deposits);
         self.assert_deposit_without_event(
             snapshot_before,
             snapshot_after,
@@ -322,7 +244,7 @@ impl ThreePoolTestingEnv {
         expected_admin_fees: [f64; 3],
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
-        self.assert_withdraw_event(
+        self.event_asserts.assert_withdraw_event(
             user,
             expected_user_withdraw_lp_diff,
             expected_amounts,
@@ -404,7 +326,8 @@ impl ThreePoolTestingEnv {
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
         if rewards.iter().sum::<f64>() != 0.0 {
-            self.assert_claimed_reward_event(user, rewards);
+            self.event_asserts
+                .assert_claimed_reward_event(user, rewards);
         }
 
         let (user_a_before, user_b_before, user_c_before, _) =
@@ -468,7 +391,7 @@ impl ThreePoolTestingEnv {
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
 
-        self.assert_swapped_event(
+        self.event_asserts.assert_swapped_event(
             sender,
             recipient,
             token_from,
@@ -546,7 +469,8 @@ impl ThreePoolTestingEnv {
         );
 
         if expected_rewards.iter().sum::<f64>() != 0.0 {
-            self.assert_claimed_reward_event(user, expected_rewards);
+            self.event_asserts
+                .assert_claimed_reward_event(user, expected_rewards);
         }
 
         (snapshot_before, snapshot_after)
@@ -634,7 +558,8 @@ impl ThreePoolTestingEnv {
         snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
         if expected_rewards.iter().sum::<f64>() != 0.0 {
-            self.assert_claimed_reward_event(user, expected_rewards);
+            self.event_asserts
+                .assert_claimed_reward_event(user, expected_rewards);
         }
 
         self.assert_withdraw(

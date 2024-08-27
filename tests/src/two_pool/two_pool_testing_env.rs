@@ -1,11 +1,11 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
-    contracts::two_pool::{Deposit, RewardsClaimed, Swapped, TwoToken, Withdraw},
-    contracts_wrappers::{TestingEnvConfig, Token},
+    contracts::two_pool::{Swapped, TwoToken},
+    contracts_wrappers::{EventAsserts, TestingEnvConfig, Token},
     utils::{
-        assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint, floats_to_uint_sp,
-        get_latest_event, percentage_to_bp,
+        assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint, get_latest_event,
+        percentage_to_bp,
     },
 };
 
@@ -15,6 +15,8 @@ use super::TwoPoolSnapshot;
 
 pub struct TwoPoolTestingEnv {
     pub env: Env,
+    pub event_asserts: EventAsserts<2>,
+
     pub admin: User,
     pub native_token: Token<TwoToken>,
 
@@ -73,6 +75,7 @@ impl TwoPoolTestingEnv {
         b_token.default_airdrop(&bob);
 
         TwoPoolTestingEnv {
+            event_asserts: EventAsserts(env.clone()),
             env,
 
             admin,
@@ -142,87 +145,6 @@ impl TwoPoolTestingEnv {
         pool
     }
 
-    pub fn assert_claimed_reward_event(&self, expected_user: &User, expected_rewards: [f64; 2]) {
-        let rewards_claimed =
-            get_latest_event::<RewardsClaimed>(&self.env).expect("Expected RewardsClaimed");
-
-        let [expected_a_reward, expected_b_reward] = floats_to_uint(expected_rewards, 7);
-
-        assert_eq!(rewards_claimed.user, expected_user.as_address());
-        assert_rel_eq(
-            rewards_claimed.rewards.get_unchecked(0),
-            expected_a_reward,
-            1,
-        );
-        assert_rel_eq(
-            rewards_claimed.rewards.get_unchecked(1),
-            expected_b_reward,
-            1,
-        );
-    }
-
-    pub fn assert_swapped_event(
-        &self,
-        sender: &User,
-        recipient: &User,
-        token_from: &Token<TwoToken>,
-        token_to: &Token<TwoToken>,
-        from_amount: f64,
-        expected_to_amount: f64,
-        expected_fee: f64,
-    ) {
-        let swapped = get_latest_event::<Swapped>(&self.env).expect("Expected Swapped");
-
-        let from_token = token_from.id.clone();
-        let to_token = token_to.id.clone();
-
-        assert_eq!(swapped.sender, sender.as_address());
-        assert_eq!(swapped.recipient, recipient.as_address());
-
-        assert_eq!(swapped.from_amount, float_to_uint(from_amount, 7));
-        assert_eq!(swapped.to_amount, float_to_uint(expected_to_amount, 7));
-        assert_rel_eq(swapped.fee, float_to_uint(expected_fee, 7), 1);
-
-        assert_eq!(swapped.from_token, from_token);
-        assert_eq!(swapped.to_token, to_token);
-    }
-
-    pub fn assert_withdraw_event(
-        &self,
-        expected_user: &User,
-        lp_amount: f64,
-        amounts: [f64; 2],
-        fees: [f64; 2],
-    ) {
-        let withdraw = get_latest_event::<Withdraw>(&self.env).expect("Expected Withdraw");
-
-        assert_eq!(withdraw.user, expected_user.as_address());
-        assert_eq!(withdraw.lp_amount, float_to_uint_sp(lp_amount));
-
-        let [a_amount, b_amount] = floats_to_uint_sp(amounts);
-        assert_rel_eq(withdraw.amounts.get_unchecked(0), a_amount, 1);
-        assert_rel_eq(withdraw.amounts.get_unchecked(1), b_amount, 1);
-
-        let [a_fee, b_fee] = floats_to_uint(fees, 7);
-        assert_rel_eq(withdraw.fees.get_unchecked(0), a_fee, 1);
-        assert_rel_eq(withdraw.fees.get_unchecked(1), b_fee, 1);
-    }
-
-    pub fn assert_deposit_event(
-        &self,
-        expected_user: &User,
-        expected_lp_amount: f64,
-        deposits: [f64; 2],
-    ) {
-        let deposit = get_latest_event::<Deposit>(&self.env).expect("Expected Deposit");
-        let deposits = floats_to_uint(deposits, 7);
-
-        assert_eq!(deposit.user, expected_user.as_address());
-        assert_eq!(deposit.amounts.get_unchecked(0), deposits[0]);
-        assert_eq!(deposit.amounts.get_unchecked(1), deposits[1]);
-        assert_eq!(float_to_uint_sp(expected_lp_amount), deposit.lp_amount);
-    }
-
     pub fn assert_deposit(
         &self,
         snapshot_before: TwoPoolSnapshot,
@@ -232,7 +154,8 @@ impl TwoPoolTestingEnv {
         expected_rewards: [f64; 2],
         expected_lp_amount: f64,
     ) {
-        self.assert_deposit_event(user, expected_lp_amount, expected_deposits);
+        self.event_asserts
+            .assert_deposit_event(user, expected_lp_amount, expected_deposits);
         self.assert_deposit_without_event(
             snapshot_before,
             snapshot_after,
@@ -300,7 +223,7 @@ impl TwoPoolTestingEnv {
         expected_admin_fees: [f64; 2],
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
-        self.assert_withdraw_event(
+        self.event_asserts.assert_withdraw_event(
             user,
             expected_user_withdraw_lp_diff,
             expected_amounts,
@@ -370,7 +293,8 @@ impl TwoPoolTestingEnv {
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
         if rewards.iter().sum::<f64>() != 0.0 {
-            self.assert_claimed_reward_event(user, rewards);
+            self.event_asserts
+                .assert_claimed_reward_event(user, rewards);
         }
 
         let (user_a_before, user_b_before, _) = snapshot_before.get_user_balances(user);
@@ -423,7 +347,7 @@ impl TwoPoolTestingEnv {
     ) {
         self.pool.assert_total_lp_less_or_equal_d();
 
-        self.assert_swapped_event(
+        self.event_asserts.assert_swapped_event(
             sender,
             recipient,
             token_from,
@@ -504,7 +428,8 @@ impl TwoPoolTestingEnv {
         );
 
         if expected_rewards.iter().sum::<f64>() != 0.0 {
-            self.assert_claimed_reward_event(user, expected_rewards);
+            self.event_asserts
+                .assert_claimed_reward_event(user, expected_rewards);
         }
 
         (snapshot_before, snapshot_after)
@@ -592,7 +517,8 @@ impl TwoPoolTestingEnv {
         snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
         if expected_rewards.iter().sum::<f64>() != 0.0 {
-            self.assert_claimed_reward_event(user, expected_rewards);
+            self.event_asserts
+                .assert_claimed_reward_event(user, expected_rewards);
         }
 
         self.assert_withdraw(
