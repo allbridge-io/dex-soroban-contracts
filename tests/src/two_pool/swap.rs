@@ -4,8 +4,8 @@ use test_case::test_case;
 
 use crate::{
     contracts::two_pool::TwoToken as Token,
-    utils::{PoolClient, Snapshot, TestingEnv, TestingEnvConfig},
     two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv},
+    utils::{PoolClient, Snapshot, TestingEnv, TestingEnvConfig},
 };
 
 use super::DepositArgs;

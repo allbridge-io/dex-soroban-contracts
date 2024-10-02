@@ -395,12 +395,17 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_user_lp_diff: f64,
         expected_admin_fee: [f64; N],
     ) -> (Self::Snapshot, Self::Snapshot) {
+        let expected_rewards_inst_zero = expected_rewards.iter().sum::<f64>() != 0.0;
+        if expected_rewards_inst_zero {
+            self.assert_pending_reward(&user, Vec::from_iter(expected_rewards));
+        }
+
         let snapshot_before = Self::Snapshot::take(self);
         self.pool_client().withdraw(user, withdraw_amount);
         let snapshot_after = Self::Snapshot::take(self);
         snapshot_before.print_change_with(&snapshot_after, "Withdraw");
 
-        if expected_rewards.iter().sum::<f64>() != 0.0 {
+        if expected_rewards_inst_zero {
             self.event_asserts()
                 .assert_claimed_reward_event(user, expected_rewards);
         }
@@ -426,6 +431,11 @@ pub trait TestingEnv<const N: usize>: Sized {
         expected_rewards: [f64; N],
         expected_lp_amount: f64,
     ) -> (Self::Snapshot, Self::Snapshot) {
+        let expected_rewards_inst_zero = expected_rewards.iter().sum::<f64>() != 0.0;
+        if expected_rewards_inst_zero {
+            self.assert_pending_reward(&user, Vec::from_iter(expected_rewards));
+        }
+
         let snapshot_before = Self::Snapshot::take(self);
         self.pool_client().deposit(user, deposit, 0.0);
         let snapshot_after = Self::Snapshot::take(self);
@@ -445,7 +455,7 @@ pub trait TestingEnv<const N: usize>: Sized {
             expected_lp_amount,
         );
 
-        if expected_rewards.iter().sum::<f64>() != 0.0 {
+        if expected_rewards_inst_zero {
             self.event_asserts()
                 .assert_claimed_reward_event(user, expected_rewards);
         }
@@ -502,5 +512,15 @@ pub trait TestingEnv<const N: usize>: Sized {
         snapshot_before.print_change_with(&snapshot_after, &title);
 
         Self::assert_claim_admin_fee(&snapshot_before, &snapshot_after, expected_rewards);
+    }
+
+    fn assert_pending_reward(&self, user: &User, expected_pending_rewards: Vec<f64>) {
+        let pending_rewards = self.pool_client().pending_reward(&user);
+
+        for i in 0..expected_pending_rewards.len() {
+            let expected = float_to_uint(expected_pending_rewards[i], 7);
+
+            assert_rel_eq(pending_rewards[i], expected, 1);
+        }
     }
 }

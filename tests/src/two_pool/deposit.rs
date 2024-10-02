@@ -2,8 +2,8 @@
 
 use test_case::test_case;
 
-use crate::utils::{PoolClient, Snapshot, TestingEnv, TestingEnvConfig};
 use crate::two_pool::{TwoPoolSnapshot, TwoPoolTestingEnv};
+use crate::utils::{PoolClient, Snapshot, TestingEnv, TestingEnvConfig};
 
 #[test]
 #[should_panic = "DexContract(ZeroAmount)"]

@@ -57,6 +57,8 @@ pub trait PoolClient<const N: usize> {
 
     fn deposit_with_address(&self, user: &Address, deposit_amounts: [f64; N], min_lp_amount: f64);
 
+    fn pending_reward(&self, user: &User) -> std::vec::Vec<u128>;
+
     fn deposit_checked(
         &self,
         user: &User,
@@ -135,6 +137,19 @@ macro_rules! generate_pool_client {
 
             fn deposit(&self, user: &User, deposit_amounts: [f64; $pool_size], min_lp_amount: f64) {
                 self.deposit_with_address(&user.as_address(), deposit_amounts, min_lp_amount);
+            }
+
+            fn pending_reward(&self, user: &User) -> std::vec::Vec<u128> {
+                let result = self.client.pending_reward(&user.as_address());
+                let len = result.len() as usize;
+                let mut vec_result = std::vec::Vec::with_capacity(len);
+                vec_result.resize(len, 0);
+
+                for i in 0..len {
+                    vec_result[i] = result.get(i as u32).unwrap();
+                }
+
+                vec_result
             }
 
             fn assert_total_lp_less_or_equal_d(&self) {
