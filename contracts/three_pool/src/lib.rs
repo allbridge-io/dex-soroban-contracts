@@ -1,8 +1,12 @@
 #![no_std]
 
-mod contract;
-mod events;
-mod methods;
-mod storage;
+mod pool;
+mod token;
+mod unit_tests;
 
-pub use contract::PoolContract;
+use generic_pool::generate_pool_contract;
+
+use crate::pool::ThreePool;
+use crate::token::ThreeToken;
+
+generate_pool_contract!(TwoPoolContract, ThreePool, ThreeToken, 3);

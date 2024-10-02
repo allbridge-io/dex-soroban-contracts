@@ -1,0 +1,20 @@
+[package]
+name = "generic_pool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+soroban-sdk = { workspace = true }
+shared = { workspace = true }
+proc_macros = { workspace = true }
+ethnum = { workspace = true }
+storage = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+
+[lints.clippy]
+redundant_clone = "warn"
+unreadable_literal = "warn"
+semicolon_if_nothing_returned = "warn"
+or_fun_call = "warn"

@@ -1,5 +1,5 @@
 [package]
-name = "three_pool"
+name = "three-pool"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,6 +12,7 @@ shared = { workspace = true }
 proc_macros = { workspace = true }
 ethnum = { workspace = true }
 storage = { workspace = true }
+generic_pool = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

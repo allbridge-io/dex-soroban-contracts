@@ -14,8 +14,6 @@ use soroban_sdk::{
 
 use soroban_sdk::xdr::ScAddress;
 
-use crate::contracts::pool::Direction;
-
 pub const SYSTEM_PRECISION: u32 = 3;
 
 pub fn error_code_to_error(v: u32) -> shared::Error {
@@ -54,6 +52,20 @@ pub fn int_to_float(amount: i128, decimals: i32) -> f64 {
 pub fn float_to_uint(amount: f64, decimals: u32) -> u128 {
     assert!(amount >= 0.0);
     (amount * 10.0f64.powi(decimals as i32)) as u128
+}
+
+pub fn floats_to_uint<const N: usize>(amounts: [f64; N], decimals: u32) -> [u128; N] {
+    let mut v = [0; N];
+
+    for (i, x) in amounts.iter().enumerate() {
+        v[i] = float_to_uint(*x, decimals);
+    }
+
+    v
+}
+
+pub fn floats_to_uint_sp<const N: usize>(amounts: [f64; N]) -> [u128; N] {
+    floats_to_uint(amounts, SYSTEM_PRECISION)
 }
 
 pub fn uint_to_float(amount: u128, decimals: u32) -> f64 {
@@ -134,11 +146,14 @@ pub fn percentage_to_bp(percentage: f64) -> u128 {
     (percentage * 100.0) as u128
 }
 
-impl Direction {
-    pub fn reverse(&self) -> Self {
-        match self {
-            Direction::A2B => Direction::B2A,
-            Direction::B2A => Direction::A2B,
-        }
-    }
+pub fn format_diff_with_float_diff(a: u128, b: u128, decimals: u32) -> (String, String) {
+    let float_diff = int_to_float(b as i128 - a as i128, decimals as i32);
+
+    let float_diff = match b.partial_cmp(&a).unwrap() {
+        Ordering::Equal => String::new(),
+        Ordering::Greater => cformat!("<bright-green>+{float_diff}</bright-green>"),
+        Ordering::Less => cformat!("<bright-red>{float_diff}</bright-red>"),
+    };
+
+    (format_diff(a, b), float_diff)
 }

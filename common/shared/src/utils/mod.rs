@@ -3,11 +3,19 @@ use soroban_sdk::Bytes;
 pub mod bytes;
 mod extend_ttl;
 pub mod num;
-pub mod require;
 
 pub use extend_ttl::*;
 
 use crate::Error;
+
+#[macro_export]
+macro_rules! require {
+    ($cond:expr, $err:expr) => {
+        if !$cond {
+            return Err($err);
+        }
+    };
+}
 
 pub fn bytes_to_slice<const N: usize>(bytes: Bytes) -> [u8; N] {
     let mut xdr_slice: [u8; N] = [0; N];
