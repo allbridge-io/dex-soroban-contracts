@@ -10,13 +10,11 @@ use crate::{
 pub fn pending_reward<const N: usize, P: Pool<N>>(
     env: Env,
     user: Address,
-) -> Result<(u128, u128), Error> {
+) -> Result<soroban_sdk::Vec<u128>, Error> {
     let user = UserDeposit::get::<N>(&env, user);
     let pool = P::get(&env)?;
 
-    let pending = pool.get_pending(&env, &user);
-
-    Ok((pending.get(0usize), pending.get(1usize)))
+    Ok(pool.get_pending(&env, &user).get_inner())
 }
 
 pub fn get_pool<const N: usize, P: Pool<N>>(env: Env) -> Result<P, Error> {
@@ -36,9 +34,13 @@ pub fn get_receive_amount<const N: usize, P: Pool<N>>(
     input: u128,
     token_from: P::Token,
     token_to: P::Token,
-) -> Result<(u128, u128), Error> {
+) -> Result<Vec<u128>, Error> {
     let receive_amount = P::get(&env)?.get_receive_amount(input, token_from, token_to)?;
-    Ok((receive_amount.output, receive_amount.fee))
+
+    Ok(Vec::from_array(
+        &env,
+        [receive_amount.output, receive_amount.fee],
+    ))
 }
 
 pub fn get_send_amount<const N: usize, P: Pool<N>>(
@@ -46,8 +48,10 @@ pub fn get_send_amount<const N: usize, P: Pool<N>>(
     output: u128,
     token_from: P::Token,
     token_to: P::Token,
-) -> Result<(u128, u128), Error> {
-    P::get(&env)?.get_send_amount(output, token_from, token_to)
+) -> Result<Vec<u128>, Error> {
+    P::get(&env)?
+        .get_send_amount(output, token_from, token_to)
+        .map(|(v1, v2)| Vec::from_array(&env, [v1, v2]))
 }
 
 pub fn get_withdraw_amount<const N: usize, P: Pool<N>>(

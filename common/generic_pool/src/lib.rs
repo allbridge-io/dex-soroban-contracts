@@ -135,7 +135,7 @@ macro_rules! generate_pool_contract {
             pub fn pending_reward(
                 env: soroban_sdk::Env,
                 user: soroban_sdk::Address,
-            ) -> Result<(u128, u128), shared::Error> {
+            ) -> Result<soroban_sdk::Vec<u128>, shared::Error> {
                 generic_pool::prelude::pending_reward::<POOL_SIZE, $pool_storage>(env, user)
             }
 
@@ -159,7 +159,7 @@ macro_rules! generate_pool_contract {
                 input: u128,
                 token_from: $token,
                 token_to: $token,
-            ) -> Result<(u128, u128), shared::Error> {
+            ) -> Result<soroban_sdk::Vec<u128>, shared::Error> {
                 generic_pool::prelude::get_receive_amount::<POOL_SIZE, $pool_storage>(
                     env, input, token_from, token_to,
                 )
@@ -170,7 +170,7 @@ macro_rules! generate_pool_contract {
                 output: u128,
                 token_from: $token,
                 token_to: $token,
-            ) -> Result<(u128, u128), shared::Error> {
+            ) -> Result<soroban_sdk::Vec<u128>, shared::Error> {
                 generic_pool::prelude::get_send_amount::<POOL_SIZE, $pool_storage>(
                     env, output, token_from, token_to,
                 )
