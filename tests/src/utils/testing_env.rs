@@ -27,6 +27,14 @@ pub struct UserDeposit {
     pub reward_debts: soroban_sdk::Vec<u128>,
 }
 
+#[derive(Debug, Clone)]
+pub struct WithdrawAmountView {
+    /// system precision
+    pub amounts: soroban_sdk::Vec<u128>,
+    /// token precision
+    pub fees: soroban_sdk::Vec<u128>,
+}
+
 pub trait TestingEnv<const N: usize>: Sized {
     type Snapshot: Snapshot<N>;
 

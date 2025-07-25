@@ -1,6 +1,6 @@
 use soroban_sdk::{Address, Env, Vec};
 
-use super::{PoolInfo, Token, User, UserDeposit};
+use super::{PoolInfo, Token, User, UserDeposit, WithdrawAmountView};
 use crate::{
     contracts::three_pool::{Client as ThreePoolClient, ThreeToken},
     contracts::two_pool::{Client as TwoPoolClient, TwoToken},
@@ -29,6 +29,7 @@ pub trait PoolClient<const N: usize> {
     fn user_lp_amount_f64(&self, user: &User) -> f64;
 
     fn fee_share_bp(&self) -> u128;
+    fn get_withdraw_amount(&self, lp_amount: u128) -> WithdrawAmountView;
 
     fn admin_fee_share_bp(&self) -> u128;
 
@@ -232,6 +233,15 @@ macro_rules! generate_pool_client {
                     &self.env,
                     desoroban_result(self.client.try_claim_admin_fee()),
                 );
+            }
+
+            fn get_withdraw_amount(&self, lp_amount: u128) -> WithdrawAmountView {
+                let view = self.client.get_withdraw_amount(&lp_amount);
+
+                WithdrawAmountView {
+                    amounts: view.amounts.clone(),
+                    fees: view.fees.clone(),
+                }
             }
 
             fn withdraw_checked(&self, user: &User, withdraw_amount: f64) -> CallResult {
