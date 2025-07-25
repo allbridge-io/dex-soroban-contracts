@@ -37,6 +37,10 @@ impl TestingEnv<2> for TwoPoolTestingEnv {
 
     const TOKENS: [&'static str; 2] = ["a", "b"];
 
+    fn env(&self) -> &Env {
+        &self.env
+    }
+
     fn pool_client(&self) -> &impl PoolClient<2> {
         &self.pool
     }

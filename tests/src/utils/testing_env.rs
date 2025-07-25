@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{testutils::Logs as _, Address, Env};
 
 use crate::utils::{
     assert_rel_eq, float_to_uint, float_to_uint_sp, floats_to_uint, percentage_to_bp, UserBalance,
@@ -38,6 +38,12 @@ pub trait TestingEnv<const N: usize>: Sized {
 
     fn users(&self) -> (&User, &User, &User);
     fn tokens(&self) -> [&Token<impl Into<usize>>; N];
+    fn env(&self) -> &Env;
+
+    fn print_logs(&self) {
+        let logs = self.env().logs().all();
+        println!("{}", logs.join("\n"));
+    }
 
     fn create_pool<P: PoolClient<N>, T: Into<usize> + Copy>(
         env: &Env,
@@ -287,8 +293,10 @@ pub trait TestingEnv<const N: usize>: Sized {
         let pool_to_token_diff =
             snapshot_before[pool_to_balance_key.clone()] - snapshot_after[pool_to_balance_key];
 
-        let pool_from_token_balance_diff = snapshot_after[pool_from_token_balance_key.clone()] - snapshot_before[pool_from_token_balance_key];
-        let pool_to_token_balance_diff = snapshot_before[pool_to_token_balance_key.clone()] - snapshot_after[pool_to_token_balance_key];
+        let pool_from_token_balance_diff = snapshot_after[pool_from_token_balance_key.clone()]
+            - snapshot_before[pool_from_token_balance_key];
+        let pool_to_token_balance_diff = snapshot_before[pool_to_token_balance_key.clone()]
+            - snapshot_after[pool_to_token_balance_key];
 
         assert!(
             snapshot_after[acc_reward_token_to_per_share_p_key.clone()]
@@ -303,8 +311,10 @@ pub trait TestingEnv<const N: usize>: Sized {
 
         assert_eq!(pool_from_token_balance_diff * 10000, amount);
         let to_token_balance_without_fee = pool_to_token_balance_diff * 10000 - expected_fee;
-        assert!(to_token_balance_without_fee - 1 <= expected_receive_amount && expected_receive_amount <= to_token_balance_without_fee);
-
+        assert!(
+            to_token_balance_without_fee - 1 <= expected_receive_amount
+                && expected_receive_amount <= to_token_balance_without_fee
+        );
     }
 
     fn assert_deposit(

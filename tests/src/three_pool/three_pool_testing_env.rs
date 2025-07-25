@@ -38,6 +38,10 @@ impl TestingEnv<3> for ThreePoolTestingEnv {
 
     const TOKENS: [&'static str; 3] = ["a", "b", "c"];
 
+    fn env(&self) -> &Env {
+        &self.env
+    }
+
     fn pool_client(&self) -> &impl PoolClient<3> {
         &self.pool
     }
